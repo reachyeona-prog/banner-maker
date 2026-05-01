@@ -17,7 +17,7 @@
  *   §7  입력 필드
  *   §8  배경색 / 포인트 컬러
  *   §9  텍스트 컬러 토글 (세그먼트)
- *   §10 이미지 업로드 (드래그앤드롭 포함)
+ *   §10 이미지 업로드 (드래그 앤 드롭 포함)
  *   §11 미리보기 (banner-wrap, b-main, b-sub, b-img, ph) + corner brackets
  *   §12 가이드 오버레이 (pad-guide, safe-zone, crop-guide)
  *   §13 다운로드 버튼 + 스피너
@@ -161,7 +161,6 @@ button { font-family: inherit; }
 .selector-group select:focus,
 .company-input:focus {
   border-color: var(--ink);
-  box-shadow: 0 0 0 3px rgba(26,26,26,0.05);
 }
 .guide-toggle {
   padding: 0 14px; background: var(--card); border: 1px solid var(--border);
@@ -211,11 +210,12 @@ button { font-family: inherit; }
 /* 입력 카드: 탭 바를 카드 상단부터 풀폭으로 두기 위해 패딩 0 */
 .input-card { padding: 0; gap: 0; }
 .tab-bar {
-  display: flex; border-bottom: 1px solid var(--border); gap: 0;
+  display: flex; gap: 0;
   padding: 28px 28px 0;       /* top/좌우 모두 28px (tab-content와 동일) */
 }
 .tab-btn {
-  flex: 1; padding: 0 8px 12px; background: none; border: none;
+  flex: 1; padding: 0 8px 12px; background: none;
+  border: none; border-bottom: 1px solid var(--border);
   font-size: 13px; font-weight: 700; color: var(--text-muted); cursor: pointer;
   letter-spacing: -0.2px;
   transition: color var(--t-base);
@@ -325,7 +325,7 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
   box-shadow: 0 1px 2px rgba(0,0,0,0.06);
 }
 
-/* ===== §10 이미지 업로드 (드래그앤드롭 포함) ===== */
+/* ===== §10 이미지 업로드 (드래그 앤 드롭 포함) ===== */
 #upload-area-wrap { display: flex; flex-direction: column; gap: 12px; }
 .upload-item { display: flex; flex-direction: column; gap: 6px; }
 .upload-version-label {
@@ -852,10 +852,10 @@ const SPECS = {
         abMirror: 'vertical',
         versions: [
           { id: 'mo', label: 'MO', w: 400, h: 420,
-            main: { top:290, left:25, right:25, fs:32, lines:2, lh:'150%', center:true, color:'#000000' },
+            main: { top:289, left:25, right:25, fs:32, lines:2, lh:'150%', center:true, color:'#000000' },
             img:  { top:25, left:25, w:350, h:230 } },
           { id: 'pc', label: 'PC', w: 323, h: 408,
-            main: { top:285, left:20, right:20, fs:27, lines:2, lh:'150%', center:true, color:'#000000' },
+            main: { top:288, left:20, right:20, fs:27, lines:2, lh:'150%', center:true, color:'#000000' },
             img:  { top:25, left:20, w:283, h:225 } }
         ]
       },
@@ -903,14 +903,14 @@ const SPECS = {
         bgFixed: null, noPointColor: true,
         sharedImage: true, // 모든 버전이 동일한 이미지 사용 (업로드 영역 1개로 공유)
         versions: [
-          { id: 'right', label: '이미지우측', w: 328, h: 72,
-            sub:  { top:16, left:20, fs:13, lh:'130%', color:'#000000' },
-            main: { bottom:16, left:20, fs:17, lines:1, lh:'130%' },
+          { id: 'right', label: '이미지 우측', w: 328, h: 72,
+            sub:  { top:16, left:20, right:126, fs:13, lh:'130%', color:'#000000' },
+            main: { bottom:16, left:20, right:126, fs:17, lines:1, lh:'130%' },
             img:  { right:6, w:100, h:60, vcenter:true } },
-          { id: 'left',  label: '이미지좌측', w: 328, h: 72,
-            sub:  { top:16, left:120, right:20, fs:13, lh:'130%', color:'#000000' },
-            main: { bottom:16, left:120, right:20, fs:17, lines:1, lh:'130%' },
-            img:  { left:10, w:100, h:60, vcenter:true } }
+          { id: 'left',  label: '이미지 좌측', w: 328, h: 72,
+            sub:  { top:16, left:126, right:20, fs:13, lh:'130%', color:'#000000' },
+            main: { bottom:16, left:126, right:20, fs:17, lines:1, lh:'130%' },
+            img:  { left:6, w:100, h:60, vcenter:true } }
         ]
       },
       'B4': {
@@ -918,13 +918,13 @@ const SPECS = {
         bgFixed: null, noPointColor: true,
         sharedImage: true,
         versions: [
-          { id: 'right', label: '이미지우측', w: 270, h: 100,
-            sub:  { top:19, left:24, fs:12, lh:'130%', color:'#000000' },
-            main: { bottom:19, left:24, fs:16, lines:2, lh:'130%' },
+          { id: 'right', label: '이미지 우측', w: 270, h: 100,
+            sub:  { top:19, left:24, right:100, fs:12, lh:'130%', color:'#000000' },
+            main: { bottom:19, left:24, right:100, fs:16, lines:2, lh:'130%' },
             img:  { right:24, w:56, h:56, vcenter:true } },
-          { id: 'left',  label: '이미지좌측', w: 270, h: 100,
-            sub:  { top:19, left:104, right:10, fs:12, lh:'130%', color:'#000000' },
-            main: { bottom:19, left:104, right:10, fs:16, lines:2, lh:'130%' },
+          { id: 'left',  label: '이미지 좌측', w: 270, h: 100,
+            sub:  { top:19, left:100, right:10, fs:12, lh:'130%', color:'#000000' },
+            main: { bottom:19, left:100, right:10, fs:16, lines:2, lh:'130%' },
             img:  { left:24, w:56, h:56, vcenter:true } }
         ]
       },
@@ -941,7 +941,7 @@ const SPECS = {
         abMirror: 'horizontal',
         versions: [{ id: 'mo', label: 'MO', w: 328, h: 200,
           main: { top:24, left:24, right:24, fs:24, lines:2, lh:'130%' },
-          sub:  { top:97, left:24, right:24, fs:18, lines:2, lh:'130%', color:'#000000' },
+          sub:  { top:97, left:24, right:120, fs:18, lines:2, lh:'130%', color:'#000000' },
           img:  { right:0, bottom:0, w:100, h:100 } }]
       },
       'B7': {
@@ -981,8 +981,8 @@ const SPECS = {
         abMirror: 'vertical',
         versions: [{ id: 'mo', label: 'MO', w: 393, h: 852,
           main: { top:140, fs:28, lines:2, lh:'140%', center:true },
-          img:  { top:249, left:41, w:310, h:480 },
-          crop: { top:90, left:41, w:310, h:670 } }]
+          img:  { top:249, left:41, w:311, h:480 },
+          crop: { top:90, left:41, w:311, h:670 } }]
       }
     }
   },
@@ -990,16 +990,16 @@ const SPECS = {
     label: '테이블 오더',
     slots: {
       'C1': {
-        label: '대기화면',
+        label: '대기 화면',
         bgFixed: null, noPointColor: true, isLarge: true,
         pillSub: true,        // 서브 카피 태그 pill 스타일
         selectableLines: true, // 메인 카피 2줄/3줄 선택
         versions: [
-          { id: 'right', label: '이미지버전', uploadLabel: '우측 이미지', w: 1280, h: 800,
-            sub:  { top:100, left:100, fs:35, lh:'130%', color:'#000000' },
-            main: { top:226, left:100, fs:75, lines:3, lh:'130%' },
+          { id: 'right', label: '이미지 버전', uploadLabel: '우측 이미지', w: 1280, h: 800,
+            sub:  { top:100, left:100, right:550, fs:35, lh:'130%', color:'#000000' },
+            main: { top:226, left:100, right:550, fs:75, lines:3, lh:'130%' },
             img:  { right:0, top:0, w:450, h:800, cover:true } },
-          { id: 'bg', label: '배경버전', uploadLabel: '배경 이미지', w: 1280, h: 800,
+          { id: 'bg', label: '배경 버전', uploadLabel: '배경 이미지', w: 1280, h: 800,
             sub:  { top:100, left:100, fs:35, lh:'130%', color:'#000000' },
             main: { top:226, left:100, fs:75, lines:3, lh:'130%' },
             img:  { top:0, left:0, w:1280, h:800, cover:true, bgFull:true } }
@@ -1324,53 +1324,65 @@ function renderInputs() {
     if (uniqueFs.length === 1) return `${uniqueFs[0]}px`;
     return present.map(ver => `${ver.label} ${ver[field].fs}px`).join(' / ');
   }
-  // 서브가 위에 오는 구좌 (B2, B3, B4)
-  const subFirst = v.sub && v.sub.top !== undefined && v.main && v.main.bottom !== undefined;
+  // 실제 배너 노출 순서(위→아래)에 맞춰 입력 필드 정렬
+  // sub와 main 각각의 시각적 top 좌표를 계산해서 위에 오는 쪽을 먼저 렌더
+  const visualTop = (el) => {
+    if (!el) return Infinity;
+    if (el.top !== undefined) return el.top;
+    if (el.bottom !== undefined) return v.h - el.bottom; // approx
+    return Infinity;
+  };
+  const subFirst = v.sub && v.main && !spec.noSub
+    && visualTop(v.sub) < visualTop(v.main);
+
+  const renderMainFields = () => {
+    if (!v.main) return;
+    const lines = spec.selectableLines ? currentMainLines : (v.main.lines || 1);
+    const mainColor = v.main.color || '#111111';
+    const mainSpec = `${fsStr('main')} Bold<br>행간 ${v.main.lh} · 자간 -0.5px · ${mainColor}`;
+    if (spec.selectableLines) {
+      const linesField = document.createElement('div');
+      linesField.className = 'field';
+      linesField.innerHTML = `
+        <div class="field-label" style="display:flex;align-items:center;gap:10px;">
+          메인 카피 줄수
+          <div class="text-color-segments" style="margin-left:auto;">
+            <div class="text-color-segment ${currentMainLines === 2 ? 'active' : ''}" id="lines-seg-2" onclick="setMainLines(2)">2줄</div>
+            <div class="text-color-segment ${currentMainLines === 3 ? 'active' : ''}" id="lines-seg-3" onclick="setMainLines(3)">3줄</div>
+          </div>
+        </div>`;
+      area.appendChild(linesField);
+    }
+    if (lines >= 3) {
+      area.appendChild(makeField('main1', '메인 카피 1줄', mainSpec, 1));
+      area.appendChild(makeField('main2', '메인 카피 2줄', mainSpec, 1));
+      area.appendChild(makeField('main3', '메인 카피 3줄', mainSpec, 1));
+    } else if (lines >= 2) {
+      area.appendChild(makeField('main1', '메인 카피 1줄', mainSpec, 1));
+      area.appendChild(makeField('main2', '메인 카피 2줄', mainSpec, 1));
+    } else {
+      area.appendChild(makeField('main', '메인 카피', mainSpec, 1));
+    }
+  };
+
+  const renderSubFields = () => {
+    if (!v.sub || spec.noSub) return;
+    const subSpec = `${fsStr('sub')} Medium<br>행간 ${v.sub.lh || '130%'} · 자간 -0.5px · ${v.sub.color}`;
+    const subLines = v.sub.lines || 1;
+    if (subLines >= 2) {
+      area.appendChild(makeField('sub1', '서브 카피 1줄', subSpec, 1));
+      area.appendChild(makeField('sub2', '서브 카피 2줄', subSpec, 1));
+    } else {
+      area.appendChild(makeField('sub', '서브 카피', subSpec, 1));
+    }
+  };
+
   if (subFirst) {
-    area.appendChild(makeField('sub', '서브 카피 (위)', `${fsStr('sub')} Medium<br>행간 ${v.sub.lh || '130%'} · 자간 -0.5px · ${v.sub.color}`, 1));
-    area.appendChild(makeField('main', '메인 카피 (아래)', `${fsStr('main')} Bold<br>자간 -0.5px`, v.main.lines || 1));
+    renderSubFields();
+    renderMainFields();
   } else {
-    // 메인
-    if (v.main) {
-      const lines = spec.selectableLines ? currentMainLines : (v.main.lines || 1);
-      const mainColor = v.main.color || '#111111';
-      const mainSpec = `${fsStr('main')} Bold<br>행간 ${v.main.lh} · 자간 -0.5px · ${mainColor}`;
-      // 줄수 선택 토글 (C1)
-      if (spec.selectableLines) {
-        const linesField = document.createElement('div');
-        linesField.className = 'field';
-        linesField.innerHTML = `
-          <div class="field-label" style="display:flex;align-items:center;gap:10px;">
-            메인 카피 줄수
-            <div class="text-color-segments" style="margin-left:auto;">
-              <div class="text-color-segment ${currentMainLines === 2 ? 'active' : ''}" id="lines-seg-2" onclick="setMainLines(2)">2줄</div>
-              <div class="text-color-segment ${currentMainLines === 3 ? 'active' : ''}" id="lines-seg-3" onclick="setMainLines(3)">3줄</div>
-            </div>
-          </div>`;
-        area.appendChild(linesField);
-      }
-      if (lines >= 3) {
-        area.appendChild(makeField('main1', '메인 카피 1줄', mainSpec, 1));
-        area.appendChild(makeField('main2', '메인 카피 2줄', mainSpec, 1));
-        area.appendChild(makeField('main3', '메인 카피 3줄', mainSpec, 1));
-      } else if (lines >= 2) {
-        area.appendChild(makeField('main1', '메인 카피 1줄', mainSpec, 1));
-        area.appendChild(makeField('main2', '메인 카피 2줄', mainSpec, 1));
-      } else {
-        area.appendChild(makeField('main', '메인 카피', mainSpec, 1));
-      }
-    }
-    // 서브
-    if (v.sub && !spec.noSub) {
-      const subSpec = `${fsStr('sub')} Medium<br>행간 ${v.sub.lh || '130%'} · 자간 -0.5px · ${v.sub.color}`;
-      const subLines = v.sub.lines || 1;
-      if (subLines >= 2) {
-        area.appendChild(makeField('sub1', '서브 카피 1줄', subSpec, 1));
-        area.appendChild(makeField('sub2', '서브 카피 2줄', subSpec, 1));
-      } else {
-        area.appendChild(makeField('sub', '서브 카피', subSpec, 1));
-      }
-    }
+    renderMainFields();
+    renderSubFields();
   }
   // 버튼 (B8) — 추가 여부 토글 + 텍스트 입력
   if (spec.hasButton && v.btn) {
@@ -1447,7 +1459,7 @@ function renderImageUploads() {
         </div>
       </div>`;
     wrap.appendChild(item);
-    // 드래그앤드롭 바인딩
+    // 드래그 앤 드롭 바인딩
     bindDropZone(item.querySelector('.upload-area'), v.id);
   });
 }
