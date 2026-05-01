@@ -1339,7 +1339,7 @@ function renderInputs() {
     if (!v.main) return;
     const lines = spec.selectableLines ? currentMainLines : (v.main.lines || 1);
     const mainColor = v.main.color || '#111111';
-    const mainSpec = `${fsStr('main')} · Bold<br>행간 ${v.main.lh} · 자간 -0.5px · ${mainColor}`;
+    const mainSpec = `폰트 ┃ ${fsStr('main')} ┃ Bold<br>서식 ┃ 행간 ${v.main.lh} ┃ 자간 -0.5px ┃ 컬러 ${mainColor}`;
     if (spec.selectableLines) {
       const linesField = document.createElement('div');
       linesField.className = 'field';
@@ -1367,7 +1367,7 @@ function renderInputs() {
 
   const renderSubFields = () => {
     if (!v.sub || spec.noSub) return;
-    const subSpec = `${fsStr('sub')} · Medium<br>행간 ${v.sub.lh || '130%'} · 자간 -0.5px · ${v.sub.color}`;
+    const subSpec = `폰트 ┃ ${fsStr('sub')} ┃ Medium<br>서식 ┃ 행간 ${v.sub.lh || '130%'} ┃ 자간 -0.5px ┃ 컬러 ${v.sub.color}`;
     const subLines = v.sub.lines || 1;
     if (subLines >= 2) {
       area.appendChild(makeField('sub1', '서브 카피 1줄', subSpec, 1));
@@ -1397,7 +1397,7 @@ function renderInputs() {
         </div>
       </div>
       <div id="btn-input-wrap" style="display:${currentShowButton ? 'block' : 'none'};">
-        <div class="field-spec">${v.btn.fs}px Bold · 122×43</div>
+        <div class="field-spec">폰트 ┃ ${v.btn.fs}px ┃ Bold ┃ 크기 122×43</div>
         <div class="field-row">
           <input type="text" id="f-btn" placeholder="버튼 텍스트" value="">
           <span class="char-count" id="c-btn">0자</span>
