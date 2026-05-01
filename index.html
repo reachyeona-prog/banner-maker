@@ -1060,7 +1060,7 @@ let currentImages = {};      // { mo: dataURL, pc: dataURL, ... }
 let currentImageSizes = {};  // { mo: {w, h}, pc: {w, h}, ... } — 누끼 처리 후 원본 사이즈 (비율 계산용)
 let currentTextColorMode = 'auto'; // 'auto' | 'white' | 'black' — 어두운 배경에서 사용자가 토글로 강제 지정 가능
 let currentShowButton = true; // B8 버튼 표시 여부
-let currentMainLines = 3;    // C1 메인 카피 줄수 (2 또는 3)
+let currentMainLines = 3;    // C1 메인 카피 줄 수 (2 또는 3)
 let currentProduct = 'seller';
 function getShowButton() { return currentShowButton; }
 function setShowButton(val) {
@@ -1088,7 +1088,7 @@ function switchTab(tab) {
     document.getElementById('tab-btn-' + t).classList.toggle('active', t === tab);
   });
 }
-// C1 메인 카피 줄수 토글
+// C1 메인 카피 줄 수 토글
 function setMainLines(n) {
   currentMainLines = n;
   const s2 = document.getElementById('lines-seg-2');
@@ -1322,7 +1322,7 @@ function renderInputs() {
     const present = vs.filter(ver => ver[field]);
     const uniqueFs = [...new Set(present.map(ver => ver[field].fs))];
     if (uniqueFs.length === 1) return `${uniqueFs[0]}px`;
-    return present.map(ver => `${ver.label} ${ver[field].fs}px`).join(' / ');
+    return present.map(ver => `${ver.label.replace(/ [AB]$/, '')} ${ver[field].fs}px`).join(' / ');
   }
   // 실제 배너 노출 순서(위→아래)에 맞춰 입력 필드 정렬
   // sub와 main 각각의 시각적 top 좌표를 계산해서 위에 오는 쪽을 먼저 렌더
@@ -1339,13 +1339,13 @@ function renderInputs() {
     if (!v.main) return;
     const lines = spec.selectableLines ? currentMainLines : (v.main.lines || 1);
     const mainColor = v.main.color || '#111111';
-    const mainSpec = `${fsStr('main')} Bold<br>행간 ${v.main.lh} · 자간 -0.5px · ${mainColor}`;
+    const mainSpec = `${fsStr('main')} · Bold<br>행간 ${v.main.lh} · 자간 -0.5px · ${mainColor}`;
     if (spec.selectableLines) {
       const linesField = document.createElement('div');
       linesField.className = 'field';
       linesField.innerHTML = `
         <div class="field-label" style="display:flex;align-items:center;gap:10px;">
-          메인 카피 줄수
+          메인 카피 줄 수
           <div class="text-color-segments" style="margin-left:auto;">
             <div class="text-color-segment ${currentMainLines === 2 ? 'active' : ''}" id="lines-seg-2" onclick="setMainLines(2)">2줄</div>
             <div class="text-color-segment ${currentMainLines === 3 ? 'active' : ''}" id="lines-seg-3" onclick="setMainLines(3)">3줄</div>
@@ -1367,7 +1367,7 @@ function renderInputs() {
 
   const renderSubFields = () => {
     if (!v.sub || spec.noSub) return;
-    const subSpec = `${fsStr('sub')} Medium<br>행간 ${v.sub.lh || '130%'} · 자간 -0.5px · ${v.sub.color}`;
+    const subSpec = `${fsStr('sub')} · Medium<br>행간 ${v.sub.lh || '130%'} · 자간 -0.5px · ${v.sub.color}`;
     const subLines = v.sub.lines || 1;
     if (subLines >= 2) {
       area.appendChild(makeField('sub1', '서브 카피 1줄', subSpec, 1));
@@ -2122,7 +2122,7 @@ async function downloadAll() {
       if (spec.iconOnly) {
         try { await downloadIconOnly(v, spec); }
         catch (err) {
-          if (err.message === 'NO_IMAGE') toast('이미지를 먼저 업로드해주세요.', { danger: true });
+          if (err.message === 'NO_IMAGE') toast('이미지를 먼저 업로드해 주세요.', { danger: true });
           else toast('다운로드 실패: ' + err.message, { danger: true });
         }
         return; // iconOnly는 항상 단일 버전
