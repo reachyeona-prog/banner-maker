@@ -359,7 +359,7 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
 .divider { width: 100%; height: 1px; background: var(--border); }
 
 /* ===== §11 미리보기 ===== */
-.preview-card { min-width: 0; }
+.preview-card { min-width: 0; padding-top: 28px; }    /* 첫 행을 카피·이미지 탭 텍스트와 같은 라인에 배치 */
 .preview-sections { display: flex; flex-direction: column; gap: 52px; }
 
 .preview-section {
@@ -375,9 +375,10 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
   letter-spacing: -0.2px;
 }
 /* A/B 미리보기 그룹 헤더 + 구분선 */
+/* font/letter-spacing은 카피·이미지 탭 텍스트와 동일 */
 .preview-version-header {
-  font-size: 12px; font-weight: 700;
-  color: var(--ink); letter-spacing: -0.3px;
+  font-size: 13px; font-weight: 700;
+  color: var(--ink); letter-spacing: -0.2px;
   margin-bottom: -36px;          /* preview-sections gap(52)와 보정해 인접 섹션과 가까이 */
 }
 .preview-version-divider {
@@ -450,6 +451,7 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
 }
 
 /* ===== §13 다운로드 버튼 + 스피너 ===== */
+#dl-btn-area { display: flex; gap: 10px; }
 .dl-btn {
   width: 100%; padding: 14px 16px;
   background: var(--ink); color: #fff;
@@ -786,10 +788,7 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
     <div class="section-group">
       <div class="card preview-card">
       <div class="preview-sections" id="preview-sections"></div>
-      <button class="dl-btn" id="dl-btn" onclick="downloadAll()">
-        <span id="dl-btn-label">다운로드</span>
-        <svg class="icon" aria-hidden="true"><use href="#i-arrow-right"/></svg>
-      </button>
+      <div id="dl-btn-area"></div>
     </div>
     </div>
   </div>
@@ -1846,18 +1845,32 @@ function renderPreviews() {
   if (guideOn) {
     document.querySelectorAll('.banner-wrap').forEach(b => b.classList.add('show-guide'));
   }
-  // 다운로드 버튼 라벨
-  const dlLabel = document.getElementById('dl-btn-label');
-  const spec2 = SPECS[currentProduct].slots[currentSlot];
-  const totalFiles = spec2.versions.length;
-  if (spec2.iconOnly) {
-    dlLabel.textContent = '아이콘 JPG 다운로드';
-  } else if (totalFiles > 1) {
-    dlLabel.textContent = `3배수 JPG ${totalFiles}개 다운로드`;
+  // 다운로드 버튼 영역 — abMirror는 A/B 각각 분리, 그 외는 단일 버튼
+  const dlArea = document.getElementById('dl-btn-area');
+  dlArea.innerHTML = '';
+  if (spec.abMirror) {
+    const half = spec.versions.length / 2;
+    const versionsA = spec.versions.slice(0, half);
+    const versionsB = spec.versions.slice(half);
+    dlArea.appendChild(buildDownloadButton(`버전 A 다운로드 (${versionsA.length}개)`, versionsA));
+    dlArea.appendChild(buildDownloadButton(`버전 B 다운로드 (${versionsB.length}개)`, versionsB));
   } else {
-    const ext = spec2.isPNG ? 'PNG' : 'JPG';
-    dlLabel.textContent = `${spec2.versions[0].label} ${ext} 다운로드`;
+    let labelText;
+    if (spec.iconOnly) labelText = '아이콘 JPG 다운로드';
+    else if (spec.versions.length > 1) labelText = `3배수 JPG ${spec.versions.length}개 다운로드`;
+    else {
+      const ext = spec.isPNG ? 'PNG' : 'JPG';
+      labelText = `${spec.versions[0].label} ${ext} 다운로드`;
+    }
+    dlArea.appendChild(buildDownloadButton(labelText, spec.versions));
   }
+}
+function buildDownloadButton(labelText, versions) {
+  const btn = document.createElement('button');
+  btn.className = 'dl-btn';
+  btn.innerHTML = `<span class="dl-btn-label">${labelText}</span><svg class="icon" aria-hidden="true"><use href="#i-arrow-right"/></svg>`;
+  btn.addEventListener('click', () => downloadVersions(btn, versions));
+  return btn;
 }
 function addPadGuide(banner, type, offset, size, w, val, labelFs = 9) {
   const g = document.createElement('div');
@@ -2205,11 +2218,11 @@ function hideGuides() {
 function restoreGuides() {
   if (guideOn) document.querySelectorAll('.banner-wrap').forEach(b => b.classList.add('show-guide'));
 }
-function setDownloadLoading(loading) {
-  const btn = document.getElementById('dl-btn');
-  const label = document.getElementById('dl-btn-label');
-  const arrow = btn?.querySelector('.icon');
-  if (!btn || !label) return;
+function setDownloadLoading(btn, loading) {
+  if (!btn) return;
+  const label = btn.querySelector('.dl-btn-label');
+  const arrow = btn.querySelector('.icon');
+  if (!label) return;
   btn.disabled = loading;
   if (loading) {
     btn.dataset.prevLabel = label.textContent;
@@ -2243,13 +2256,13 @@ function downloadIconOnly(v, spec) {
     tmp.src = imgURL;
   });
 }
-async function downloadAll() {
+async function downloadVersions(btn, versions) {
   const spec = SPECS[currentProduct].slots[currentSlot];
-  setDownloadLoading(true);
+  setDownloadLoading(btn, true);
   hideGuides();
   try {
-    for (let i = 0; i < spec.versions.length; i++) {
-      const v = spec.versions[i];
+    for (let i = 0; i < versions.length; i++) {
+      const v = versions[i];
       const el = document.getElementById('banner-' + v.id);
       if (!el) continue;
       const filename = buildFilename(v, spec);
@@ -2292,14 +2305,14 @@ async function downloadAll() {
           filename
         );
       }
-      if (i < spec.versions.length - 1) await delay(300);
+      if (i < versions.length - 1) await delay(300);
     }
     toast('다운로드 완료');
   } catch (err) {
     toast('다운로드 실패: ' + (err.message || err), { danger: true });
   } finally {
     restoreGuides();
-    setDownloadLoading(false);
+    setDownloadLoading(btn, false);
   }
 }
 function triggerDownload(dataURL, filename) {
