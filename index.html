@@ -374,6 +374,15 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
   font-size: 11px; color: var(--text-muted);
   letter-spacing: -0.2px;
 }
+/* A/B 미리보기 그룹 헤더 + 구분선 */
+.preview-version-header {
+  font-size: 12px; font-weight: 700;
+  color: var(--ink); letter-spacing: -0.3px;
+  margin-bottom: -36px;          /* preview-sections gap(52)와 보정해 인접 섹션과 가까이 */
+}
+.preview-version-divider {
+  height: 1px; background: var(--border);
+}
 
 .banner-outer {
   display: inline-block;
@@ -1408,7 +1417,7 @@ function renderInputs() {
     const present = vs.filter(ver => ver[field]);
     const uniqueFs = [...new Set(present.map(ver => ver[field].fs))];
     if (uniqueFs.length === 1) return `${uniqueFs[0]}px`;
-    return present.map(ver => `${ver.label.replace(/ [AB]$/, '')} ${ver[field].fs}px`).join(' / ');
+    return present.map(ver => `${ver.label.replace(/ [AB]$/, '')} ${ver[field].fs}px`).join(' · ');
   }
   // 실제 배너 노출 순서(위→아래)에 맞춰 입력 필드 정렬
   // sub와 main 각각의 시각적 top 좌표를 계산해서 위에 오는 쪽을 먼저 렌더
@@ -1425,7 +1434,7 @@ function renderInputs() {
     if (!v.main) return;
     const lines = spec.selectableLines ? currentMainLines : (v.main.lines || 1);
     const mainColor = v.main.color || '#111111';
-    const mainSpec = `폰트 ┃ ${fsStr('main')} ┃ Bold<br>서식 ┃ 행간 ${v.main.lh} ┃ 자간 -0.5px ┃ 컬러 ${mainColor}`;
+    const mainSpec = `${fsStr('main')}  │  Bold<br>행간 ${v.main.lh}  │  자간 -0.5px  │  컬러 ${mainColor}`;
     if (spec.selectableLines) {
       const linesField = document.createElement('div');
       linesField.className = 'field';
@@ -1453,7 +1462,7 @@ function renderInputs() {
 
   const renderSubFields = () => {
     if (!v.sub || spec.noSub) return;
-    const subSpec = `폰트 ┃ ${fsStr('sub')} ┃ Medium<br>서식 ┃ 행간 ${v.sub.lh || '130%'} ┃ 자간 -0.5px ┃ 컬러 ${v.sub.color}`;
+    const subSpec = `${fsStr('sub')}  │  Medium<br>행간 ${v.sub.lh || '130%'}  │  자간 -0.5px  │  컬러 ${v.sub.color}`;
     const subLines = v.sub.lines || 1;
     if (subLines >= 2) {
       area.appendChild(makeField('sub1', '서브 카피 1줄', subSpec, 1));
@@ -1483,7 +1492,7 @@ function renderInputs() {
         </div>
       </div>
       <div id="btn-input-wrap" style="display:${currentShowButton ? 'block' : 'none'};">
-        <div class="field-spec">폰트 ┃ ${v.btn.fs}px ┃ Bold ┃ 크기 122×43</div>
+        <div class="field-spec">${v.btn.fs}px  │  Bold  │  크기 122×43</div>
         <div class="field-row">
           <input type="text" id="f-btn" placeholder="버튼 텍스트" value="">
           <span class="char-count" id="c-btn">0자</span>
@@ -1781,23 +1790,24 @@ function renderPreviews() {
   const spec = SPECS[currentProduct].slots[currentSlot];
   const container = document.getElementById('preview-sections');
   container.innerHTML = '';
-  spec.versions.forEach(v => {
+  // 단일 버전 섹션 생성 헬퍼
+  const makeSection = (v) => {
     const section = document.createElement('div');
     section.className = 'preview-section';
     const displayW = spec.isLarge ? v.w * 0.4 : Math.max(v.w, 180);
     section.style.width = displayW + 'px';
     const lbl = document.createElement('div');
     lbl.className = 'field-label';
-    lbl.textContent = `${v.label} — ${v.w.toLocaleString()} × ${v.h.toLocaleString()}px (3배수 추출: ${(v.w*3).toLocaleString()} × ${(v.h*3).toLocaleString()}px)`;
+    // abMirror 슬롯은 그룹 헤더(버전 A/B)가 별도로 있으므로 라벨에서 ' A'/' B' 제거
+    const displayLabel = spec.abMirror ? v.label.replace(/ [AB]$/, '') : v.label;
+    lbl.textContent = `${displayLabel} — ${v.w.toLocaleString()} × ${v.h.toLocaleString()}px (3배수 추출: ${(v.w*3).toLocaleString()} × ${(v.h*3).toLocaleString()}px)`;
     section.appendChild(lbl);
-    // 파일명 미리보기
     const fnLabel = document.createElement('div');
     fnLabel.className = 'field-spec';
     fnLabel.textContent = buildFilename(v, spec);
     section.appendChild(fnLabel);
     const outer = document.createElement('div');
     outer.className = 'banner-outer';
-    // 테이블 오더는 40% 축소
     if (spec.isLarge) {
       outer.style.cssText = `width:${v.w * 0.4}px;height:${v.h * 0.4}px;`;
       const scaler = document.createElement('div');
@@ -1809,8 +1819,29 @@ function renderPreviews() {
       outer.appendChild(buildBanner(v, spec));
     }
     section.appendChild(outer);
-    container.appendChild(section);
-  });
+    return section;
+  };
+  // abMirror 슬롯: '버전 A' 헤더 → A 그룹 → 구분선 → '버전 B' 헤더 → B 그룹
+  if (spec.abMirror) {
+    const half = spec.versions.length / 2;
+    const groupA = spec.versions.slice(0, half);
+    const groupB = spec.versions.slice(half);
+    const hdrA = document.createElement('div');
+    hdrA.className = 'preview-version-header';
+    hdrA.textContent = '버전 A';
+    container.appendChild(hdrA);
+    groupA.forEach(v => container.appendChild(makeSection(v)));
+    const divider = document.createElement('div');
+    divider.className = 'preview-version-divider';
+    container.appendChild(divider);
+    const hdrB = document.createElement('div');
+    hdrB.className = 'preview-version-header';
+    hdrB.textContent = '버전 B';
+    container.appendChild(hdrB);
+    groupB.forEach(v => container.appendChild(makeSection(v)));
+  } else {
+    spec.versions.forEach(v => container.appendChild(makeSection(v)));
+  }
   // 가이드 모드 적용
   if (guideOn) {
     document.querySelectorAll('.banner-wrap').forEach(b => b.classList.add('show-guide'));
@@ -1892,9 +1923,9 @@ function buildBanner(v, spec) {
       bg.appendChild(img);
       banner.appendChild(bg);
     }
-    // 좌측 상단 모서리에서 원형 확산 그라데이션 — 배경 투명화로 흰색 고정
+    // 좌측 상단에서 부드럽게 확산되는 그라데이션 — 경계 자연스럽게 처리
     const grad = document.createElement('div');
-    grad.style.cssText = `position:absolute;top:0;left:0;width:100%;height:100%;background:radial-gradient(circle 570px at 0% 0%, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.7) 55%, transparent 100%);z-index:1;pointer-events:none;`;
+    grad.style.cssText = `position:absolute;top:0;left:0;width:100%;height:100%;background:radial-gradient(ellipse 1500px 1100px at -100px -100px, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.82) 18%, rgba(255,255,255,0.6) 38%, rgba(255,255,255,0.35) 60%, rgba(255,255,255,0.12) 82%, rgba(255,255,255,0) 100%);z-index:1;pointer-events:none;`;
     banner.appendChild(grad);
   }
   // 안전영역 (B10)
