@@ -280,6 +280,7 @@ button { font-family: inherit; }
   background: var(--bg-elev);
 }
 .preset-colors { display: flex; gap: 4px; flex-wrap: wrap; }
+.preset-row-break { flex-basis: 100%; height: 0; }
 .preset-swatch {
   width: 28px; height: 28px; border-radius: 6px;
   border: 1px solid var(--border); cursor: pointer;
@@ -677,6 +678,7 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
     <div class="field" id="bg-field">
       <div class="field-label">배경색</div>
       <div class="field-spec" id="bg-locked" style="display:none;">변경 불가</div>
+      <!-- 채도↑ + 유사색 그룹 순서로 나열, 줄바꿈은 flex-wrap에 맡김 -->
       <div class="preset-colors" id="preset-colors">
         <div class="preset-swatch" style="background:#F8F8F8" onclick="selectPreset('#F8F8F8')"></div>
         <div class="preset-swatch" style="background:#E3F2FF" onclick="selectPreset('#E3F2FF')"></div>
@@ -687,6 +689,28 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
         <div class="preset-swatch" style="background:#FEF9C3" onclick="selectPreset('#FEF9C3')"></div>
         <div class="preset-swatch" style="background:#FFE4D1" onclick="selectPreset('#FFE4D1')"></div>
         <div class="preset-swatch" style="background:#FEE1E2" onclick="selectPreset('#FEE1E2')"></div>
+        <div class="preset-swatch" style="background:#EBEBEB" onclick="selectPreset('#EBEBEB')"></div>
+        <div class="preset-swatch" style="background:#212121" onclick="selectPreset('#212121')"></div>
+        <div class="preset-swatch" style="background:#2B3648" onclick="selectPreset('#2B3648')"></div>
+        <div class="preset-swatch" style="background:#FFF7E2" onclick="selectPreset('#FFF7E2')"></div>
+        <div class="preset-swatch" style="background:#FFEDF3" onclick="selectPreset('#FFEDF3')"></div>
+        <div class="preset-swatch" style="background:#ECEFFF" onclick="selectPreset('#ECEFFF')"></div>
+        <div class="preset-swatch" style="background:#FEF397" onclick="selectPreset('#FEF397')"></div>
+        <div class="preset-swatch" style="background:#F3FE84" onclick="selectPreset('#F3FE84')"></div>
+        <div class="preset-swatch" style="background:#D1FFE3" onclick="selectPreset('#D1FFE3')"></div>
+        <div class="preset-swatch" style="background:#99FADB" onclick="selectPreset('#99FADB')"></div>
+        <div class="preset-swatch" style="background:#A6E6FF" onclick="selectPreset('#A6E6FF')"></div>
+        <div class="preset-swatch" style="background:#FFC989" onclick="selectPreset('#FFC989')"></div>
+        <div class="preset-swatch" style="background:#FE8336" onclick="selectPreset('#FE8336')"></div>
+        <div class="preset-swatch" style="background:#FF7865" onclick="selectPreset('#FF7865')"></div>
+        <div class="preset-swatch" style="background:#361F00" onclick="selectPreset('#361F00')"></div>
+        <div class="preset-swatch" style="background:#00BB9A" onclick="selectPreset('#00BB9A')"></div>
+        <div class="preset-swatch" style="background:#00BCB8" onclick="selectPreset('#00BCB8')"></div>
+        <div class="preset-swatch" style="background:#01B7FF" onclick="selectPreset('#01B7FF')"></div>
+        <div class="preset-swatch" style="background:#0177FF" onclick="selectPreset('#0177FF')"></div>
+        <div class="preset-swatch" style="background:#0059FF" onclick="selectPreset('#0059FF')"></div>
+        <div class="preset-swatch" style="background:#0035D3" onclick="selectPreset('#0035D3')"></div>
+        <div class="preset-swatch" style="background:#6052FF" onclick="selectPreset('#6052FF')"></div>
         <div class="preset-swatch custom-picker" title="직접 선택" onclick="openColorPicker()"></div>
       </div>
       <div class="field-row" id="bg-swatch-row">
@@ -709,6 +733,9 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
     <div class="field" id="pt-field" style="display:none;">
       <div class="field-label">포인트 컬러</div>
       <div class="field-spec">카피에 {중괄호}로 감싼 키워드에 적용됩니다</div>
+      <!-- 추천 컬러 영역 (배경색에 따라 자동 갱신) -->
+      <div id="pt-recommend-wrap" style="display:none;"></div>
+      <!-- 채도↑ + 유사색 그룹 순서로 나열, 줄바꿈은 flex-wrap에 맡김 -->
       <div class="preset-colors" id="pt-presets">
         <div class="preset-swatch pt-swatch" style="background:#008CFF" onclick="selectPointColor('#008CFF')"></div>
         <div class="preset-swatch pt-swatch" style="background:#1D99FF" onclick="selectPointColor('#1D99FF')"></div>
@@ -721,6 +748,27 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
         <div class="preset-swatch pt-swatch" style="background:#F96C5A" onclick="selectPointColor('#F96C5A')"></div>
         <div class="preset-swatch pt-swatch" style="background:#FF3B30" onclick="selectPointColor('#FF3B30')"></div>
         <div class="preset-swatch pt-swatch" style="background:#F96EAE" onclick="selectPointColor('#F96EAE')"></div>
+        <div class="preset-swatch pt-swatch" style="background:#FED79E" onclick="selectPointColor('#FED79E')"></div>
+        <div class="preset-swatch pt-swatch" style="background:#FFFB81" onclick="selectPointColor('#FFFB81')"></div>
+        <div class="preset-swatch pt-swatch" style="background:#F6FF86" onclick="selectPointColor('#F6FF86')"></div>
+        <div class="preset-swatch pt-swatch" style="background:#E1FD82" onclick="selectPointColor('#E1FD82')"></div>
+        <div class="preset-swatch pt-swatch" style="background:#B9FFC1" onclick="selectPointColor('#B9FFC1')"></div>
+        <div class="preset-swatch pt-swatch" style="background:#01854D" onclick="selectPointColor('#01854D')"></div>
+        <div class="preset-swatch pt-swatch" style="background:#BAFF0E" onclick="selectPointColor('#BAFF0E')"></div>
+        <div class="preset-swatch pt-swatch" style="background:#00FEFC" onclick="selectPointColor('#00FEFC')"></div>
+        <div class="preset-swatch pt-swatch" style="background:#008DFF" onclick="selectPointColor('#008DFF')"></div>
+        <div class="preset-swatch pt-swatch" style="background:#1189EA" onclick="selectPointColor('#1189EA')"></div>
+        <div class="preset-swatch pt-swatch" style="background:#0163FF" onclick="selectPointColor('#0163FF')"></div>
+        <div class="preset-swatch pt-swatch" style="background:#005EFE" onclick="selectPointColor('#005EFE')"></div>
+        <div class="preset-swatch pt-swatch" style="background:#0048F2" onclick="selectPointColor('#0048F2')"></div>
+        <div class="preset-swatch pt-swatch" style="background:#3A59FF" onclick="selectPointColor('#3A59FF')"></div>
+        <div class="preset-swatch pt-swatch" style="background:#573DFF" onclick="selectPointColor('#573DFF')"></div>
+        <div class="preset-swatch pt-swatch" style="background:#8800FF" onclick="selectPointColor('#8800FF')"></div>
+        <div class="preset-swatch pt-swatch" style="background:#FF3BFF" onclick="selectPointColor('#FF3BFF')"></div>
+        <div class="preset-swatch pt-swatch" style="background:#FF44C7" onclick="selectPointColor('#FF44C7')"></div>
+        <div class="preset-swatch pt-swatch" style="background:#F90C2A" onclick="selectPointColor('#F90C2A')"></div>
+        <div class="preset-swatch pt-swatch" style="background:#F01100" onclick="selectPointColor('#F01100')"></div>
+        <div class="preset-swatch pt-swatch" style="background:#FF6F08" onclick="selectPointColor('#FF6F08')"></div>
         <div class="preset-swatch custom-picker" title="직접 선택" onclick="document.getElementById('pt-picker').click()"></div>
       </div>
       <div class="field-row">
@@ -1109,7 +1157,18 @@ function mirrorVersion(v, mode) {
 // ================================================
 let currentBg = '#F8F8F8';
 let currentBgPerVersion = {}; // perVersionBg 슬롯에서 버전별 배경색 저장 (key: version.id)
-const BG_PRESETS = ['#F8F8F8', '#E3F2FF', '#D1F6F8', '#E0E0FF', '#F3E8FF', '#EBFCCA', '#FEF9C3', '#FFE4D1', '#FEE1E2'];
+const BG_PRESETS = [
+  // 기존 파스텔
+  '#F8F8F8', '#E3F2FF', '#D1F6F8', '#E0E0FF', '#F3E8FF', '#EBFCCA', '#FEF9C3', '#FFE4D1', '#FEE1E2',
+  // 추가: 뉴트럴/다크
+  '#EBEBEB', '#212121', '#2B3648',
+  // 추가: 페일 톤
+  '#FFF7E2', '#FFEDF3', '#ECEFFF', '#FEF397', '#F3FE84', '#D1FFE3', '#99FADB', '#A6E6FF',
+  // 추가: 웜 비비드
+  '#FFC989', '#FE8336', '#FF7865', '#361F00',
+  // 추가: 쿨 비비드
+  '#00BB9A', '#00BCB8', '#01B7FF', '#0177FF', '#0059FF', '#0035D3', '#6052FF'
+];
 function getBgFor(v) {
   const spec = SPECS[currentProduct]?.slots[currentSlot];
   if (!spec || !v) return currentBg;
@@ -1214,6 +1273,7 @@ function selectPreset(color) {
   updateFilenames();
   updatePresetActive();
   updateTextColorUI();
+  updatePointRecommendations();
   renderPreviews();
 }
 // 배경 luminance 계산 (WCAG 표준)
@@ -1229,6 +1289,88 @@ function getBgLuminance(hex) {
 // 어두운 배경 여부 (WCAG 표준 0.5 threshold)
 function isDarkBg(hex) {
   return getBgLuminance(hex) < 0.5;
+}
+// HSL 변환 (포인트 컬러 추천에 사용)
+function hexToRgbArr(hex) {
+  const m = hex.replace('#','').match(/.{2}/g);
+  return m ? m.map(v => parseInt(v, 16)) : [0,0,0];
+}
+function rgbToHsl([r, g, b]) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h = 0, s = 0; const l = (max + min) / 2;
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    if (max === r)      h = ((g - b) / d + (g < b ? 6 : 0));
+    else if (max === g) h = (b - r) / d + 2;
+    else                h = (r - g) / d + 4;
+    h *= 60;
+  }
+  return { h, s: s * 100, l: l * 100 };
+}
+// 배경색 기준으로 포인트 컬러 후보를 점수화
+//   1) 컨트라스트(WCAG luminance ratio)가 너무 낮으면 제외 (가독성)
+//   2) 무채색 배경: 채도 높은 컬러 가산
+//   3) 유채색 배경: 보색(180°) > 트라이애드(120°) > 유사색(<30°) 가산
+//   4) 페일 배경 + 비비드 포인트 추가 가산 (대비 강조)
+function recommendPointColors(bgHex, count = 5) {
+  const bgLum = getBgLuminance(bgHex);
+  const bgHsl = rgbToHsl(hexToRgbArr(bgHex));
+  const swatches = Array.from(document.querySelectorAll('#pt-presets .pt-swatch'));
+  const scored = swatches.map(el => {
+    const m = el.getAttribute('style').match(/#[0-9A-Fa-f]{6}/);
+    if (!m) return null;
+    const hex = m[0].toUpperCase();
+    const lum = getBgLuminance(hex);
+    const contrast = (Math.max(lum, bgLum) + 0.05) / (Math.min(lum, bgLum) + 0.05);
+    if (contrast < 2.2) return null; // 너무 낮은 대비 컷
+    const hsl = rgbToHsl(hexToRgbArr(hex));
+    let score = Math.min(contrast, 8); // 컨트라스트 가산 (상한 8)
+    if (bgHsl.s < 12) {
+      // 무채색/거의 무채색 배경: 채도 높은 포인트 컬러 가산
+      score += hsl.s / 18;
+    } else {
+      let hueDiff = Math.abs(hsl.h - bgHsl.h);
+      hueDiff = Math.min(hueDiff, 360 - hueDiff);
+      if (Math.abs(hueDiff - 180) < 30)      score += 4; // 보색
+      else if (Math.abs(hueDiff - 120) < 30) score += 2.5; // 트라이애드
+      else if (hueDiff < 25)                 score += 1.5; // 유사색
+    }
+    if (bgHsl.s < 35 && hsl.s > 60) score += 1.5; // 페일 배경에 비비드 가산
+    return { hex, score };
+  }).filter(Boolean);
+  scored.sort((a, b) => b.score - a.score);
+  // 동일 hex 중복 제거 (혹시 2번 매칭된 경우)
+  const seen = new Set();
+  const out = [];
+  for (const c of scored) {
+    if (seen.has(c.hex)) continue;
+    seen.add(c.hex);
+    out.push(c);
+    if (out.length >= count) break;
+  }
+  return out;
+}
+function updatePointRecommendations() {
+  const wrap = document.getElementById('pt-recommend-wrap');
+  if (!wrap) return;
+  const ptField = document.getElementById('pt-field');
+  if (!ptField || ptField.style.display === 'none') {
+    wrap.style.display = 'none';
+    wrap.innerHTML = '';
+    return;
+  }
+  const recs = recommendPointColors(currentBg, 5);
+  if (!recs.length) { wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
+  const cur = currentPointColor.toUpperCase();
+  wrap.style.cssText = 'display:flex;flex-direction:column;gap:6px;margin-bottom:10px;padding:10px 12px;background:var(--bg-elev);border:1px dashed var(--border);border-radius:var(--radius-sm);';
+  wrap.innerHTML = `
+    <div class="field-spec" style="font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.04em;">현재 배경색에 어울리는 컬러</div>
+    <div class="preset-colors">
+      ${recs.map(r => `<div class="preset-swatch pt-swatch ${r.hex === cur ? 'active' : ''}" style="background:${r.hex}" onclick="selectPointColor('${r.hex}')" title="${r.hex}"></div>`).join('')}
+    </div>
+  `;
 }
 // 현재 적용해야 할 텍스트 컬러 결정
 // 'auto' → 배경 기준 자동, 'white'/'black' → 강제
@@ -1385,8 +1527,10 @@ function updatePointColorUI() {
     document.getElementById('pt-swatch').style.background = currentPointColor;
     document.getElementById('pt-hex').textContent = currentPointColor.toUpperCase();
     updatePtPresetActive();
+    updatePointRecommendations();
   } else {
     ptField.style.display = 'none';
+    updatePointRecommendations(); // 영역 비우기
   }
 }
 function applyPointColor(text) {
@@ -1421,6 +1565,7 @@ function onColorChange() {
   updateFilenames();
   updatePresetActive();
   updateTextColorUI();
+  updatePointRecommendations();
   renderPreviews();
 }
 function applyBgToBanners() {
