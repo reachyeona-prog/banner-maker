@@ -1868,20 +1868,18 @@ async function generateNanoPrompt() {
   const subTextRaw = document.getElementById('nano-sub-text').value.trim();
   const ratio      = document.getElementById('nano-ratio').textContent;
 
-  // 번역이 필요하면 버튼 로딩 상태
+  // 번역이 필요하면 버튼 로딩 상태 — 오브젝트 설명만 번역, 타이틀 텍스트는 원문 유지
   const btn = document.getElementById('nano-btn-label');
-  const needsTranslation = hasKorean(mainRaw) || hasKorean(subRaw) || hasKorean(textRaw) || hasKorean(subTextRaw);
+  const needsTranslation = hasKorean(mainRaw) || hasKorean(subRaw);
   if (needsTranslation) {
     btn.textContent = '번역 중...';
     document.querySelector('.nano-btn').disabled = true;
   }
 
-  // 병렬 번역
-  const [mainEn, subEn, textEn, subTextEn] = await Promise.all([
+  // 오브젝트 설명만 번역. 타이틀 텍스트(textRaw/subTextRaw)는 그대로 렌더되어야 하므로 원문 유지
+  const [mainEn, subEn] = await Promise.all([
     translateToEn(mainRaw),
-    translateToEn(subRaw),
-    translateToEn(textRaw),
-    translateToEn(subTextRaw)
+    translateToEn(subRaw)
   ]);
 
   // 버튼 복원
@@ -1891,12 +1889,18 @@ async function generateNanoPrompt() {
   const mainObject = mainEn;
   // 짧은 텍스트(P, $ 등)가 통화·기호로 자동 치환되는 문제 방어:
   // 따옴표로 감싸 literal 강조 + 구체적 negative example까지 부착
-  const literalTextHint = (t) => `"${t}" (render EXACTLY these characters as plain Latin alphabet letters or Arabic numerals from standard clean typography. STRICTLY do NOT substitute with any currency symbol, mathematical sign, ligature, logo mark, or modified glyph — e.g., the letter "P" must be the standard capital letter P, NOT the Russian Ruble symbol ₽)`;
-  const mainTitle  = textEn    ? literalTextHint(textEn)    : 'none';
+  // 한글이 포함되면 한글(Hangul) 렌더링 힌트로 전환 — 영문 강제 변환 방지
+  const literalTextHint = (t) => {
+    if (hasKorean(t)) {
+      return `"${t}" (render EXACTLY these Korean Hangul characters from a clean, modern sans-serif Korean typeface such as Noto Sans KR or Pretendard. STRICTLY do NOT romanize, translate, or transliterate to Latin alphabet — preserve the original Hangul glyphs as-is)`;
+    }
+    return `"${t}" (render EXACTLY these characters as plain Latin alphabet letters or Arabic numerals from standard clean typography. STRICTLY do NOT substitute with any currency symbol, mathematical sign, ligature, logo mark, or modified glyph — e.g., the letter "P" must be the standard capital letter P, NOT the Russian Ruble symbol ₽)`;
+  };
+  const mainTitle  = textRaw    ? literalTextHint(textRaw)    : 'none';
   // 서브 오브젝트는 명사구만 — 'EXACTLY ONE'·색상 구분 규칙은 템플릿 본문에 이미 명시되어 있음
   // (변수에 부연설명을 붙이면 명사구로 흡수돼 추상 형태로 렌더되는 문제가 있어 제거)
   const subObject  = subEn     || 'none';
-  const subTitle   = subTextEn ? literalTextHint(subTextEn) : 'none';
+  const subTitle   = subTextRaw ? literalTextHint(subTextRaw) : 'none';
 
   const prompt =
 `Below are the variables for the image creation. Please apply these values to the [FINAL PROMPT TEMPLATE] and generate the image.
