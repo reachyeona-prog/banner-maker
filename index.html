@@ -1896,57 +1896,62 @@ async function generateNanoPrompt() {
   const prompt =
 `Below are the variables for the image creation. Please apply these values to the [FINAL PROMPT TEMPLATE] and generate the image.
 
----
-### [INPUT VARIABLES]
-- [Aspect Ratio]: ${ratio}
-- [Main Object]: ${mainObject}
-- [Main Title]: ${mainTitle}
-- [Sub Object]: ${subObject}
-- [Sub Title]: ${subTitle}
+[INPUT VARIABLES]
+[Aspect Ratio]: ${ratio}
 
----
-### [FINAL PROMPT TEMPLATE]
+[Main Object]: ${mainObject}
 
-[OBJECTIVE]
-Create a high-quality 3D icon of [Main Object], rendered in [Aspect Ratio] aspect ratio.
+[Main Title Content]: ${mainTitle}
 
-[SYMBOLIC DESIGN RULE]
-1. Focus on the essential symbolic features of the [Main Object].
-2. Incorporate realistic, clean, and embossed iconography inherent to its design.
-3. STRICTLY EXCLUDE unnecessary graphics like random arrows or percentages.
+[Sub Object]: ${subObject}
 
-[VISUAL STYLE: HIGH-QUALITY VIBRANT ABS PLASTIC]
-1. TEXTURE: Smooth matte finish mimicking high-quality, vibrant (high-saturation) dyed molded ABS plastic. Strictly avoid clay-like, hand-made, or desaturated/muddy textures.
-2. COLOR: The base colors must be ultra-vibrant, intense, and high-saturation (chroma), as if the plastic itself is deeply saturated with pure pigment.
-3. FORM: Simplified and slightly puffy 3D volume with perfectly rounded edges.
-4. ANGLE: Front-facing but slightly tilted with a subtle 3/4 perspective for depth.
+[Sub Title Content]: ${subTitle}
 
-[LIGHTING & RENDER]
-1. LIGHTING: Crisp, clean studio lighting with aesthetic global illumination designed to accentuate high-saturation colors.
-2. BRIGHTNESS: Increase overall brightness to make the vibrant colors "pop" against the background.
-3. GRADIENTS: Use subtle depth and clarity gradients for a premium look, ensuring shadow areas remain clean and do not become grayish or desaturated.
-4. RENDER: Ultra-clean, hyper-clear render with no ambient occlusion on edges to prevent bleeding. Maximize color purity.
+[FINAL PROMPT TEMPLATE]
+[SUBJECT OBJECTIVE & COMPOSITION LOGIC]
+Create a premium high-quality 3D icon rendered strictly in a [Aspect Ratio] frame against a solid pure white background (#FFFFFF).
 
-[SUB-OBJECT LOGIC]
-1. If [Sub Object] is 'none': STRICTLY IGNORE any secondary objects. Render ONLY the [Main Object] as the sole subject.
-2. If [Sub Object] is NOT 'none': Render [Sub Object] as a separate decorative element near the [Main Object] while maintaining independent structural integrity (no merging). The [Sub Object] must also follow the high-saturation color rule.
-3. If [Sub Title] is NOT 'none', display the text "[Sub Title]" clearly and prominently on the [Sub Object]'s surface.
+Texture Uniformity: ALL objects must consistently feature a smooth, molded ABS plastic texture with a soft matte finish. Strictly avoid hyper-metallic or clay-like textures. The material effect should focus on texture, NOT color.
 
-[TEXT CONTROL]
-1. Main Object Text:
-   - If [Main Title] is 'none', keep the [Main Object] surface COMPLETELY BLANK.
-   - If [Main Title] is NOT 'none', render ONLY the exact text "[Main Title]" on the [Main Object] in a bold, clear, simple font.
-2. Sub Object Text:
-   - If [Sub Object] is NOT 'none' AND [Sub Title] is NOT 'none', render the exact text "[Sub Title]" on the [Sub Object].
-   - If [Sub Title] is 'none', keep the [Sub Object] surface blank.
-3. ALL text must be integrated directly onto the surface using a clean, 3D embossed effect.
-4. STRICTLY EXCLUDE any text not explicitly mentioned in [Main Title] or [Sub Title].
+Logic (Primary Object): Focus on the [Main Object] as the central subject.
 
-[FRAME AND COMPOSITION: NO CROPPING]
-1. TIGHTLY FRAMED / FILL THE [Aspect Ratio] FRAME: Maximize the subject size to fill the canvas as much as possible.
-2. NO CROPPING: Ensure ABSOLUTELY NO PART (arms, accessories, or edges) is cut off or touches the frame boundaries.
-3. BACKGROUND: Isolated on a solid pure white background (#FFFFFF) for easy extraction. The background must remain pure white to contrast sharply with the vibrant object.
-4. MARGIN: Maintain a tiny, consistent white margin on all four sides.`;
+Logic (Secondary Object): If [Sub Object] is 'none', strictly ignore. If NOT 'none', render EXACTLY ONE [Sub Object] decorative element placed near the primary object, maintaining independent structural integrity (no merging) and its own color.
+
+[SYMBOLIC DESIGN RULE: NO EXTRA GRAPHICS]
+
+Focus on essential symbolic features of the objects.
+
+STRICTLY EXCLUDE any unnecessary graphics (e.g., NO random arrows, NO percentages, NO extra icons).
+
+[TEXT CONTROL: PRECISION CONTENT ONLY]
+
+Main Object Text: Render ONLY the literal text defined by [Main Title Content] on the main object's surface.
+
+Sub Object Text: If [Sub Title Content] is NOT 'none', render ONLY that text on the sub-object's surface.
+
+Strict No-Variable Rule: Do NOT render variable names. Render only the actual content provided. If 'none', the surface must remain blank.
+
+Font & Effect: All text must be integrated with a clean, 3D embossed effect using a bold, clear, and simple font for maximum legibility.
+
+[COLOR & MATERIAL FIDELITY]
+
+Color Independence: Each object must strictly maintain its own inherent hue.
+
+Inherent Rule: For objects with real-world colors (e.g., metallic tones for metals, food colors for edibles), use those colors.
+
+Neutral Rule: For designed or architectural objects with no fixed real-world color (like a generic shop or abstract object), use a clean, neutral, or contextually appropriate hue — do NOT default to generic plastic or toy-like orange/beige tones.
+
+Material Consistency: Ensure the ABS plastic texture is applied to BOTH objects equally. Material properties must NOT contaminate between objects.
+
+Purity & Clarity: Use high color fidelity and crystal-clear precision. Colors must appear pure and well-defined, not artificially oversaturated.
+
+[VIEWPOINT & RENDER]
+
+Viewpoint: Front-facing with a subtle 3/4 tilted perspective for depth.
+
+Frame & Margin: Tightly frame the composition to fill the [Aspect Ratio] canvas. Ensure ABSOLUTELY NO PART is cut off. Maintain a tiny, consistent white margin on all four sides.
+
+Technical Render: Ultra-clean, hyper-clear render with balanced studio lighting to reveal true, undistorted tones and sharp object boundaries.`;
 
   document.getElementById('nano-prompt-text').value = prompt;
   document.getElementById('nano-output').style.display = 'block';
