@@ -1895,63 +1895,40 @@ async function generateNanoPrompt() {
 
   const prompt =
 `Below are the variables for the image creation. Please apply these values to the [FINAL PROMPT TEMPLATE] and generate the image.
-
 [INPUT VARIABLES]
-[Aspect Ratio]: ${ratio}
-
-[Main Object]: ${mainObject}
-
-[Main Title Content]: ${mainTitle}
-
-[Sub Object]: ${subObject}
-
-[Sub Title Content]: ${subTitle}
+* [Aspect Ratio]: ${ratio}
+* [Main Object]: ${mainObject}
+* [Main Title Content]: ${mainTitle}
+* [Sub Object]: ${subObject}
+* [Sub Title Content]: ${subTitle}
 
 [FINAL PROMPT TEMPLATE]
-[SUBJECT OBJECTIVE & COMPOSITION LOGIC]
-Create a premium high-quality 3D icon rendered strictly in a [Aspect Ratio] frame against a solid pure white background (#FFFFFF).
-
-Texture Uniformity: ALL objects must consistently feature a smooth, molded ABS plastic texture with a soft matte finish. Strictly avoid hyper-metallic or clay-like textures. The material effect should focus on texture, NOT color.
-
-Logic (Primary Object): Focus on the [Main Object] as the central subject.
-
-Logic (Secondary Object): If [Sub Object] is 'none', strictly ignore. If NOT 'none', render EXACTLY ONE [Sub Object] decorative element placed near the primary object, maintaining independent structural integrity (no merging) and its own color.
+[SUBJECT OBJECTIVE & COMPOSITION LOGIC] Create a premium high-quality 3D icon rendered strictly in a [Aspect Ratio] frame against a solid pure white background (#FFFFFF).
+* Texture Uniformity: ALL objects must consistently feature a smooth, molded ABS plastic texture with a soft matte finish. Strictly avoid hyper-metallic or clay-like textures. The material effect should focus on texture, NOT color. The ABS plastic matte finish applies to the solid structural parts of each object. However, elements that are inherently transparent, liquid, or light-emitting may use contextually appropriate materials — always rendered in a clean, premium 3D icon style, NOT as a toy or cartoon.
+* Logic (Primary Object): Focus on the [Main Object] as the central subject.
+* Logic (Secondary Object): If [Sub Object] is 'none', strictly ignore. If NOT 'none', render EXACTLY ONE [Sub Object] decorative element placed near the primary object, maintaining independent structural integrity (no merging) and its own color.
 
 [SYMBOLIC DESIGN RULE: NO EXTRA GRAPHICS]
-
-Focus on essential symbolic features of the objects.
-
-STRICTLY EXCLUDE any unnecessary graphics (e.g., NO random arrows, NO percentages, NO extra icons).
+1. Focus on essential symbolic features of the objects.
+2. STRICTLY EXCLUDE any unnecessary graphics (e.g., NO random arrows, NO percentages, NO extra icons).
 
 [TEXT CONTROL: PRECISION CONTENT ONLY]
-
-Main Object Text: Render ONLY the literal text defined by [Main Title Content] on the main object's surface.
-
-Sub Object Text: If [Sub Title Content] is NOT 'none', render ONLY that text on the sub-object's surface.
-
-Strict No-Variable Rule: Do NOT render variable names. Render only the actual content provided. If 'none', the surface must remain blank.
-
-Font & Effect: All text must be integrated with a clean, 3D embossed effect using a bold, clear, and simple font for maximum legibility.
+1. Main Object Text: Render ONLY the literal text defined by [Main Title Content] on the main object's surface.
+2. Sub Object Text: If [Sub Title Content] is NOT 'none', render ONLY that text on the sub-object's surface.
+3. Strict No-Variable Rule: Do NOT render variable names. Render only the actual content provided. If 'none', the surface must remain blank.
+4. Font & Effect: All text must be integrated with a clean, 3D embossed effect using a bold, clear, and simple font for maximum legibility.
 
 [COLOR & MATERIAL FIDELITY]
-
-Color Independence: Each object must strictly maintain its own inherent hue.
-
-Inherent Rule: For objects with real-world colors (e.g., metallic tones for metals, food colors for edibles), use those colors.
-
-Neutral Rule: For designed or architectural objects with no fixed real-world color (like a generic shop or abstract object), use a clean, neutral, or contextually appropriate hue — do NOT default to generic plastic or toy-like orange/beige tones.
-
-Material Consistency: Ensure the ABS plastic texture is applied to BOTH objects equally. Material properties must NOT contaminate between objects.
-
-Purity & Clarity: Use high color fidelity and crystal-clear precision. Colors must appear pure and well-defined, not artificially oversaturated.
+1. Color Independence: Each object must strictly maintain its own inherent hue.
+   * Inherent Rule: For objects with real-world colors (e.g., metallic tones for metals), use the object's characteristic real-world color (e.g., brown tones for a coffee cup), rendered cleanly with the ABS plastic matte texture.
+   * Neutral Rule: For designed or architectural objects with no fixed real-world color (like a generic shop or abstract object), use a clean, neutral, or contextually appropriate hue — do NOT default to generic plastic or toy-like orange/beige tones.
+2. Material Consistency: Each object must have a VISUALLY DISTINCT color. The sub-object's color must be clearly different from the main object's color. Material properties must NOT contaminate between objects.
+3. Purity & Clarity: Use high color fidelity and crystal-clear precision. Colors must appear pure and well-defined, not artificially oversaturated.
 
 [VIEWPOINT & RENDER]
-
-Viewpoint: Front-facing with a subtle 3/4 tilted perspective for depth.
-
-Frame & Margin: Tightly frame the composition to fill the [Aspect Ratio] canvas. Ensure ABSOLUTELY NO PART is cut off. Maintain a tiny, consistent white margin on all four sides.
-
-Technical Render: Ultra-clean, hyper-clear render with balanced studio lighting to reveal true, undistorted tones and sharp object boundaries.`;
+1. Viewpoint: Front-facing with a subtle 3/4 tilted perspective for depth.
+2. Frame & Margin: Tightly frame the composition to fill the [Aspect Ratio] canvas. Ensure ABSOLUTELY NO PART is cut off. Maintain a tiny, consistent white margin on all four sides.
+3. Technical Render: Ultra-clean, hyper-clear render with balanced studio lighting to reveal true, undistorted tones and sharp object boundaries.`;
 
   document.getElementById('nano-prompt-text').value = prompt;
   document.getElementById('nano-output').style.display = 'block';
