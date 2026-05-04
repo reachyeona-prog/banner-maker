@@ -1889,9 +1889,14 @@ async function generateNanoPrompt() {
   document.querySelector('.nano-btn').disabled = false;
 
   const mainObject = mainEn;
-  const mainTitle  = textEn    || 'none';
+  // 짧은 텍스트(P, $ 등)가 통화·기호로 자동 치환되는 문제 방어:
+  // 따옴표로 감싸 literal 강조 + 구체적 negative example까지 부착
+  const literalTextHint = (t) => `"${t}" (render EXACTLY these characters as plain Latin alphabet letters or Arabic numerals from standard clean typography. STRICTLY do NOT substitute with any currency symbol, mathematical sign, ligature, logo mark, or modified glyph — e.g., the letter "P" must be the standard capital letter P, NOT the Russian Ruble symbol ₽)`;
+  const mainTitle  = textEn    ? literalTextHint(textEn)    : 'none';
+  // 서브 오브젝트는 명사구만 — 'EXACTLY ONE'·색상 구분 규칙은 템플릿 본문에 이미 명시되어 있음
+  // (변수에 부연설명을 붙이면 명사구로 흡수돼 추상 형태로 렌더되는 문제가 있어 제거)
   const subObject  = subEn     || 'none';
-  const subTitle   = subTextEn || 'none';
+  const subTitle   = subTextEn ? literalTextHint(subTextEn) : 'none';
 
   const prompt =
 `Below are the variables for the image creation. Please apply these values to the [FINAL PROMPT TEMPLATE] and generate the image.
@@ -1908,12 +1913,12 @@ async function generateNanoPrompt() {
 * Logic (Primary Object): Focus on the [Main Object] as the central subject.
 * Logic (Secondary Object): If [Sub Object] is 'none', strictly ignore. If NOT 'none', render EXACTLY ONE [Sub Object] decorative element placed near the primary object, maintaining independent structural integrity (no merging) and its own color.
 
-[SYMBOLIC DESIGN RULE: NO EXTRA GRAPHICS]
-1. Focus on essential symbolic features of the objects.
-2. STRICTLY EXCLUDE any unnecessary graphics (e.g., NO random arrows, NO percentages, NO extra icons).
+[SYMBOLIC DESIGN RULE: PRESERVE INHERENT ICONOGRAPHY, NO EXTRA GRAPHICS]
+1. INCLUDE the object's inherent symbolic features and characteristic iconography that define its identity (e.g., a passport's national emblem on the cover, a credit card's chip and brand mark, a clock's numerals, a calendar's date grid, a book's spine details). These belong to the object itself and are NOT considered "extra graphics".
+2. STRICTLY EXCLUDE any unrelated decorative graphics that are not part of the object's natural design (e.g., NO random arrows, NO percentages, NO sparkles, NO extra decorative icons unrelated to the subject).
 
 [TEXT CONTROL: PRECISION CONTENT ONLY]
-1. Main Object Text: Render ONLY the literal text defined by [Main Title Content] on the main object's surface.
+1. Main Object Text: Render the literal text defined by [Main Title Content] as the main surface text. Do NOT add any other invented text. (This rule governs only surface text — inherent non-text iconography from the SYMBOLIC DESIGN RULE is unaffected.)
 2. Sub Object Text: If [Sub Title Content] is NOT 'none', render ONLY that text on the sub-object's surface.
 3. Strict No-Variable Rule: Do NOT render variable names. Render only the actual content provided. If 'none', the surface must remain blank.
 4. Font & Effect: All text must be integrated with a clean, 3D embossed effect using a bold, clear, and simple font for maximum legibility.
@@ -1921,8 +1926,10 @@ async function generateNanoPrompt() {
 [COLOR & MATERIAL FIDELITY]
 1. Color Independence: Each object must strictly maintain its own inherent hue.
    * Inherent Rule: For objects with real-world colors (e.g., metallic tones for metals), use the object's characteristic real-world color (e.g., brown tones for a coffee cup), rendered cleanly with the ABS plastic matte texture.
-   * Neutral Rule: For designed or architectural objects with no fixed real-world color (like a generic shop or abstract object), use a clean, neutral, or contextually appropriate hue — do NOT default to generic plastic or toy-like orange/beige tones.
-2. Material Consistency: Each object must have a VISUALLY DISTINCT color. The sub-object's color must be clearly different from the main object's color. Material properties must NOT contaminate between objects.
+   * Multi-Color Rule: Objects that are inherently multi-colored (party poppers with confetti, balloons, candy, fruit baskets, rainbows, flower bouquets, etc.) MUST preserve their natural multi-color palette — do NOT collapse them into a single monochromatic color. Internal sub-parts (e.g., confetti streamers, candy pieces, balloon bunches) should each have their own varied colors.
+   * Conventional Association Rule: For decorative or celebratory items that have no single fixed real-world color but carry strong cultural/conventional color associations (gift boxes, ribbons, party hats, birthday candles, balloons, holiday ornaments, etc.), use the conventional festive palette typical to that object — e.g., a gift box should be a warm, vivid color (red, pink, gold, sky blue, or similar celebratory tones) with the ribbon/bow in a CONTRASTING color, NOT rendered as a single muted/neutral color.
+   * Neutral Rule: For designed or architectural objects with no fixed real-world color and no strong cultural color association (like a generic shop, abstract object, or unbranded device), use a clean, neutral, or contextually appropriate hue — do NOT default to generic plastic or toy-like orange/beige tones.
+2. Object Distinction: The sub-object's OVERALL color identity must be visually distinct from the main object's so the two read as separate elements. (This applies at the object-identity level — multi-colored objects are still allowed to keep their internal color variety.) Material properties must NOT contaminate between objects.
 3. Purity & Clarity: Use high color fidelity and crystal-clear precision. Colors must appear pure and well-defined, not artificially oversaturated.
 
 [VIEWPOINT & RENDER]
