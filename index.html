@@ -763,6 +763,13 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
           </div>
         </div>
         <div class="nano-row">
+          <div class="field-spec nano-label">서브 이미지 내 텍스트</div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:4px;">
+            <input type="text" id="nano-sub-text" class="nano-input" placeholder="예: SALE">
+            <div class="field-spec">없으면 비워두기</div>
+          </div>
+        </div>
+        <div class="nano-row">
           <div class="field-spec nano-label">이미지 비율</div>
           <div class="nano-ratio-display" id="nano-ratio">—</div>
         </div>
@@ -772,7 +779,7 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
         <span id="nano-btn-label">프롬프트 생성</span>
       </button>
       <div id="nano-output" style="display:none;">
-        <textarea id="nano-prompt-text" class="nano-prompt-area" readonly rows="7"></textarea>
+        <textarea id="nano-prompt-text" class="nano-prompt-area" readonly rows="14"></textarea>
         <button class="nano-copy-btn" id="nano-copy-btn" onclick="copyNanoPrompt()">
           <svg class="icon" id="nano-copy-icon" aria-hidden="true"><use href="#i-copy"/></svg>
           <span id="nano-copy-label">클립보드 복사</span>
@@ -949,6 +956,7 @@ const SPECS = {
         label: '혜택 메인 배너',
         bgFixed: null, noPointColor: true,
         abMirror: 'horizontal',
+        bOverrides: { main: { textAlign: 'right' }, sub: { textAlign: 'right' } },
         versions: [{ id: 'mo', label: 'MO', w: 328, h: 200,
           main: { top:24, left:24, right:24, fs:24, lines:2, lh:'130%' },
           sub:  { top:97, left:24, right:120, fs:18, lines:2, lh:'130%', color:'#000000' },
@@ -959,6 +967,7 @@ const SPECS = {
         bgFixed: null, noPointColor: true,
         hasArrow: true,
         abMirror: 'horizontal',
+        bOverrides: { main: { left: 24 } }, // mirror가 만든 left:48을 24로 좁혀 카피 영역 확보
         versions: [{ id: 'mo', label: 'MO', w: 328, h: 96,
           main: { left:104, right:48, fs:16, lines:2, lh:'130%', vcenter:true },
           img:  { left:24, w:56, h:56, vcenter:true } }]
@@ -968,6 +977,11 @@ const SPECS = {
         bgFixed: null, noPointColor: true,
         hasButton: true,
         abMirror: 'horizontal',
+        bOverrides: {
+          main: { textAlign: 'right' },
+          sub: { textAlign: 'right' },
+          btn: { textAlign: 'right' } // 버튼 텍스트 우측 정렬 + 우측 24px 패딩
+        },
         versions: [{ id: 'mo', label: 'MO', w: 393, h: 354,
           sub:  { top:24, left:24, right:24, fs:16, color:'#303740' },
           main: { top:56, left:24, right:24, fs:24, lines:2, lh:'130%', color:'#16191D' },
@@ -979,6 +993,12 @@ const SPECS = {
         bgFixed: '#FFFFFF', isPNG: true, noPointColor: true,
         cropDownload: true,
         abMirror: 'vertical',
+        // B는 크롭 영역(다운로드 232×232)을 A와 동일하게 두고, 그 안에서 이미지·타이틀만 상하 swap
+        bOverrides: {
+          main: { top: 510, bottom: undefined },                     // 타이틀을 크롭 상단에 배치
+          img:  { top: 608, bottom: undefined },                     // 이미지를 크롭 하단에 배치 (510+232-134)
+          crop: { top: 510, left: 80, w: 232, h: 232 }               // 크롭 위치는 A와 동일
+        },
         versions: [{ id: 'mo', label: 'MO', w: 393, h: 852,
           img:  { top:510, hcenter:true, w:145, h:134 },
           main: { top:664, fs:18, lines:2, lh:'150%', center:true },
@@ -1041,6 +1061,18 @@ function mirrorElement(obj, mode) {
   return m;
 }
 function mirrorVersion(v, mode) {
+  // crop은 다운로드/가이드 코드가 top/left만 읽으므로 미러 후 bottom/right를 다시 top/left로 정규화
+  let crop = mirrorElement(v.crop, mode);
+  if (crop) {
+    if (crop.bottom !== undefined && crop.top === undefined) {
+      crop = { ...crop, top: v.h - crop.bottom - (crop.h || 0) };
+      delete crop.bottom;
+    }
+    if (crop.right !== undefined && crop.left === undefined) {
+      crop = { ...crop, left: v.w - crop.right - (crop.w || 0) };
+      delete crop.right;
+    }
+  }
   return {
     ...v,
     id: v.id + '-alt',
@@ -1049,7 +1081,7 @@ function mirrorVersion(v, mode) {
     sub: mirrorElement(v.sub, mode),
     img: mirrorElement(v.img, mode),
     btn: mirrorElement(v.btn, mode),
-    crop: mirrorElement(v.crop, mode),
+    crop,
   };
 }
 (function expandAbVariants() {
@@ -1057,6 +1089,16 @@ function mirrorVersion(v, mode) {
     Object.values(product.slots).forEach(slot => {
       if (!slot.abMirror) return;
       const mirrored = slot.versions.map(v => mirrorVersion(v, slot.abMirror));
+      // bOverrides: B 버전 미러링 결과에 element 단위 패치를 덮어씀 (textAlign / 좌표 조정 등)
+      if (slot.bOverrides) {
+        mirrored.forEach(v => {
+          ['main', 'sub', 'img', 'btn', 'crop'].forEach(key => {
+            if (slot.bOverrides[key] && v[key]) {
+              v[key] = { ...v[key], ...slot.bOverrides[key] };
+            }
+          });
+        });
+      }
       // 원본 라벨도 'A'를 붙여 구분 (페어로 보이게)
       slot.versions = slot.versions.map(v => ({ ...v, label: v.label + ' A' })).concat(mirrored);
     });
@@ -1674,71 +1716,92 @@ async function translateToEn(text) {
   }
 }
 async function generateNanoPrompt() {
-  const mainRaw = document.getElementById('nano-main').value.trim();
+  const mainRaw     = document.getElementById('nano-main').value.trim();
   if (!mainRaw) { document.getElementById('nano-main').focus(); return; }
-  const subRaw  = document.getElementById('nano-sub').value.trim();
-  const textRaw = document.getElementById('nano-text').value.trim();
-  const ratio   = document.getElementById('nano-ratio').textContent;
+  const subRaw     = document.getElementById('nano-sub').value.trim();
+  const textRaw    = document.getElementById('nano-text').value.trim();
+  const subTextRaw = document.getElementById('nano-sub-text').value.trim();
+  const ratio      = document.getElementById('nano-ratio').textContent;
 
   // 번역이 필요하면 버튼 로딩 상태
   const btn = document.getElementById('nano-btn-label');
-  const needsTranslation = hasKorean(mainRaw) || hasKorean(subRaw) || hasKorean(textRaw);
+  const needsTranslation = hasKorean(mainRaw) || hasKorean(subRaw) || hasKorean(textRaw) || hasKorean(subTextRaw);
   if (needsTranslation) {
     btn.textContent = '번역 중...';
     document.querySelector('.nano-btn').disabled = true;
   }
 
   // 병렬 번역
-  const [main, sub, text] = await Promise.all([
+  const [mainEn, subEn, textEn, subTextEn] = await Promise.all([
     translateToEn(mainRaw),
     translateToEn(subRaw),
-    translateToEn(textRaw)
+    translateToEn(textRaw),
+    translateToEn(subTextRaw)
   ]);
 
   // 버튼 복원
   btn.textContent = '프롬프트 생성';
   document.querySelector('.nano-btn').disabled = false;
 
-  // 첫 줄: OBJECT + ICON_TEXT + SUB_OBJECT 조합
-  let line1 = `Simplified and slightly puffy 3D composition of ${main}`;
-  if (text && sub)  line1 += ` featuring the text "${text}" embossed on its face, accompanied by ${sub},`;
-  else if (text)    line1 += ` featuring the text "${text}" embossed on its face,`;
-  else if (sub)     line1 += `, accompanied by ${sub},`;
-  else              line1 += `,`;
-
-  // SUB-OBJECT LOGIC (sub 있을 때만 생성)
-  let subSection = '';
-  if (sub) {
-    subSection  = `\nSUB-OBJECT LOGIC:\n`;
-    subSection += `1. Render the ${sub} as separate decorative elements near the ${main}\n`;
-    subSection += `   while maintaining independent structural integrity (no merging with ${main}).\n`;
-    if (text) subSection += `2. The ${main} must clearly display the text "${text}" on its surface.\n`;
-  }
-
-  // TEXT AND GRAPHIC RULES
-  let textSection = `TEXT AND GRAPHIC RULES:\n`;
-  if (text) {
-    textSection += `1. Render ONLY the exact text "${text}" integrated directly onto the\n`;
-    textSection += `   ${main} surface in a bold, clear font.\n`;
-    textSection += `2. STRICTLY EXCLUDE unnecessary graphics like random arrows or percentages.`;
-  } else {
-    textSection += `1. Keep all surfaces COMPLETELY BLANK — no text, no graphics.\n`;
-    textSection += `2. STRICTLY EXCLUDE unnecessary graphics like random arrows or percentages.`;
-  }
+  const mainObject = mainEn;
+  const mainTitle  = textEn    || 'none';
+  const subObject  = subEn     || 'none';
+  const subTitle   = subTextEn || 'none';
 
   const prompt =
-`${line1}
-rendered in ${ratio} aspect ratio, smooth matte finish, rounded edges,
-realistic geometry with its essential symbolic details and embossed iconography
-inherent to its design, refined color palette utilizing its natural colors
-with subtle depth and clarity gradients, front-facing but slightly tilted,
-soft studio lighting, ultra-clean render, isolated on a solid white (#FFFFFF)
-background, no ambient occlusion on edges.
-${subSection}${textSection}
-FRAME AND COMPOSITION (NO CROPPING / MINIMAL MARGIN):
-The entire composition must be a complete, self-contained entity within the ${ratio} frame.
-Maximize the size of the subjects while ensuring absolutely no part (edges or accessories)
-is cut off or touches the frame boundaries. Maintain a tiny, consistent margin on all four sides.`;
+`Below are the variables for the image creation. Please apply these values to the [FINAL PROMPT TEMPLATE] and generate the image.
+
+---
+### [INPUT VARIABLES]
+- [Aspect Ratio]: ${ratio}
+- [Main Object]: ${mainObject}
+- [Main Title]: ${mainTitle}
+- [Sub Object]: ${subObject}
+- [Sub Title]: ${subTitle}
+
+---
+### [FINAL PROMPT TEMPLATE]
+
+[OBJECTIVE]
+Create a high-quality 3D icon of [Main Object], rendered in [Aspect Ratio] aspect ratio.
+
+[SYMBOLIC DESIGN RULE]
+1. Focus on the essential symbolic features of the [Main Object].
+2. Incorporate realistic, clean, and embossed iconography inherent to its design.
+3. STRICTLY EXCLUDE unnecessary graphics like random arrows or percentages.
+
+[VISUAL STYLE: HIGH-QUALITY VIBRANT ABS PLASTIC]
+1. TEXTURE: Smooth matte finish mimicking high-quality, vibrant (high-saturation) dyed molded ABS plastic. Strictly avoid clay-like, hand-made, or desaturated/muddy textures.
+2. COLOR: The base colors must be ultra-vibrant, intense, and high-saturation (chroma), as if the plastic itself is deeply saturated with pure pigment.
+3. FORM: Simplified and slightly puffy 3D volume with perfectly rounded edges.
+4. ANGLE: Front-facing but slightly tilted with a subtle 3/4 perspective for depth.
+
+[LIGHTING & RENDER]
+1. LIGHTING: Crisp, clean studio lighting with aesthetic global illumination designed to accentuate high-saturation colors.
+2. BRIGHTNESS: Increase overall brightness to make the vibrant colors "pop" against the background.
+3. GRADIENTS: Use subtle depth and clarity gradients for a premium look, ensuring shadow areas remain clean and do not become grayish or desaturated.
+4. RENDER: Ultra-clean, hyper-clear render with no ambient occlusion on edges to prevent bleeding. Maximize color purity.
+
+[SUB-OBJECT LOGIC]
+1. If [Sub Object] is 'none': STRICTLY IGNORE any secondary objects. Render ONLY the [Main Object] as the sole subject.
+2. If [Sub Object] is NOT 'none': Render [Sub Object] as a separate decorative element near the [Main Object] while maintaining independent structural integrity (no merging). The [Sub Object] must also follow the high-saturation color rule.
+3. If [Sub Title] is NOT 'none', display the text "[Sub Title]" clearly and prominently on the [Sub Object]'s surface.
+
+[TEXT CONTROL]
+1. Main Object Text:
+   - If [Main Title] is 'none', keep the [Main Object] surface COMPLETELY BLANK.
+   - If [Main Title] is NOT 'none', render ONLY the exact text "[Main Title]" on the [Main Object] in a bold, clear, simple font.
+2. Sub Object Text:
+   - If [Sub Object] is NOT 'none' AND [Sub Title] is NOT 'none', render the exact text "[Sub Title]" on the [Sub Object].
+   - If [Sub Title] is 'none', keep the [Sub Object] surface blank.
+3. ALL text must be integrated directly onto the surface using a clean, 3D embossed effect.
+4. STRICTLY EXCLUDE any text not explicitly mentioned in [Main Title] or [Sub Title].
+
+[FRAME AND COMPOSITION: NO CROPPING]
+1. TIGHTLY FRAMED / FILL THE [Aspect Ratio] FRAME: Maximize the subject size to fill the canvas as much as possible.
+2. NO CROPPING: Ensure ABSOLUTELY NO PART (arms, accessories, or edges) is cut off or touches the frame boundaries.
+3. BACKGROUND: Isolated on a solid pure white background (#FFFFFF) for easy extraction. The background must remain pure white to contrast sharply with the vibrant object.
+4. MARGIN: Maintain a tiny, consistent white margin on all four sides.`;
 
   document.getElementById('nano-prompt-text').value = prompt;
   document.getElementById('nano-output').style.display = 'block';
@@ -1820,7 +1883,10 @@ function renderPreviews() {
     section.appendChild(outer);
     return section;
   };
-  // abMirror 슬롯: '버전 A' 헤더 → A 그룹 → 구분선 → '버전 B' 헤더 → B 그룹
+  // 다운로드 버튼 영역 (하단) — abMirror가 아닐 때만 사용. abMirror는 A/B 그룹 바로 아래에 인라인 배치.
+  const dlArea = document.getElementById('dl-btn-area');
+  dlArea.innerHTML = '';
+  // abMirror 슬롯: '버전 A' 헤더 → A 그룹 → A 다운로드 버튼 → 구분선 → '버전 B' 헤더 → B 그룹 → B 다운로드 버튼
   if (spec.abMirror) {
     const half = spec.versions.length / 2;
     const groupA = spec.versions.slice(0, half);
@@ -1830,6 +1896,7 @@ function renderPreviews() {
     hdrA.textContent = '버전 A';
     container.appendChild(hdrA);
     groupA.forEach(v => container.appendChild(makeSection(v)));
+    container.appendChild(buildDownloadButton(`버전 A 다운로드 (${groupA.length}개)`, groupA));
     const divider = document.createElement('div');
     divider.className = 'preview-version-divider';
     container.appendChild(divider);
@@ -1838,23 +1905,9 @@ function renderPreviews() {
     hdrB.textContent = '버전 B';
     container.appendChild(hdrB);
     groupB.forEach(v => container.appendChild(makeSection(v)));
+    container.appendChild(buildDownloadButton(`버전 B 다운로드 (${groupB.length}개)`, groupB));
   } else {
     spec.versions.forEach(v => container.appendChild(makeSection(v)));
-  }
-  // 가이드 모드 적용
-  if (guideOn) {
-    document.querySelectorAll('.banner-wrap').forEach(b => b.classList.add('show-guide'));
-  }
-  // 다운로드 버튼 영역 — abMirror는 A/B 각각 분리, 그 외는 단일 버튼
-  const dlArea = document.getElementById('dl-btn-area');
-  dlArea.innerHTML = '';
-  if (spec.abMirror) {
-    const half = spec.versions.length / 2;
-    const versionsA = spec.versions.slice(0, half);
-    const versionsB = spec.versions.slice(half);
-    dlArea.appendChild(buildDownloadButton(`버전 A 다운로드 (${versionsA.length}개)`, versionsA));
-    dlArea.appendChild(buildDownloadButton(`버전 B 다운로드 (${versionsB.length}개)`, versionsB));
-  } else {
     let labelText;
     if (spec.iconOnly) labelText = '아이콘 JPG 다운로드';
     else if (spec.versions.length > 1) labelText = `3배수 JPG ${spec.versions.length}개 다운로드`;
@@ -1863,6 +1916,10 @@ function renderPreviews() {
       labelText = `${spec.versions[0].label} ${ext} 다운로드`;
     }
     dlArea.appendChild(buildDownloadButton(labelText, spec.versions));
+  }
+  // 가이드 모드 적용
+  if (guideOn) {
+    document.querySelectorAll('.banner-wrap').forEach(b => b.classList.add('show-guide'));
   }
 }
 function buildDownloadButton(labelText, versions) {
@@ -1958,7 +2015,14 @@ function buildBanner(v, spec) {
   // 버튼 (B8 메인 바텀 시트) — 추가 여부는 showButton 상태로 제어
   if (spec.hasButton && v.btn && getShowButton()) {
     const btn = document.createElement('div');
-    btn.style.cssText = `position:absolute;bottom:${v.btn.bottom}px;left:${v.btn.left}px;width:${v.btn.w}px;height:${v.btn.h}px;background:${getBgFor(v) === '#FFFFFF' ? '#F0F0F0' : '#FFFFFF'};border-radius:8px;display:flex;align-items:center;justify-content:center;pointer-events:none;`;
+    const align = v.btn.textAlign || 'center';
+    const justify = align === 'right' ? 'flex-end' : (align === 'left' ? 'flex-start' : 'center');
+    const padPx = v.btn.padX !== undefined ? v.btn.padX : (align === 'center' ? 0 : 24);
+    const padCss = align === 'right' ? `padding:0 ${padPx}px 0 0;` : (align === 'left' ? `padding:0 0 0 ${padPx}px;` : '');
+    let pos = `bottom:${v.btn.bottom}px;`;
+    if (v.btn.left !== undefined) pos += `left:${v.btn.left}px;`;
+    if (v.btn.right !== undefined) pos += `right:${v.btn.right}px;`;
+    btn.style.cssText = `position:absolute;${pos}width:${v.btn.w}px;height:${v.btn.h}px;background:${getBgFor(v) === '#FFFFFF' ? '#F0F0F0' : '#FFFFFF'};border-radius:8px;display:flex;align-items:center;justify-content:${justify};${padCss}pointer-events:none;box-sizing:border-box;`;
     const btnText = getVal('btn') || '버튼 텍스트';
     btn.innerHTML = `<span style="font-size:${v.btn.fs}px;font-weight:700;font-family:var(--font);color:#16191D;letter-spacing:-0.5px;">${btnText}</span>`;
     banner.appendChild(btn);
@@ -1969,6 +2033,7 @@ function buildBanner(v, spec) {
     m.className = 'b-main' + (v.main.center ? ' center' : '');
     let css = `font-size:${v.main.fs}px;font-weight:${v.main.fw || 700};line-height:${v.main.lh};`;
     css += `color:${resolveTextColor(v.main.color, v)};`;
+    if (v.main.textAlign) css += `text-align:${v.main.textAlign};`;
     if (v.main.vcenter) {
       css += `top:0;bottom:0;height:100%;display:flex;align-items:center;`;
       if (v.main.left !== undefined) css += `left:${v.main.left}px;`;
@@ -1976,9 +2041,13 @@ function buildBanner(v, spec) {
       if (v.main.left === undefined && v.main.right === undefined) css += `left:0;`;
     } else if (v.main.bottom !== undefined) {
       css += `bottom:${v.main.bottom}px;`;
-      if (v.main.left !== undefined) css += `left:${v.main.left}px;`;
-      if (v.main.right !== undefined) css += `right:${v.main.right}px;`;
-      if (v.main.left === undefined && v.main.right === undefined) css += `left:0;`;
+      if (v.main.center && v.main.left === undefined && v.main.right === undefined) {
+        css += `left:0;right:0;`;
+      } else {
+        if (v.main.left !== undefined) css += `left:${v.main.left}px;`;
+        if (v.main.right !== undefined) css += `right:${v.main.right}px;`;
+        if (v.main.left === undefined && v.main.right === undefined) css += `left:0;`;
+      }
     } else {
       css += `top:${v.main.top}px;`;
       if (v.main.center && v.main.left === undefined && v.main.right === undefined) {
@@ -2017,6 +2086,7 @@ function buildBanner(v, spec) {
     s.className = 'b-sub';
     const subTextColor = resolveTextColor(v.sub.color, v);
     let css = `font-size:${v.sub.fs}px;line-height:${v.sub.lh || '130%'};color:${subTextColor};`;
+    if (v.sub.textAlign) css += `text-align:${v.sub.textAlign};`;
     if (v.sub.top !== undefined) css += `top:${v.sub.top}px;`;
     else css += `bottom:${v.sub.bottom}px;`;
     if (v.sub.left !== undefined) css += `left:${v.sub.left}px;`;
@@ -2281,10 +2351,20 @@ async function downloadVersions(btn, versions) {
       // 크롭 가이드 일시 숨김 (다운로드 결과물에 포함되지 않도록)
       const cropGuides = el.querySelectorAll('.crop-guide');
       cropGuides.forEach(g => g.style.display = 'none');
-      const canvas = await html2canvas(el, {
-        scale: 3, width: v.w, height: v.h,
-        useCORS: true, backgroundColor: canvasBg, logging: false
-      });
+      // isLarge 슬롯은 부모 scaler에 transform:scale이 걸려 있어 html2canvas의
+      // 내부 좌표 계산이 어그러짐. 캡처 직전에만 transform을 해제했다가 복원.
+      const scaler = (spec.isLarge && el.parentElement && el.parentElement.style.transform) ? el.parentElement : null;
+      const prevTransform = scaler ? scaler.style.transform : null;
+      if (scaler) scaler.style.transform = 'none';
+      let canvas;
+      try {
+        canvas = await html2canvas(el, {
+          scale: 3, width: v.w, height: v.h,
+          useCORS: true, backgroundColor: canvasBg, logging: false
+        });
+      } finally {
+        if (scaler) scaler.style.transform = prevTransform;
+      }
       cropGuides.forEach(g => g.style.display = '');
       // cropDownload 슬롯: 전체 캔버스에서 지정 영역만 크롭
       if (spec.cropDownload && v.crop) {
