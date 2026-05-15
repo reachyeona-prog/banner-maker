@@ -642,6 +642,7 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
         <option value="seller">셀러</option>
         <option value="app">앱</option>
         <option value="table">테이블 오더</option>
+        <option value="blog">웹 블로그</option>
       </select>
     </div>
     <div class="selector-group">
@@ -1085,6 +1086,39 @@ const SPECS = {
         ]
       }
     }
+  },
+  blog: {
+    label: '웹 블로그',
+    // 디자인 1080×600 → 다운로드 1200×약667 (가로 1200 기준, 10/9 ≈ 1.11배)
+    slots: {
+      // 카피 썸네일: 좌측 텍스트(최대 2줄, 1줄 7자) + 우측 정사각 img area
+      'D1': {
+        label: '카피 썸네일',
+        bgFixed: null, pointColor: true, noSub: true, isLarge: true,
+        downloadScale: 10/9,
+        // 슬롯 전용 배경 프리셋 (custom picker는 자동 추가). 첫 항목이 기본값.
+        bgPresets: ['#F6F8F9', '#E2FFF9', '#ECFCFF', '#EDFFE9', '#F0FCDD', '#F6EFFE', '#FDEFFE', '#FEF2EF', '#FFF8D7', '#FFFCEC'],
+        versions: [{ id: 'web', label: 'WEB', w: 1080, h: 600,
+          main: { left:70, right:550, fs:68, lines:2, lh:'140%', vcenter:true, color:'#111111' },
+          img:  { right:100, top:100, bottom:100, w:430, h:400 } }]
+      },
+      // 아이콘 썸네일: 텍스트 없음, #F1F8FF 고정, 중앙 정렬 (top/bottom 100px, left/right 170px)
+      'D2': {
+        label: '아이콘 썸네일',
+        bgFixed: '#F1F8FF', noPointColor: true, isLarge: true,
+        downloadScale: 10/9,
+        versions: [{ id: 'web', label: 'WEB', w: 1080, h: 600,
+          img: { top:100, left:170, w:740, h:400 } }]
+      },
+      // 실사 썸네일: 이미지만 업로드. 전체 캔버스를 채우고 사용자가 마우스로 위치/크기 조절 가능
+      'D3': {
+        label: '실사 썸네일',
+        bgFixed: '#000000', noPointColor: true, isLarge: true,
+        downloadScale: 10/9, imageEditable: true,
+        versions: [{ id: 'web', label: 'WEB', w: 1080, h: 600,
+          img: { top:0, left:0, w:1080, h:600 } }]
+      }
+    }
   }
 };
 // ================================================
@@ -1179,6 +1213,8 @@ function getBgFor(v) {
 let currentPointColor = '#1D99FF';
 let currentImages = {};      // { mo: dataURL, pc: dataURL, ... }
 let currentImageSizes = {};  // { mo: {w, h}, pc: {w, h}, ... } — 누끼 처리 후 원본 사이즈 (비율 계산용)
+let currentImageTransforms = {}; // imageEditable 슬롯에서 사용자 조작 상태 { [v.id]: { scale, x, y } }
+let editableImageAbort = null;   // 미리보기 마우스 핸들러 정리용 AbortController
 let currentTextColorMode = 'auto'; // 'auto' | 'white' | 'black' — 어두운 배경에서 사용자가 토글로 강제 지정 가능
 let currentShowButton = true; // B8 버튼 표시 여부
 let currentMainLines = 3;    // C1 메인 카피 줄 수 (2 또는 3)
@@ -1244,15 +1280,21 @@ function onSlotChange() {
   currentSlot = document.getElementById('sel-slot').value;
   currentImages = {};
   currentImageSizes = {};
+  currentImageTransforms = {};
   currentTextColorMode = 'auto';
   currentShowButton = true;
   currentMainLines = 3;
+  // 미리보기에 붙어있던 이전 슬롯의 마우스 핸들러 정리
+  if (editableImageAbort) { editableImageAbort.abort(); editableImageAbort = null; }
   // perVersionBg 슬롯이면 버전별 기본 배경 초기화
   const slotSpec = SPECS[currentProduct].slots[currentSlot];
   currentBgPerVersion = {};
   if (slotSpec.perVersionBg) {
     slotSpec.versions.forEach(v => { currentBgPerVersion[v.id] = '#F8F8F8'; });
   }
+  // 실사 썸네일은 사용자 사진을 그대로 사용하므로 Nano Banana(AI 일러스트 생성) 영역 숨김
+  const nanoSection = document.getElementById('nano-section');
+  if (nanoSection) nanoSection.style.display = slotSpec.imageEditable ? 'none' : '';
   renderImageUploads();
   renderInputs();
   updateBgUI();
@@ -1412,6 +1454,23 @@ function updatePresetActive() {
     s.classList.toggle('active', hex === cur);
   });
 }
+// 기본 배경 프리셋 (인덱스 페이지의 정적 HTML과 동일 — 슬롯에 bgPresets 미지정 시 사용)
+const DEFAULT_BG_PRESETS = [
+  '#F8F8F8','#E3F2FF','#D1F6F8','#E0E0FF','#F3E8FF','#EBFCCA','#FEF9C3','#FFE4D1','#FEE1E2',
+  '#EBEBEB','#212121','#2B3648',
+  '#FFF7E2','#FFEDF3','#ECEFFF','#FEF397','#F3FE84','#D1FFE3','#99FADB','#A6E6FF',
+  '#FFC989','#FE8336','#FF7865','#361F00',
+  '#00BB9A','#00BCB8','#01B7FF','#0177FF','#0059FF','#0035D3','#6052FF'
+];
+// 배경 프리셋 스와치 동적 렌더 (custom-picker는 마지막에 자동 추가)
+function renderBgPresets(colors) {
+  const list = colors || DEFAULT_BG_PRESETS;
+  const wrap = document.getElementById('preset-colors');
+  wrap.innerHTML = list.map(c =>
+    `<div class="preset-swatch" style="background:${c}" onclick="selectPreset('${c}')"></div>`
+  ).join('') +
+    `<div class="preset-swatch custom-picker" title="직접 선택" onclick="openColorPicker()"></div>`;
+}
 function updateBgUI() {
   const spec = SPECS[currentProduct].slots[currentSlot];
   const fixed = spec.bgFixed;
@@ -1443,8 +1502,17 @@ function updateBgUI() {
     presets.style.display = 'none';
     textToggle.classList.remove('show'); // fixed 배경에서는 토글 숨김
   } else {
-    // 고정 배경(#EBEBEB)에서 전환된 경우만 기본 #F8F8F8로. F8F8F8 자체는 캐리오버 허용.
-    if (!currentBg || currentBg === '#EBEBEB') currentBg = '#F8F8F8';
+    // 슬롯 전용 bgPresets가 있으면 동적으로 스와치 교체. 현재 색이 목록에 없으면 첫 항목으로.
+    if (spec.bgPresets) {
+      renderBgPresets(spec.bgPresets);
+      const upper = (currentBg || '').toUpperCase();
+      const inList = spec.bgPresets.some(c => c.toUpperCase() === upper);
+      if (!inList) currentBg = spec.bgPresets[0];
+    } else {
+      renderBgPresets(null); // 기본 프리셋 복원
+      // 고정 배경(#EBEBEB)에서 전환된 경우만 기본 #F8F8F8로. F8F8F8 자체는 캐리오버 허용.
+      if (!currentBg || currentBg === '#EBEBEB') currentBg = '#F8F8F8';
+    }
     swatch.style.cursor = 'pointer';
     locked.style.display = 'none';
     picker.style.display = 'none';
@@ -1665,6 +1733,13 @@ function renderInputs() {
     renderMainFields();
     renderSubFields();
   }
+  // 텍스트 필드가 전혀 없는 슬롯 (예: 웹 블로그 아이콘/실사 썸네일) — 안내 메시지 노출
+  if (!v.main && (!v.sub || spec.noSub) && !spec.hasButton) {
+    const msg = spec.imageEditable
+      ? '사진을 업로드한 뒤 미리보기에서 <strong>드래그로 위치</strong>, <strong>휠로 크기</strong>를 조절하세요.'
+      : '이미지만 업로드하면 됩니다.';
+    area.innerHTML = `<div style="font-size:12px;color:#AAAAAA;padding:4px 0;line-height:1.6;">${msg}</div>`;
+  }
   // 버튼 (B8) — 추가 여부 토글 + 텍스트 입력
   if (spec.hasButton && v.btn) {
     const btnField = document.createElement('div');
@@ -1778,22 +1853,28 @@ function processImageFile(file, versionId) {
   reader.onload = (ev) => {
     const img = new Image();
     img.onload = () => {
-      // Canvas 누끼 처리 (원본 단순 알고리즘 유지 — 화질 손실 없음)
-      const canvas = document.createElement('canvas');
-      canvas.width = img.width; canvas.height = img.height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0);
-      const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const px = data.data;
-      for (let i = 0; i < px.length; i += 4) {
-        if (px[i] > 230 && px[i+1] > 230 && px[i+2] > 230) px[i+3] = 0;
+      const spec = SPECS[currentProduct].slots[currentSlot];
+      let dataURL;
+      if (spec.imageEditable) {
+        // 실사 썸네일: 흰 배경 알파화 없이 원본 그대로 사용 (사진의 밝은 영역 보존)
+        dataURL = ev.target.result;
+      } else {
+        // Canvas 누끼 처리 (원본 단순 알고리즘 유지 — 화질 손실 없음)
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width; canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const px = data.data;
+        for (let i = 0; i < px.length; i += 4) {
+          if (px[i] > 230 && px[i+1] > 230 && px[i+2] > 230) px[i+3] = 0;
+        }
+        ctx.putImageData(data, 0, 0);
+        dataURL = canvas.toDataURL('image/png');
       }
-      ctx.putImageData(data, 0, 0);
-      const dataURL = canvas.toDataURL('image/png');
       currentImages[versionId] = dataURL;
       currentImageSizes[versionId] = { w: img.width, h: img.height };
       // sharedImage 슬롯 → 모든 버전, 그 외 → A/B alt 변형에 같은 이미지 자동 복제
-      const spec = SPECS[currentProduct].slots[currentSlot];
       const altId = versionId + '-alt';
       spec.versions.forEach(v => {
         if (v.id === versionId) return;
@@ -2000,7 +2081,9 @@ function renderPreviews() {
     lbl.className = 'field-label';
     // abMirror 슬롯은 그룹 헤더(버전 A/B)가 별도로 있으므로 라벨에서 ' A'/' B' 제거
     const displayLabel = spec.abMirror ? v.label.replace(/ [AB]$/, '') : v.label;
-    lbl.textContent = `${displayLabel} — ${v.w.toLocaleString()} × ${v.h.toLocaleString()}px (3배수 추출: ${(v.w*3).toLocaleString()} × ${(v.h*3).toLocaleString()}px)`;
+    const dScale = spec.downloadScale || 3;
+    const scaleTxt = Number.isInteger(dScale) ? `${dScale}배수 추출` : `${dScale.toFixed(2)}배 추출`;
+    lbl.textContent = `${displayLabel} — ${v.w.toLocaleString()} × ${v.h.toLocaleString()}px (${scaleTxt}: ${Math.round(v.w*dScale).toLocaleString()} × ${Math.round(v.h*dScale).toLocaleString()}px)`;
     section.appendChild(lbl);
     const fnLabel = document.createElement('div');
     fnLabel.className = 'field-spec';
@@ -2105,12 +2188,88 @@ function addPadGuide(banner, type, offset, size, w, val, labelFs = 9) {
   banner.appendChild(g);
   banner.appendChild(lbl);
 }
+// 실사 썸네일: 전체 캔버스 cover-fit + 사용자 드래그(위치)·휠(크기) 조작
+function buildEditableImage(banner, v) {
+  const state = currentImageTransforms[v.id] || (currentImageTransforms[v.id] = { scale: 1, x: 0, y: 0 });
+  const imgURL = currentImages[v.id];
+  const imgSize = currentImageSizes[v.id];
+  const container = document.createElement('div');
+  container.className = 'b-img-editable';
+  container.style.cssText = `position:absolute;top:0;left:0;width:${v.w}px;height:${v.h}px;overflow:hidden;cursor:${imgURL ? 'grab' : 'default'};user-select:none;`;
+  if (imgURL && imgSize) {
+    const srcRatio = imgSize.w / imgSize.h;
+    const dstRatio = v.w / v.h;
+    let fitW, fitH;
+    if (srcRatio > dstRatio) { fitH = v.h; fitW = v.h * srcRatio; }
+    else                     { fitW = v.w; fitH = v.w / srcRatio; }
+    const baseX = -(fitW - v.w) / 2;
+    const baseY = -(fitH - v.h) / 2;
+    const img = document.createElement('img');
+    img.src = imgURL;
+    img.draggable = false;
+    img.style.cssText = `width:${fitW}px;height:${fitH}px;display:block;position:absolute;left:${baseX}px;top:${baseY}px;max-width:none;transform-origin:center center;transform:translate(${state.x}px, ${state.y}px) scale(${state.scale});pointer-events:none;`;
+    container.appendChild(img);
+  } else {
+    const ph = document.createElement('div');
+    ph.style.cssText = `width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#888;font-size:28px;gap:10px;`;
+    ph.innerHTML = `<div>사진을 업로드하세요</div><div style="font-size:18px;color:#555;">업로드 후 마우스로 위치 · 휠로 크기 조절</div>`;
+    container.appendChild(ph);
+  }
+  banner.appendChild(container);
+  attachEditableImageHandlers(container, v);
+}
+// 마우스 드래그 + 휠 줌 핸들러. AbortController로 이전 슬롯/렌더의 리스너 정리
+function attachEditableImageHandlers(container, v) {
+  if (editableImageAbort) editableImageAbort.abort();
+  editableImageAbort = new AbortController();
+  const signal = editableImageAbort.signal;
+  const img = container.querySelector('img');
+  if (!img) return; // 이미지가 아직 없으면 핸들러 부착 무의미
+  const state = currentImageTransforms[v.id];
+  const spec = SPECS[currentProduct].slots[currentSlot];
+  const previewScale = spec.isLarge ? 0.4 : 1; // 미리보기 축소율 보정
+  const apply = () => {
+    img.style.transform = `translate(${state.x}px, ${state.y}px) scale(${state.scale})`;
+  };
+  let dragging = false, lastX = 0, lastY = 0;
+  container.addEventListener('mousedown', (e) => {
+    if (!currentImages[v.id]) return;
+    e.preventDefault();
+    dragging = true;
+    lastX = e.clientX; lastY = e.clientY;
+    container.style.cursor = 'grabbing';
+  }, { signal });
+  window.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    state.x += (e.clientX - lastX) / previewScale;
+    state.y += (e.clientY - lastY) / previewScale;
+    lastX = e.clientX; lastY = e.clientY;
+    apply();
+  }, { signal });
+  window.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false;
+    container.style.cursor = 'grab';
+  }, { signal });
+  container.addEventListener('wheel', (e) => {
+    if (!currentImages[v.id]) return;
+    e.preventDefault();
+    const factor = e.deltaY > 0 ? 0.95 : 1.05;
+    state.scale = Math.max(0.3, Math.min(8, state.scale * factor));
+    apply();
+  }, { signal, passive: false });
+}
 function buildBanner(v, spec) {
   const banner = document.createElement('div');
   banner.className = 'banner-wrap';
   banner.id = 'banner-' + v.id;
   const bannerBg = (v.img && v.img.bgFull) ? 'transparent' : getBgFor(v);
   banner.style.cssText = `width:${v.w}px;height:${v.h}px;background:${bannerBg};`;
+  // 실사 썸네일(imageEditable): 전체 캔버스에 cover-fit + 사용자 transform 적용
+  if (spec.imageEditable) {
+    buildEditableImage(banner, v);
+    return banner;
+  }
   // bgFull: 전체 배경 이미지를 가장 먼저 렌더링 (텍스트보다 아래 레이어)
   if (v.img && v.img.bgFull) {
     const imgURL = currentImages[v.id];
@@ -2494,10 +2653,11 @@ async function downloadVersions(btn, versions) {
       const scaler = (spec.isLarge && el.parentElement && el.parentElement.style.transform) ? el.parentElement : null;
       const prevTransform = scaler ? scaler.style.transform : null;
       if (scaler) scaler.style.transform = 'none';
+      const dlScale = spec.downloadScale || 3;
       let canvas;
       try {
         canvas = await html2canvas(el, {
-          scale: 3, width: v.w, height: v.h,
+          scale: dlScale, width: v.w, height: v.h,
           useCORS: true, backgroundColor: canvasBg, logging: false
         });
       } finally {
@@ -2506,7 +2666,7 @@ async function downloadVersions(btn, versions) {
       cropGuides.forEach(g => g.style.display = '');
       // cropDownload 슬롯: 전체 캔버스에서 지정 영역만 크롭
       if (spec.cropDownload && v.crop) {
-        const SCALE = 3;
+        const SCALE = dlScale;
         const cropC = document.createElement('canvas');
         cropC.width = v.crop.w * SCALE;
         cropC.height = v.crop.h * SCALE;
