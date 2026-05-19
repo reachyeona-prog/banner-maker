@@ -484,6 +484,20 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* ===== §13b 실사 썸네일 위치/크기 초기화 버튼 ===== */
+.editable-reset-btn {
+  margin-top: 10px; align-self: flex-start;
+  padding: 6px 12px; border: 1px solid var(--border);
+  background: var(--bg-elev); color: var(--text-muted);
+  border-radius: 6px; cursor: pointer;
+  font-family: var(--font-mono); font-size: 11px;
+  letter-spacing: 0.3px; transition: all var(--t-base) var(--ease);
+}
+.editable-reset-btn:hover {
+  border-color: var(--ink); color: var(--ink);
+  background: #fff;
+}
+
 /* ===== §14 Nano Banana ===== */
 .nano-fields { display: flex; flex-direction: column; gap: 20px; }
 .nano-row { display: flex; align-items: center; gap: 12px; }
@@ -1213,6 +1227,8 @@ function getBgFor(v) {
 let currentPointColor = '#1D99FF';
 let currentImages = {};      // { mo: dataURL, pc: dataURL, ... }
 let currentImageSizes = {};  // { mo: {w, h}, pc: {w, h}, ... } — 누끼 처리 후 원본 사이즈 (비율 계산용)
+let currentImageRaw = {};    // { mo: dataURL, ... } — 원본 데이터(누끼 적용 전) — 토글 변경 시 재처리용
+let knockoutEnabled = true;  // 흰 배경 자동 누끼 — 사용자 토글
 let currentImageTransforms = {}; // imageEditable 슬롯에서 사용자 조작 상태 { [v.id]: { scale, x, y } }
 let editableImageAbort = null;   // 미리보기 마우스 핸들러 정리용 AbortController
 let currentTextColorMode = 'auto'; // 'auto' | 'white' | 'black' — 어두운 배경에서 사용자가 토글로 강제 지정 가능
@@ -1280,6 +1296,7 @@ function onSlotChange() {
   currentSlot = document.getElementById('sel-slot').value;
   currentImages = {};
   currentImageSizes = {};
+  currentImageRaw = {};
   currentImageTransforms = {};
   currentTextColorMode = 'auto';
   currentShowButton = true;
@@ -1295,6 +1312,12 @@ function onSlotChange() {
   // 실사 썸네일은 사용자 사진을 그대로 사용하므로 Nano Banana(AI 일러스트 생성) 영역 숨김
   const nanoSection = document.getElementById('nano-section');
   if (nanoSection) nanoSection.style.display = slotSpec.imageEditable ? 'none' : '';
+  // 슬롯 전용 bgPresets가 있고 직전 색이 목록 밖이면 첫 프리셋으로 (슬롯 진입 시에만 실행)
+  if (slotSpec.bgPresets && !slotSpec.bgFixed) {
+    const upper = (currentBg || '').toUpperCase();
+    const inList = slotSpec.bgPresets.some(c => c.toUpperCase() === upper);
+    if (!inList) currentBg = slotSpec.bgPresets[0];
+  }
   renderImageUploads();
   renderInputs();
   updateBgUI();
@@ -1302,6 +1325,11 @@ function onSlotChange() {
   updateNanoRatio();
   updateTextColorUI();
   renderPreviews();
+  // 텍스트 입력이 전혀 없는 슬롯(아이콘/실사 전용)은 이미지 탭이 주 작업 공간 → 자동 전환
+  const sample = slotSpec.versions[0];
+  const isTextless = slotSpec.iconOnly || slotSpec.imageEditable
+    || (sample && !sample.main && (!sample.sub || slotSpec.noSub) && !slotSpec.hasButton);
+  switchTab(isTextless ? 'image' : 'copy');
 }
 // ================================================
 //  배경색 UI
@@ -1502,14 +1530,9 @@ function updateBgUI() {
     presets.style.display = 'none';
     textToggle.classList.remove('show'); // fixed 배경에서는 토글 숨김
   } else {
-    // 슬롯 전용 bgPresets가 있으면 동적으로 스와치 교체. 현재 색이 목록에 없으면 첫 항목으로.
-    if (spec.bgPresets) {
-      renderBgPresets(spec.bgPresets);
-      const upper = (currentBg || '').toUpperCase();
-      const inList = spec.bgPresets.some(c => c.toUpperCase() === upper);
-      if (!inList) currentBg = spec.bgPresets[0];
-    } else {
-      renderBgPresets(null); // 기본 프리셋 복원
+    // 스와치 동적 교체만 수행. currentBg 검증/리셋은 onSlotChange에서만 (custom picker 보존).
+    renderBgPresets(spec.bgPresets || null);
+    if (!spec.bgPresets) {
       // 고정 배경(#EBEBEB)에서 전환된 경우만 기본 #F8F8F8로. F8F8F8 자체는 캐리오버 허용.
       if (!currentBg || currentBg === '#EBEBEB') currentBg = '#F8F8F8';
     }
@@ -1795,6 +1818,22 @@ function renderImageUploads() {
   const spec = SPECS[currentProduct].slots[currentSlot];
   const wrap = document.getElementById('upload-area-wrap');
   wrap.innerHTML = '';
+  // 실사 슬롯은 항상 원본 사용 → 누끼 토글 노출 안 함. 그 외는 토글 노출.
+  if (!spec.imageEditable) {
+    const toggle = document.createElement('div');
+    toggle.className = 'field';
+    toggle.style.cssText = 'margin-bottom:14px;';
+    toggle.innerHTML = `
+      <div class="field-label" style="display:flex;align-items:center;gap:10px;">
+        흰 배경 자동 누끼
+        <div class="text-color-segments" style="margin-left:auto;">
+          <div class="text-color-segment ${knockoutEnabled ? 'active' : ''}" id="knockout-seg-on" onclick="setKnockoutEnabled(true)">ON</div>
+          <div class="text-color-segment ${!knockoutEnabled ? 'active' : ''}" id="knockout-seg-off" onclick="setKnockoutEnabled(false)">OFF</div>
+        </div>
+      </div>
+      <div class="field-spec">흰색 가까운 픽셀(R/G/B 모두 230 초과)을 투명화. 일러스트의 옅은 면이 사라지면 OFF로 전환하세요.</div>`;
+    wrap.appendChild(toggle);
+  }
   // sharedImage 슬롯은 모든 버전이 같은 이미지를 사용하므로 업로드 영역 1개만 노출
   // A/B alt 버전(-alt)은 원본과 같은 이미지를 공유 → 업로드 영역에서 제외
   const baseVersions = spec.versions.filter(v => !v.id.endsWith('-alt'));
@@ -1803,7 +1842,8 @@ function renderImageUploads() {
   versionsToRender.forEach(v => {
     const item = document.createElement('div');
     item.className = 'upload-item';
-    const sizeText = v.img ? '흰 배경 자동 누끼 · 클릭 또는 드래그' : 'PNG · JPG · 클릭 또는 드래그';
+    const sizeText = spec.imageEditable ? '사진 원본 그대로 사용 · 클릭 또는 드래그'
+      : (v.img ? '클릭 또는 드래그' : 'PNG · JPG · 클릭 또는 드래그');
     item.innerHTML = `
       ${showVersionLabel ? `<div class="upload-version-label">${v.uploadLabel || (v.label + ' 이미지')}</div>` : ''}
       <div class="upload-area" id="upload-area-${v.id}">
@@ -1851,49 +1891,82 @@ function onImageUpload(e, versionId) {
 function processImageFile(file, versionId) {
   const reader = new FileReader();
   reader.onload = (ev) => {
-    const img = new Image();
-    img.onload = () => {
-      const spec = SPECS[currentProduct].slots[currentSlot];
-      let dataURL;
-      if (spec.imageEditable) {
-        // 실사 썸네일: 흰 배경 알파화 없이 원본 그대로 사용 (사진의 밝은 영역 보존)
-        dataURL = ev.target.result;
-      } else {
-        // Canvas 누끼 처리 (원본 단순 알고리즘 유지 — 화질 손실 없음)
-        const canvas = document.createElement('canvas');
-        canvas.width = img.width; canvas.height = img.height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0);
-        const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const px = data.data;
-        for (let i = 0; i < px.length; i += 4) {
-          if (px[i] > 230 && px[i+1] > 230 && px[i+2] > 230) px[i+3] = 0;
-        }
-        ctx.putImageData(data, 0, 0);
-        dataURL = canvas.toDataURL('image/png');
-      }
-      currentImages[versionId] = dataURL;
-      currentImageSizes[versionId] = { w: img.width, h: img.height };
-      // sharedImage 슬롯 → 모든 버전, 그 외 → A/B alt 변형에 같은 이미지 자동 복제
-      const altId = versionId + '-alt';
-      spec.versions.forEach(v => {
-        if (v.id === versionId) return;
-        if (spec.sharedImage || v.id === altId) {
-          currentImages[v.id] = dataURL;
-          currentImageSizes[v.id] = { w: img.width, h: img.height };
-        }
-      });
-      // 썸네일
+    // 원본 보관 (토글 변경 시 재처리용)
+    currentImageRaw[versionId] = ev.target.result;
+    applyKnockoutForVersion(versionId, () => {
+      // 썸네일 + 미리보기 갱신은 applyKnockoutForVersion 안에서 처리
       const thumb = document.getElementById('upload-thumb-' + versionId);
-      thumb.src = dataURL;
+      thumb.src = currentImages[versionId];
       thumb.style.display = 'block';
       document.getElementById('upload-placeholder-' + versionId).style.display = 'none';
       document.getElementById('upload-area-' + versionId).classList.add('has-image');
       renderPreviews();
-    };
-    img.src = ev.target.result;
+    });
   };
   reader.readAsDataURL(file);
+}
+// 원본 dataURL → 누끼 토글에 따라 처리된 dataURL을 currentImages에 저장
+function applyKnockoutForVersion(versionId, done) {
+  const raw = currentImageRaw[versionId];
+  if (!raw) { done && done(); return; }
+  const img = new Image();
+  img.onload = () => {
+    const spec = SPECS[currentProduct].slots[currentSlot];
+    // 실사 슬롯은 토글과 무관하게 항상 원본 (사진 보존). 그 외는 토글 따라 처리.
+    const shouldKnockout = !spec.imageEditable && knockoutEnabled;
+    let dataURL;
+    if (!shouldKnockout) {
+      dataURL = raw;
+    } else {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width; canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const px = data.data;
+      for (let i = 0; i < px.length; i += 4) {
+        if (px[i] > 230 && px[i+1] > 230 && px[i+2] > 230) px[i+3] = 0;
+      }
+      ctx.putImageData(data, 0, 0);
+      dataURL = canvas.toDataURL('image/png');
+    }
+    currentImages[versionId] = dataURL;
+    currentImageSizes[versionId] = { w: img.width, h: img.height };
+    // sharedImage 슬롯 → 모든 버전, 그 외 → A/B alt 변형에 같은 이미지 자동 복제
+    const altId = versionId + '-alt';
+    spec.versions.forEach(v => {
+      if (v.id === versionId) return;
+      if (spec.sharedImage || v.id === altId) {
+        currentImages[v.id] = dataURL;
+        currentImageSizes[v.id] = { w: img.width, h: img.height };
+      }
+    });
+    done && done();
+  };
+  img.src = raw;
+}
+// 누끼 토글 변경 시 호출 — 현재 업로드된 모든 원본을 새 설정으로 재처리
+function setKnockoutEnabled(enabled) {
+  knockoutEnabled = enabled;
+  const seg = id => document.getElementById(id);
+  if (seg('knockout-seg-on')) seg('knockout-seg-on').classList.toggle('active', enabled);
+  if (seg('knockout-seg-off')) seg('knockout-seg-off').classList.toggle('active', !enabled);
+  const ids = Object.keys(currentImageRaw);
+  if (ids.length === 0) { renderPreviews(); return; }
+  let pending = ids.length;
+  ids.forEach(vid => {
+    applyKnockoutForVersion(vid, () => {
+      pending--;
+      if (pending === 0) {
+        // 모든 썸네일 갱신
+        ids.forEach(id2 => {
+          const thumb = document.getElementById('upload-thumb-' + id2);
+          if (thumb && currentImages[id2]) thumb.src = currentImages[id2];
+        });
+        renderPreviews();
+      }
+    });
+  });
 }
 // ================================================
 //  미리보기 렌더
@@ -2102,6 +2175,18 @@ function renderPreviews() {
       outer.appendChild(buildBanner(v, spec));
     }
     section.appendChild(outer);
+    // 실사 썸네일: 위치/크기 초기화 버튼 (이미지가 업로드된 경우에만)
+    if (spec.imageEditable && currentImages[v.id]) {
+      const resetBtn = document.createElement('button');
+      resetBtn.type = 'button';
+      resetBtn.className = 'editable-reset-btn';
+      resetBtn.textContent = '↺ 위치 · 크기 초기화';
+      resetBtn.onclick = () => {
+        currentImageTransforms[v.id] = { scale: 1, x: 0, y: 0 };
+        renderPreviews();
+      };
+      section.appendChild(resetBtn);
+    }
     return section;
   };
   // 다운로드 버튼 영역 (하단) — abMirror가 아닐 때만 사용. abMirror는 A/B 그룹 바로 아래에 인라인 배치.
@@ -2211,8 +2296,8 @@ function buildEditableImage(banner, v) {
     container.appendChild(img);
   } else {
     const ph = document.createElement('div');
-    ph.style.cssText = `width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#888;font-size:28px;gap:10px;`;
-    ph.innerHTML = `<div>사진을 업로드하세요</div><div style="font-size:18px;color:#555;">업로드 후 마우스로 위치 · 휠로 크기 조절</div>`;
+    ph.style.cssText = `width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#D0D0D0;font-size:32px;font-weight:600;gap:14px;letter-spacing:-0.5px;`;
+    ph.innerHTML = `<div>사진을 업로드하세요</div><div style="font-size:20px;font-weight:400;color:#888;">업로드 후 마우스로 위치 · 휠로 크기 조절</div>`;
     container.appendChild(ph);
   }
   banner.appendChild(container);
@@ -2603,8 +2688,9 @@ function downloadIconOnly(v, spec) {
   return new Promise((resolve, reject) => {
     const imgURL = currentImages[v.id];
     if (!imgURL) { reject(new Error('NO_IMAGE')); return; }
+    const scale = spec.downloadScale || 3;
     const c = document.createElement('canvas');
-    c.width = v.img.w * 3; c.height = v.img.h * 3;
+    c.width = Math.round(v.img.w * scale); c.height = Math.round(v.img.h * scale);
     const ctx = c.getContext('2d');
     ctx.fillStyle = '#FFFFFF';
     ctx.fillRect(0, 0, c.width, c.height);
