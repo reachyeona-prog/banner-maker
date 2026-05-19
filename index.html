@@ -2357,13 +2357,11 @@ function buildBanner(v, spec) {
     }
     m.style.cssText = css;
     if (v.img && v.img.bgFull) m.style.zIndex = '2';
-    // 서브가 위에 오는 구좌 (bottom 기준 main)
-    const subFirst = v.sub && v.sub.top !== undefined && v.main && v.main.bottom !== undefined;
+    // 입력 필드 ID는 renderInputs에서 lines 기준으로만 결정 (main1/main2/main3 또는 main).
+    // subFirst 여부와 무관하게 동일 명명 규칙을 따라야 미리보기가 입력값을 정확히 반영.
     const mainLineCount = spec.selectableLines ? currentMainLines : (v.main.lines || 1);
     let mainText;
-    if (subFirst) {
-      mainText = getVal('main') || '메인 카피';
-    } else if (mainLineCount >= 3) {
+    if (mainLineCount >= 3) {
       mainText = [getVal('main1')||'메인 카피 1줄', getVal('main2')||'메인 카피 2줄', getVal('main3')||'메인 카피 3줄'].join('\n');
     } else if (mainLineCount >= 2) {
       mainText = (getVal('main1')||'메인 카피 1줄') + '\n' + (getVal('main2')||'메인 카피 2줄');
@@ -2393,11 +2391,8 @@ function buildBanner(v, spec) {
     if (spec.pillSub) css += `display:inline-block;border:2px solid ${subTextColor};border-radius:100px;padding:20px 24px;line-height:1;`;
     if (v.img && v.img.bgFull) css += 'z-index:2;';
     s.style.cssText = css;
-    const subFirst = v.sub && v.sub.top !== undefined && v.main && v.main.bottom !== undefined;
     let subText;
-    if (subFirst) {
-      subText = getVal('sub') || '서브 카피';
-    } else if ((v.sub.lines || 1) >= 2) {
+    if ((v.sub.lines || 1) >= 2) {
       subText = (getVal('sub1') || '서브 카피 1줄') + '\n' + (getVal('sub2') || '서브 카피 2줄');
     } else {
       subText = getVal('sub') || '서브 카피';
