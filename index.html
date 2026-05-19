@@ -766,7 +766,7 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
       <div class="field-spec pt-guide">
         <span>카피에 {중괄호}로 감싼 키워드에 적용됩니다</span>
         <button type="button" class="copy-chip" id="pt-snippet-chip" onclick="copyPointSnippet()" title="클립보드에 복사">
-          <span class="copy-chip-text">{포인트 컬러}</span>
+          <span class="copy-chip-text">{중괄호 복사}</span>
           <svg class="icon copy-chip-icon"><use href="#i-copy"/></svg>
         </button>
       </div>
@@ -1655,7 +1655,7 @@ function applyPointColor(text) {
   return escaped.replace(/\{([^}]+)\}/g, `<span style="color:${currentPointColor}">$1</span>`);
 }
 function copyPointSnippet() {
-  const snippet = '{포인트 컬러}';
+  const snippet = '{중괄호 복사}';
   const chip = document.getElementById('pt-snippet-chip');
   navigator.clipboard.writeText(snippet).then(() => {
     if (chip) {
