@@ -1415,7 +1415,10 @@ const SPECS = {
           { id: 'full', label: '배경 이미지', uploadLabel: '배경 이미지', w: 1080, h: 1350,
             main: { top:130, left:70, right:70, fs:56, lines:3, lh:'150%', center:true, color:'#1A1A1A' },
             img:  { top:0, left:0, w:1080, h:1350, bgFull:true, editable:true },
-            fade: { strong:430, faded:880 } },
+            // 2줄 카피 하단(y≈298) 부근부터 그라데이션이 시작되도록 strong을 텍스트 끝과 맞춤
+            //   → 솔리드 화이트와 그라데이션 사이 끊긴 경계가 텍스트 가장자리에 묻혀 자연스러움
+            //   3줄 카피는 마지막 줄이 부드러운 transition 영역(75~100% opaque)에 살짝 걸침 — 가독성 OK
+            fade: { strong:300, faded:730 } },
           { id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1080, h: 1350,
             main: { top:130, left:70, right:70, fs:56, lines:3, lh:'150%', center:true, color:'#1A1A1A' },
             img:  { top:500, left:60, w:960, h:770, editable:true } }
