@@ -72,7 +72,7 @@ body {
     var(--bg);
   font-family: var(--font);
   min-height: 100vh;
-  padding: 40px;
+  padding: 76px 40px 40px;  /* top은 fixed 헤더(56px) + 20px 여백 */
   color: var(--text-primary);
 }
 button { font-family: inherit; }
@@ -99,76 +99,82 @@ button { font-family: inherit; }
 
 /* ===== §4 스튜디오 헤더 (통합) =====
    로고 + 타이틀 + 셀렉터(프로덕트/슬롯/업체명) + 가이드 토글이 한 줄
-   sticky 상단 고정. 모바일에서는 wrap. */
+   viewport 최상단 fixed 고정. 헤더 높이 ≈ 56px (셀렉터 32px + padding 12px 위아래).
+   모바일(<900px)에서는 fixed 해제하고 static 흐름으로 돌림 (헤더 wrap 대응). */
 .studio-header {
-  display: flex; align-items: center; gap: 32px;
+  position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+  display: flex; align-items: center; gap: 24px;
   flex-wrap: wrap;
-  padding: 0 8px;
-  margin-bottom: 28px;
+  padding: 12px 24px;
+  background: rgba(244, 241, 234, 0.92);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
 }
-/* studio-header 모든 자식: 동일 36px 고정 → top/bottom 라인 자동 정렬 */
+/* studio-header 모든 자식: 동일 32px 고정 → top/bottom 라인 자동 정렬 */
 .brand {
-  display: flex; align-items: center; gap: 10px;
+  display: flex; align-items: center; gap: 8px;
   flex-shrink: 0;
-  height: 36px;
+  height: 32px;
 }
 .brand-logo {
-  width: 36px; height: 36px; border-radius: 8px;
+  width: 32px; height: 32px; border-radius: 6px;
   object-fit: contain; flex-shrink: 0;
 }
 .brand-title {
-  display: flex; align-items: center; gap: 10px;
+  display: flex; align-items: center; gap: 8px;
 }
 .brand-title h1 {
-  font-size: 20px; font-weight: 700;
-  letter-spacing: -0.8px;
+  font-size: 16px; font-weight: 700;
+  letter-spacing: -0.5px;
   color: var(--ink);
   line-height: 1;
 }
 .studio-controls {
-  display: flex; align-items: center; gap: 16px;
+  display: flex; align-items: center; gap: 12px;
   flex-wrap: wrap;
   margin-left: auto;
 }
 .selector-group {
-  display: flex; flex-direction: row; align-items: center; gap: 8px;
-  height: 36px;
+  display: flex; flex-direction: row; align-items: center; gap: 6px;
+  height: 32px;
 }
 .selector-label {
-  font-size: 12px; font-weight: 600;
-  color: var(--text-muted); letter-spacing: -0.2px;
+  font-family: var(--font-mono);
+  font-size: 10px; font-weight: 500;
+  color: var(--text-muted); letter-spacing: 0.06em;
+  text-transform: uppercase;
   white-space: nowrap;
 }
 .selector-group select,
 .company-input {
-  height: 36px;
-  padding: 0 12px;
+  height: 32px;
+  padding: 0 10px;
   background: var(--card); border: 1px solid var(--border);
-  border-radius: var(--radius-sm); font-family: var(--font);
-  font-size: 13px; font-weight: 600; color: var(--text-primary);
-  outline: none; min-width: 120px;
+  border-radius: 6px; font-family: var(--font-mono);
+  font-size: 12px; font-weight: 500; color: var(--text-primary);
+  outline: none; min-width: 110px;
   transition: border-color var(--t-base), box-shadow var(--t-base);
 }
 .selector-group select {
   cursor: pointer;
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23999' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath d='M2 4l3 3 3-3' stroke='%231A1A1A' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 10px center;
-  padding-right: 30px;
+  background-position: right 8px center;
+  padding-right: 26px;
 }
-.company-input { min-width: 110px; }
+.company-input { min-width: 100px; }
 .selector-group select:focus,
 .company-input:focus {
   border-color: var(--ink);
 }
 .guide-toggle {
-  padding: 0 14px; background: var(--card); border: 1px solid var(--border);
-  border-radius: var(--radius-sm); font-family: var(--font);
-  font-size: 13px; font-weight: 600; color: var(--text-primary);
+  padding: 0 12px; background: var(--card); border: 1px solid var(--border);
+  border-radius: 6px; font-family: var(--font);
+  font-size: 12px; font-weight: 600; color: var(--text-primary);
   cursor: pointer; display: flex; align-items: center; gap: 8px;
-  height: 36px;
-  width: 92px;            /* ON/OFF 사이 폭 흔들림 방지 */
+  height: 32px;
+  width: 84px;            /* ON/OFF 사이 폭 흔들림 방지 */
   justify-content: flex-start;
   transition: border-color var(--t-base), background var(--t-base);
 }
@@ -194,9 +200,9 @@ button { font-family: inherit; }
 .input-col { flex: 0 0 420px; }
 .preview-col {
   flex: 1; min-width: 0;
-  position: sticky; top: 16px;
+  position: sticky; top: 92px;  /* fixed 헤더 76px + 16px 여백 */
   align-self: flex-start;
-  max-height: calc(100vh - 32px);
+  max-height: calc(100vh - 108px);
   overflow-y: auto;
 }
 .card {
@@ -595,8 +601,11 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
     background-size: 16px 16px;
   }
   .studio-header {
-    padding: 12px; gap: 16px;
-    top: 8px;
+    /* 모바일에서는 fixed 해제 — wrap된 세로 헤더가 viewport 가리지 않도록 */
+    position: static; padding: 12px; gap: 16px;
+    background: transparent; backdrop-filter: none; -webkit-backdrop-filter: none;
+    border-bottom: 0;
+    margin-bottom: 16px;
     flex-direction: column; align-items: stretch;
   }
   .studio-controls { margin-left: 0; }
