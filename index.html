@@ -605,6 +605,32 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
 }
 .slide-tab-add:hover { border-color: var(--accent); background: rgba(255,79,31,0.05); }
 
+/* ===== §13f 오버레이 컬러 픽커 (v.fade / v.dim 색을 배경 이미지에 맞춰 선택) ===== */
+.overlay-color-wrap {
+  margin-top: 10px; padding: 8px 10px;
+  display: flex; align-items: center; gap: 10px;
+  border: 1px solid var(--border); border-radius: 6px;
+  background: var(--bg-elev);
+}
+.overlay-color-label {
+  font-family: var(--font-mono); font-size: 10px; font-weight: 500;
+  color: var(--text-muted); letter-spacing: 0.06em;
+  text-transform: uppercase; white-space: nowrap;
+}
+.overlay-color-input {
+  flex: 1; height: 28px; padding: 0; margin: 0;
+  border: 1px solid var(--border); border-radius: 4px;
+  background: transparent; cursor: pointer;
+  -webkit-appearance: none; appearance: none;
+}
+.overlay-color-input::-webkit-color-swatch-wrapper { padding: 2px; }
+.overlay-color-input::-webkit-color-swatch { border: none; border-radius: 3px; }
+.overlay-color-val {
+  font-family: var(--font-mono); font-size: 11px; font-weight: 500;
+  color: var(--text-primary); min-width: 70px; text-align: right;
+  letter-spacing: 0.02em;
+}
+
 /* ===== §13c fade 그라데이션 높이 슬라이더 ===== */
 .fade-slider-wrap {
   margin-top: 10px; padding: 8px 10px;
@@ -1389,19 +1415,20 @@ const SPECS = {
         label: '표지',
         bgFixed: null, noPointColor: true, isLarge: true,
         pillSub: true,
-        pillSubFilled: true,  // 검정 채움 + 흰 텍스트 (가이드라인 톤)
+        pillSubBoxed: true,   // 투명 채움 + 흰 테두리 2px + 사각 박스 (가이드라인)
         bgPresets: ['#FFFFFF', '#F4F1EA', '#F6F8F9', '#FFEFF2', '#E8F4FF', '#EFFCE7', '#FFF8D7', '#1A1A1A'],
         versions: [
           { id: 'full', label: '배경 이미지', uploadLabel: '배경 이미지', w: 1080, h: 1350,
             lockTextColor: true,
             img:  { top:0, left:0, w:1080, h:1350, bgFull:true, editable:true },
-            sub:  { top:900, left:70, fs:41, color:'#FFFFFF' },
-            main: { top:1010, left:70, right:70, fs:90, lines:2, lh:'130%', color:'#FFFFFF' },
+            // 패딩: 좌우 95 / 상단 950 (가이드라인). pill은 메인 위쪽으로 ~77+gap 만큼 올림
+            sub:  { top:840, left:95, fs:41, color:'#FFFFFF' },
+            main: { top:950, left:95, right:95, fs:90, lines:2, lh:'130%', color:'#FFFFFF' },
             fade: { strong:1020, faded:500, rgb:'0,0,0', maxAlpha:0.55 } },
           { id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1080, h: 1350,
             img:  { top:0, left:0, w:1080, h:870, cover:true, editable:true },
-            sub:  { top:900, left:70, fs:41, color:'#FFFFFF' },
-            main: { top:1010, left:70, right:70, fs:90, lines:2, lh:'130%', color:'#1A1A1A' } }
+            sub:  { top:840, left:95, fs:41, color:'#1A1A1A' },
+            main: { top:950, left:95, right:95, fs:90, lines:2, lh:'130%', color:'#1A1A1A' } }
         ]
       },
       // 내지 (카피 상단) — 메인 카피(2~3줄 자동 감지) 위 + 인포그래픽/이미지 아래
@@ -1464,21 +1491,38 @@ const SPECS = {
     label: '릴스',
     // 인스타그램 릴스 9:16 (1080×1920) 기준. downloadScale 미지정 → 기본 3배수.
     slots: {
-      // 릴스 표지 — bgFull 사진 + 균일 검정 딤 + pill 뱃지(검정 채움 + 흰 텍스트) + 흰 메인 카피(90px, 2줄)
-      //   가이드라인: 영상 안 이미지 활용, 시리즈에 맞는 뱃지 배치
+      // 릴스 표지 — 영상 안 이미지 + 균일 검정 dim + pill 뱃지(흰 테두리 박스) + 흰 메인 카피(90px, 2줄)
+      //   가이드라인: 좌우 패딩 95 / 상단 패딩 950
       'F1': {
         label: '릴스 표지',
         bgFixed: null, noPointColor: true, isLarge: true,
         pillSub: true,
-        pillSubFilled: true,
+        pillSubBoxed: true,
         bgPresets: ['#1A1A1A', '#F4F1EA', '#FFFFFF'],
         versions: [{
           id: 'full', label: 'IG', uploadLabel: '배경 이미지', w: 1080, h: 1920,
           lockTextColor: true,
           img:  { top:0, left:0, w:1080, h:1920, bgFull:true, editable:true },
           dim:  { color:'0,0,0', alpha:0.45 },
-          sub:  { top:1310, left:70, fs:41, color:'#FFFFFF' },
-          main: { top:1450, left:70, right:70, fs:90, lines:2, lh:'130%', color:'#FFFFFF' }
+          sub:  { top:840, left:95, fs:41, color:'#FFFFFF' },
+          main: { top:950, left:95, right:95, fs:90, lines:2, lh:'130%', color:'#FFFFFF' }
+        }]
+      },
+      // 릴스 썸네일 — 피드 그리드에서 노출되는 버전. 표지와 동일 톤이되 카피 위치만 1190px로 내림
+      //   (피드 crop 시 표지와 시각적으로 동일한 영역에 카피가 보이도록 패딩 조정)
+      'F2': {
+        label: '릴스 썸네일',
+        bgFixed: null, noPointColor: true, isLarge: true,
+        pillSub: true,
+        pillSubBoxed: true,
+        bgPresets: ['#1A1A1A', '#F4F1EA', '#FFFFFF'],
+        versions: [{
+          id: 'full', label: 'IG', uploadLabel: '배경 이미지', w: 1080, h: 1920,
+          lockTextColor: true,
+          img:  { top:0, left:0, w:1080, h:1920, bgFull:true, editable:true },
+          dim:  { color:'0,0,0', alpha:0.45 },
+          sub:  { top:1080, left:95, fs:41, color:'#FFFFFF' },
+          main: { top:1190, left:95, right:95, fs:90, lines:2, lh:'130%', color:'#FFFFFF' }
         }]
       }
     }
@@ -1580,6 +1624,7 @@ let currentImageRaw = {};    // { mo: dataURL, ... } — 원본 데이터(누끼
 let knockoutEnabled = true;  // 흰 배경 자동 누끼 — 사용자 토글
 let currentImageTransforms = {}; // imageEditable 슬롯에서 사용자 조작 상태 { [v.id]: { scale, x, y } }
 let currentFadeOverrides = {};   // v.fade가 있는 버전에서 슬라이더로 조정한 fade 깊이 (px) { [v.id]: depth }
+let currentOverlayColors = {};   // v.dim/v.fade 색을 컬러 픽커로 덮어쓴 값 (HEX) { [v.id]: '#RRGGBB' }
 // multiSlide 슬롯의 슬라이드 상태 — 슬롯 전환/탭 전환 시 globals를 swap-in/out
 //   slideStates[slotKey] = [ { images, imageSizes, imageRaw, transforms, fadeOverrides, inputs, mainLines } ]
 //   activeSlideIdx[slotKey] = 현재 편집 중인 슬라이드 인덱스
@@ -1796,6 +1841,7 @@ function onSlotChange() {
   currentImageRaw = {};
   currentImageTransforms = {};
   currentFadeOverrides = {};
+  currentOverlayColors = {};
   currentTextColorMode = 'auto';
   currentShowButton = true;
   currentMainLines = 3;
@@ -2725,6 +2771,38 @@ function renderPreviews() {
       };
       section.appendChild(resetBtn);
     }
+    // 오버레이 컬러 픽커 — v.fade 또는 v.dim이 있는 버전에서 배경 이미지에 맞춰 색 선택
+    if (v.fade || v.dim) {
+      const baseRgb = (v.fade && v.fade.rgb) || (v.dim && v.dim.color) || '0,0,0';
+      const currentHex = currentOverlayColors[v.id] || rgbStringToHex(baseRgb);
+      const wrap = document.createElement('div');
+      wrap.className = 'overlay-color-wrap';
+      wrap.innerHTML = `
+        <span class="overlay-color-label">오버레이 컬러</span>
+        <input type="color" class="overlay-color-input" value="${currentHex}" data-vid="${v.id}">
+        <span class="overlay-color-val">${currentHex.toUpperCase()}</span>
+      `;
+      const input = wrap.querySelector('input');
+      const valSpan = wrap.querySelector('.overlay-color-val');
+      input.addEventListener('input', () => {
+        currentOverlayColors[v.id] = input.value;
+        valSpan.textContent = input.value.toUpperCase();
+        // 라이브 갱신 — fade는 background, dim div도 background만 교체
+        const rgb = hexToRgbString(input.value) || '0,0,0';
+        if (v.fade) {
+          const grad = document.querySelector(`[data-fade-for="${v.id}"]`);
+          if (grad) grad.style.background = buildFadeGradientCSS(v);
+        }
+        if (v.dim) {
+          const dim = document.querySelector(`[data-dim-for="${v.id}"]`);
+          if (dim) {
+            const dAlpha = (v.dim.alpha !== undefined) ? v.dim.alpha : 0.4;
+            dim.style.background = `rgba(${rgb},${dAlpha})`;
+          }
+        }
+      });
+      section.appendChild(wrap);
+    }
     // fade가 있는 버전: 그라데이션 높이 조절 슬라이더
     if (v.fade) {
       const baseDepth = Math.abs(v.fade.strong - v.fade.faded);
@@ -2908,6 +2986,19 @@ function attachEditableImageHandlers(container, v) {
     apply();
   }, { signal, passive: false });
 }
+// #RRGGBB → 'r,g,b' (rgba() 안에 넣기 위해 콤마 구분 문자열). 잘못된 입력은 null 반환.
+function hexToRgbString(hex) {
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec((hex || '').trim());
+  if (!m) return null;
+  return `${parseInt(m[1], 16)},${parseInt(m[2], 16)},${parseInt(m[3], 16)}`;
+}
+// 'r,g,b' → '#RRGGBB' (컬러 픽커 초기값용)
+function rgbStringToHex(rgb) {
+  const m = /^\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*$/.exec(rgb || '');
+  if (!m) return '#000000';
+  const toHex = (n) => Math.max(0, Math.min(255, parseInt(n, 10))).toString(16).padStart(2, '0');
+  return `#${toHex(m[1])}${toHex(m[2])}${toHex(m[3])}`;
+}
 // v.fade → linear-gradient CSS 문자열. currentFadeOverrides[v.id]가 있으면 슬라이더 값으로 faded 위치를 덮어씀.
 //   strong  — 완전 불투명 지점 (px, y 좌표)
 //   faded   — 완전 투명 지점 (px, y 좌표)
@@ -2926,7 +3017,9 @@ function buildFadeGradientCSS(v) {
   const lowPct = Math.min(strong, faded) / v.h * 100;
   const highPct = Math.max(strong, faded) / v.h * 100;
   const opaqueAtTop = strong < faded;
-  const rgb = v.fade.rgb || '255,255,255';
+  // 컬러 픽커로 덮은 값이 있으면 우선
+  const overrideRgb = currentOverlayColors[v.id] ? hexToRgbString(currentOverlayColors[v.id]) : null;
+  const rgb = overrideRgb || v.fade.rgb || '255,255,255';
   const maxA = (v.fade.maxAlpha !== undefined) ? v.fade.maxAlpha : 1;
   const stop0 = opaqueAtTop ? `rgba(${rgb},${maxA})` : `rgba(${rgb},0)`;
   const stop1 = opaqueAtTop ? `rgba(${rgb},0)` : `rgba(${rgb},${maxA})`;
@@ -2980,7 +3073,10 @@ function buildBanner(v, spec) {
     // dim — 균일한 단색 오버레이 (예: 릴스 표지 검정 딤 45%). fade와 동시 적용 가능
     if (v.dim) {
       const dimDiv = document.createElement('div');
-      const dColor = v.dim.color || '0,0,0';
+      dimDiv.dataset.dimFor = v.id;
+      // 컬러 픽커로 덮은 값이 있으면 우선
+      const overrideRgb = currentOverlayColors[v.id] ? hexToRgbString(currentOverlayColors[v.id]) : null;
+      const dColor = overrideRgb || v.dim.color || '0,0,0';
       const dAlpha = (v.dim.alpha !== undefined) ? v.dim.alpha : 0.4;
       dimDiv.style.cssText = `position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(${dColor},${dAlpha});z-index:1;pointer-events:none;`;
       banner.appendChild(dimDiv);
@@ -3120,14 +3216,17 @@ function buildBanner(v, spec) {
     if (v.sub.left !== undefined) css += `left:${v.sub.left}px;`;
     if (v.sub.right !== undefined) css += `right:${v.sub.right}px;`;
     if (v.sub.left === undefined && v.sub.right === undefined) css += `left:0;`;
-    // pill 스타일
-    //   pillSubFilled: 검정 채움 + 흰 텍스트 (카드뉴스/릴스 표지 가이드라인 톤)
-    //   pillSub 만 true: 투명 채움 + 컬러 테두리 (C1 대기 화면 등)
+    // pill 스타일 3종
+    //   pillSubFilled: 검정 채움 + 흰 텍스트 (deprecated 호환용)
+    //   pillSubBoxed : 투명 채움 + 컬러 테두리 2px + 사각 박스 (radius 4) — 카드뉴스/릴스 표지 가이드라인
+    //   기본(pillSub만): 투명 채움 + 컬러 테두리 + pill (radius 100) — C1 대기 화면
     if (spec.pillSub) {
       if (spec.pillSubFilled) {
         css += `display:inline-block;background:#1A1A1A;color:#FFFFFF;border-radius:100px;padding:22px 32px;line-height:1;`;
+      } else if (spec.pillSubBoxed) {
+        css += `display:inline-block;background:transparent;color:${subTextColor};border:2px solid ${subTextColor};border-radius:4px;padding:18px 28px;line-height:1;`;
       } else {
-        css += `display:inline-block;border:2px solid ${subTextColor};border-radius:100px;padding:20px 24px;line-height:1;`;
+        css += `display:inline-block;background:transparent;color:${subTextColor};border:2px solid ${subTextColor};border-radius:100px;padding:20px 24px;line-height:1;`;
       }
     }
     if (v.img && v.img.bgFull) css += 'z-index:2;';
