@@ -1188,7 +1188,7 @@ const SPECS = {
             img:  { top:0, left:0, w:1080, h:1350, bgFull:true, editable:true },
             sub:  { top:920, left:70, fs:32, color:'#1A1A1A' },
             main: { top:1020, left:70, right:70, fs:78, lines:2, lh:'130%', color:'#1A1A1A' },
-            fade: { strong:1350, faded:880 } }   // 카피 하단 → 위로 흰색 그라데이션
+            fade: { strong:920, faded:380 } }   // y=920(pill 상단)부터 솔리드 white, y=380까지 fade-out
         ]
       },
       // 내지: 상단 2줄 메인 카피(중앙 정렬, {중괄호} 강조 가능) + 인포그래픽/카드 이미지
@@ -1205,7 +1205,7 @@ const SPECS = {
           { id: 'full', label: '배경 이미지', uploadLabel: '배경 이미지', w: 1080, h: 1350,
             main: { top:130, left:70, right:70, fs:62, lines:2, lh:'140%', center:true, color:'#1A1A1A' },
             img:  { top:0, left:0, w:1080, h:1350, bgFull:true, editable:true },
-            fade: { strong:0, faded:340 } }      // 카피 상단 → 아래로 흰색 그라데이션
+            fade: { strong:320, faded:780 } }   // y=320(메인 카피 하단)까지 솔리드 white, y=780까지 fade-out
         ]
       }
     }
