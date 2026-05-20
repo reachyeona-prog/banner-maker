@@ -801,6 +801,7 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
         <option value="table">테이블 오더</option>
         <option value="blog">웹 블로그</option>
         <option value="cardnews">카드 뉴스</option>
+        <option value="reels">릴스</option>
       </select>
     </div>
     <div class="selector-group">
@@ -1388,19 +1389,19 @@ const SPECS = {
         label: '표지',
         bgFixed: null, noPointColor: true, isLarge: true,
         pillSub: true,
+        pillSubFilled: true,  // 검정 채움 + 흰 텍스트 (가이드라인 톤)
         bgPresets: ['#FFFFFF', '#F4F1EA', '#F6F8F9', '#FFEFF2', '#E8F4FF', '#EFFCE7', '#FFF8D7', '#1A1A1A'],
         versions: [
           { id: 'full', label: '배경 이미지', uploadLabel: '배경 이미지', w: 1080, h: 1350,
-            lockTextColor: true,  // bgFull+검정 scrim 위 흰 텍스트 강제 (배경색에 따른 자동 색 보정 OFF)
+            lockTextColor: true,
             img:  { top:0, left:0, w:1080, h:1350, bgFull:true, editable:true },
-            sub:  { top:920, left:70, fs:32, color:'#FFFFFF' },
-            main: { top:1020, left:70, right:70, fs:78, lines:2, lh:'130%', color:'#FFFFFF' },
-            // 옅은 검정 scrim — 카피 영역 하단에 자연스럽게 깔림. 슬라이더로 높이 조절 가능.
+            sub:  { top:900, left:70, fs:41, color:'#FFFFFF' },
+            main: { top:1010, left:70, right:70, fs:90, lines:2, lh:'130%', color:'#FFFFFF' },
             fade: { strong:1020, faded:500, rgb:'0,0,0', maxAlpha:0.55 } },
           { id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1080, h: 1350,
             img:  { top:0, left:0, w:1080, h:870, cover:true, editable:true },
-            sub:  { top:920, left:70, fs:32, color:'#1A1A1A' },
-            main: { top:1020, left:70, right:70, fs:78, lines:2, lh:'130%', color:'#1A1A1A' } }
+            sub:  { top:900, left:70, fs:41, color:'#FFFFFF' },
+            main: { top:1010, left:70, right:70, fs:90, lines:2, lh:'130%', color:'#1A1A1A' } }
         ]
       },
       // 내지 (카피 상단) — 메인 카피(2~3줄 자동 감지) 위 + 인포그래픽/이미지 아래
@@ -1455,6 +1456,29 @@ const SPECS = {
           img:  { top:0, left:0, w:1080, h:1350, bgFull:true, editable:true },
           copyBox: { left:50, right:50, top:560, bottom:480, bg:'#FFFFFF', radius:0, border:'2px solid #1A1A1A' },
           main: { top:640, left:100, right:100, fs:46, lines:3, lh:'150%', center:true, color:'#1A1A1A' }
+        }]
+      }
+    }
+  },
+  reels: {
+    label: '릴스',
+    // 인스타그램 릴스 9:16 (1080×1920) 기준. downloadScale 미지정 → 기본 3배수.
+    slots: {
+      // 릴스 표지 — bgFull 사진 + 균일 검정 딤 + pill 뱃지(검정 채움 + 흰 텍스트) + 흰 메인 카피(90px, 2줄)
+      //   가이드라인: 영상 안 이미지 활용, 시리즈에 맞는 뱃지 배치
+      'F1': {
+        label: '릴스 표지',
+        bgFixed: null, noPointColor: true, isLarge: true,
+        pillSub: true,
+        pillSubFilled: true,
+        bgPresets: ['#1A1A1A', '#F4F1EA', '#FFFFFF'],
+        versions: [{
+          id: 'full', label: 'IG', uploadLabel: '배경 이미지', w: 1080, h: 1920,
+          lockTextColor: true,
+          img:  { top:0, left:0, w:1080, h:1920, bgFull:true, editable:true },
+          dim:  { color:'0,0,0', alpha:0.45 },
+          sub:  { top:1310, left:70, fs:41, color:'#FFFFFF' },
+          main: { top:1450, left:70, right:70, fs:90, lines:2, lh:'130%', color:'#FFFFFF' }
         }]
       }
     }
@@ -2953,16 +2977,28 @@ function buildBanner(v, spec) {
       ph.innerHTML = `<div>배경 이미지를 업로드하세요</div><div style="font-size:20px;font-weight:400;color:#B0B0B0;">업로드 후 드래그로 위치 · 휠로 크기 조절</div>`;
       banner.appendChild(ph);
     }
-    // 그라데이션 — v.fade가 있으면 선형(상→하 또는 하→상), 없으면 기존 좌상단 radial
-    const grad = document.createElement('div');
+    // dim — 균일한 단색 오버레이 (예: 릴스 표지 검정 딤 45%). fade와 동시 적용 가능
+    if (v.dim) {
+      const dimDiv = document.createElement('div');
+      const dColor = v.dim.color || '0,0,0';
+      const dAlpha = (v.dim.alpha !== undefined) ? v.dim.alpha : 0.4;
+      dimDiv.style.cssText = `position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(${dColor},${dAlpha});z-index:1;pointer-events:none;`;
+      banner.appendChild(dimDiv);
+    }
+    // 그라데이션 처리:
+    //   v.fade 있음     → 선형 그라데이션 (slider override 가능)
+    //   v.fade 없음 + v.dim 없음 → 기본 좌상단 radial (C1 'bg' 버전 등 호환)
+    //   v.dim 있음      → 기본 radial 생략 (균일 dim만으로 충분)
     if (v.fade) {
+      const grad = document.createElement('div');
       grad.dataset.fadeFor = v.id;
       grad.style.cssText = `position:absolute;top:0;left:0;width:100%;height:100%;background:${buildFadeGradientCSS(v)};z-index:1;pointer-events:none;`;
-    } else {
-      // 좌측 상단에서 부드럽게 확산되는 그라데이션 — 경계 자연스럽게 처리
+      banner.appendChild(grad);
+    } else if (!v.dim) {
+      const grad = document.createElement('div');
       grad.style.cssText = `position:absolute;top:0;left:0;width:100%;height:100%;background:radial-gradient(ellipse 1500px 1100px at -100px -100px, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.82) 18%, rgba(255,255,255,0.6) 38%, rgba(255,255,255,0.35) 60%, rgba(255,255,255,0.12) 82%, rgba(255,255,255,0) 100%);z-index:1;pointer-events:none;`;
+      banner.appendChild(grad);
     }
-    banner.appendChild(grad);
   }
   // copyBox — 박스 카피 오버레이 (E5 내지). bg 이미지 위에 흰 라운드 박스 → 그 안에 sub/main 카피가 z:2로 얹힘
   if (v.copyBox) {
@@ -3084,8 +3120,16 @@ function buildBanner(v, spec) {
     if (v.sub.left !== undefined) css += `left:${v.sub.left}px;`;
     if (v.sub.right !== undefined) css += `right:${v.sub.right}px;`;
     if (v.sub.left === undefined && v.sub.right === undefined) css += `left:0;`;
-    // pill 스타일 (C1 서브 카피 태그)
-    if (spec.pillSub) css += `display:inline-block;border:2px solid ${subTextColor};border-radius:100px;padding:20px 24px;line-height:1;`;
+    // pill 스타일
+    //   pillSubFilled: 검정 채움 + 흰 텍스트 (카드뉴스/릴스 표지 가이드라인 톤)
+    //   pillSub 만 true: 투명 채움 + 컬러 테두리 (C1 대기 화면 등)
+    if (spec.pillSub) {
+      if (spec.pillSubFilled) {
+        css += `display:inline-block;background:#1A1A1A;color:#FFFFFF;border-radius:100px;padding:22px 32px;line-height:1;`;
+      } else {
+        css += `display:inline-block;border:2px solid ${subTextColor};border-radius:100px;padding:20px 24px;line-height:1;`;
+      }
+    }
     if (v.img && v.img.bgFull) css += 'z-index:2;';
     s.style.cssText = css;
     let subText;
