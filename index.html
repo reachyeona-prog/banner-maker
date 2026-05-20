@@ -1089,11 +1089,11 @@ function applyCardNewsJSON() {
   const interiorSlot = data.interiorSlot
     || (data.interiors && data.interiors[0] && data.interiors[0].type)
     || 'E2';
-  const interiorSlotValid = ['E2', 'E3', 'E4', 'E5'].includes(interiorSlot);
+  const interiorSlotValid = ['E2', 'E4', 'E5'].includes(interiorSlot);
   const targetSlot = interiorSlotValid ? interiorSlot : 'E2';
   const interiorCount = (data.interiors && Array.isArray(data.interiors)) ? data.interiors.length : 0;
-  // 3줄 슬롯(E3/E4)은 mainLines=3, 그 외는 2
-  const interiorLines = (targetSlot === 'E3' || targetSlot === 'E4') ? 3 : 2;
+  // 모든 내지 슬롯이 lines:3 max → mainLines 3 통일 (자동 감지로 실제 렌더는 2/3 적응)
+  const interiorLines = 3;
   if (interiorCount > 0) {
     slideStates[targetSlot] = data.interiors.map(it => ({
       images: {}, imageSizes: {}, imageRaw: {},
@@ -1403,44 +1403,29 @@ const SPECS = {
             main: { top:1020, left:70, right:70, fs:78, lines:2, lh:'130%', color:'#1A1A1A' } }
         ]
       },
-      // 내지 (2줄 상단) — 상단 2줄 메인 카피 + 인포그래픽/카드 이미지
+      // 내지 (카피 상단) — 메인 카피(2~3줄 자동 감지) 위 + 인포그래픽/이미지 아래
       //   box  — 메인 카피 위 + 정사각 이미지 박스 (드래그 위치 / 휠 크기 조절)
       //   full — 배경 전체 cover + 카피 영역 위→아래 화이트 그라데이션
       'E2': {
-        label: '내지 (2줄 상단)',
+        label: '내지 (카피 상단)',
         bgFixed: null, pointColor: true, noSub: true, isLarge: true,
         multiSlide: true,
         bgPresets: ['#FFFFFF', '#FDEDEF', '#F4F1EA', '#FFF8D7', '#E8F4FF', '#F4F0FF', '#EFFCE7'],
         versions: [
           { id: 'full', label: '배경 이미지', uploadLabel: '배경 이미지', w: 1080, h: 1350,
-            main: { top:130, left:70, right:70, fs:62, lines:2, lh:'140%', center:true, color:'#1A1A1A' },
+            main: { top:130, left:70, right:70, fs:56, lines:3, lh:'150%', center:true, color:'#1A1A1A' },
             img:  { top:0, left:0, w:1080, h:1350, bgFull:true, editable:true },
-            fade: { strong:320, faded:780 } },
+            fade: { strong:430, faded:880 } },
           { id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1080, h: 1350,
-            main: { top:130, left:70, right:70, fs:62, lines:2, lh:'140%', center:true, color:'#1A1A1A' },
-            img:  { top:400, left:60, w:960, h:870, editable:true } }
+            main: { top:130, left:70, right:70, fs:56, lines:3, lh:'150%', center:true, color:'#1A1A1A' },
+            img:  { top:500, left:60, w:960, h:770, editable:true } }
         ]
       },
-      // 내지 (3줄 상단) — 메인 카피 3줄(센터) 위, 이미지 아래
-      'E3': {
-        label: '내지 (3줄 상단)',
-        bgFixed: null, pointColor: true, noSub: true, isLarge: true,
-        multiSlide: true,
-        bgPresets: ['#FFFFFF', '#F4F1EA', '#FDEDEF', '#E8F4FF', '#FFF8D7', '#F4F0FF', '#EFFCE7'],
-        versions: [
-          { id: 'full', label: '배경 이미지', uploadLabel: '배경 이미지', w: 1080, h: 1350,
-            main: { top:130, left:70, right:70, fs:54, lines:3, lh:'150%', center:true, color:'#1A1A1A' },
-            img:  { top:0, left:0, w:1080, h:1350, bgFull:true, editable:true },
-            fade: { strong:540, faded:920 } },
-          { id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1080, h: 1350,
-            main: { top:130, left:70, right:70, fs:54, lines:3, lh:'150%', center:true, color:'#1A1A1A' },
-            img:  { top:570, left:60, w:960, h:700, editable:true } }
-        ]
-      },
-      // 내지 (3줄 하단) — 이미지 위 + 메인 카피 3줄(센터) 아래
-      //   full은 카피 하단부에 검정 scrim + 흰 글씨 (E1 표지 full과 동일 톤)
+      // 내지 (카피 하단) — 이미지 위 + 메인 카피(2~3줄 자동 감지) 아래
+      //   bottom 앵커 사용 → 줄 수에 따라 카피가 위로 자라 (시각 앵커 고정)
+      //   full은 카피 하단에 검정 scrim + 흰 글씨 (E1 표지 full과 동일 톤)
       'E4': {
-        label: '내지 (3줄 하단)',
+        label: '내지 (카피 하단)',
         bgFixed: null, pointColor: true, noSub: true, isLarge: true,
         multiSlide: true,
         bgPresets: ['#FFFFFF', '#F4F1EA', '#FDEDEF', '#E8F4FF', '#FFF8D7', '#F4F0FF', '#EFFCE7'],
@@ -1448,26 +1433,26 @@ const SPECS = {
           { id: 'full', label: '배경 이미지', uploadLabel: '배경 이미지', w: 1080, h: 1350,
             lockTextColor: true,
             img:  { top:0, left:0, w:1080, h:1350, bgFull:true, editable:true },
-            main: { top:1020, left:70, right:70, fs:50, lines:3, lh:'150%', center:true, color:'#FFFFFF' },
-            fade: { strong:1020, faded:500, rgb:'0,0,0', maxAlpha:0.55 } },
+            main: { bottom:130, left:70, right:70, fs:52, lines:3, lh:'150%', center:true, color:'#FFFFFF' },
+            fade: { strong:1100, faded:550, rgb:'0,0,0', maxAlpha:0.55 } },
           { id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1080, h: 1350,
-            main: { top:1020, left:70, right:70, fs:50, lines:3, lh:'150%', center:true, color:'#1A1A1A' },
-            img:  { top:80, left:60, w:960, h:880, editable:true } }
+            main: { bottom:130, left:70, right:70, fs:52, lines:3, lh:'150%', center:true, color:'#1A1A1A' },
+            img:  { top:80, left:60, w:960, h:870, editable:true } }
         ]
       },
-      // 내지 (박스 카피) — bgFull 위에 흰 라운드 박스 오버레이 + 라벨(sub) + 메인 카피(2~3줄)
+      // 내지 (박스 카피) — bgFull 위에 흰 박스(블랙 테두리, 라운드 X) + 메인 카피(2~3줄 자동)
+      //   sub 라벨 없이 메인만 — 깔끔 단일 컨테이너 스타일
       'E5': {
         label: '내지 (박스 카피)',
-        bgFixed: null, pointColor: true, isLarge: true,
+        bgFixed: null, pointColor: true, noSub: true, isLarge: true,
         multiSlide: true,
         bgPresets: ['#FFFFFF', '#F4F1EA', '#1A1A1A'],
         versions: [{
           id: 'full', label: 'IG', uploadLabel: '배경 이미지', w: 1080, h: 1350,
           lockTextColor: true,
           img:  { top:0, left:0, w:1080, h:1350, bgFull:true, editable:true },
-          copyBox: { left:60, right:60, top:790, bottom:90, bg:'#FFFFFF', radius:20, border:'2px solid #1A1A1A' },
-          sub:  { top:840, left:110, fs:26, color:'#999999' },
-          main: { top:880, left:110, right:110, fs:46, lines:3, lh:'150%', color:'#1A1A1A' }
+          copyBox: { left:50, right:50, top:560, bottom:480, bg:'#FFFFFF', radius:0, border:'2px solid #1A1A1A' },
+          main: { top:640, left:100, right:100, fs:46, lines:3, lh:'150%', center:true, color:'#1A1A1A' }
         }]
       }
     }
