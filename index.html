@@ -1431,8 +1431,7 @@ const SPECS = {
         ]
       },
       // 내지 (카피 상단) — 메인 카피(2~3줄 자동 감지) 위 + 인포그래픽/이미지 아래
-      //   box  — 메인 카피 위 + 정사각 이미지 박스 (드래그 위치 / 휠 크기 조절)
-      //   full — 배경 전체 cover + 카피 영역 위→아래 화이트 그라데이션
+      //   공통 패딩: 좌우 70 / 상단 100 / 하단 100
       'E2': {
         label: '내지 (카피 상단)',
         bgFixed: null, pointColor: true, noSub: true, isLarge: true,
@@ -1440,19 +1439,19 @@ const SPECS = {
         bgPresets: ['#FFFFFF', '#FDEDEF', '#F4F1EA', '#FFF8D7', '#E8F4FF', '#F4F0FF', '#EFFCE7'],
         versions: [
           { id: 'full', label: '배경 이미지', uploadLabel: '배경 이미지', w: 1080, h: 1440,
-            main: { top:130, left:70, right:70, fs:56, lines:3, lh:'150%', center:true, color:'#1A1A1A' },
+            main: { top:100, left:70, right:70, fs:56, lines:3, lh:'150%', center:true, color:'#1A1A1A' },
             img:  { top:0, left:0, w:1080, h:1440, bgFull:true, editable:true },
-            // 캔버스 전 영역 선형 그라데이션 — 끊긴 경계 없이 위→아래 균일 전환 (text 영역은 자연스레 더 불투명)
+            // 캔버스 전 영역 선형 그라데이션 — 끊긴 경계 없이 위→아래 균일 전환
             fade: { strong:0, faded:1440 } },
           { id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1080, h: 1440,
-            main: { top:130, left:70, right:70, fs:56, lines:3, lh:'150%', center:true, color:'#1A1A1A' },
-            // 2줄 카피 하단(y≈298) + 100px = y≈398부터 끝까지 풀폭 이미지
-            img:  { top:398, left:0, w:1080, h:1042, editable:true } }
+            main: { top:100, left:70, right:70, fs:56, lines:3, lh:'150%', center:true, color:'#1A1A1A' },
+            // 정사각 이미지 940×940 — 상단 400, 좌우 70, 하단 100 (= top 400 + h 940 = bottom 1340)
+            img:  { top:400, left:70, w:940, h:940, editable:true } }
         ]
       },
       // 내지 (카피 하단) — 이미지 위 + 메인 카피(2~3줄 자동 감지) 아래
-      //   bottom 앵커 사용 → 줄 수에 따라 카피가 위로 자라 (시각 앵커 고정)
-      //   full은 카피 하단에 검정 scrim + 흰 글씨 (E1 표지 full과 동일 톤)
+      //   공통 패딩: 좌우 70 / 상단 100 / 하단 100
+      //   E2와 동일 폰트 (fs:56 / lh:150% / 자간 default) — 상하 위치만 다름
       'E4': {
         label: '내지 (카피 하단)',
         bgFixed: null, pointColor: true, noSub: true, isLarge: true,
@@ -1462,11 +1461,12 @@ const SPECS = {
           { id: 'full', label: '배경 이미지', uploadLabel: '배경 이미지', w: 1080, h: 1440,
             lockTextColor: true,
             img:  { top:0, left:0, w:1080, h:1440, bgFull:true, editable:true },
-            main: { bottom:130, left:70, right:70, fs:52, lines:3, lh:'150%', center:true, color:'#FFFFFF' },
+            main: { bottom:100, left:70, right:70, fs:56, lines:3, lh:'150%', center:true, color:'#FFFFFF' },
             fade: { strong:1100, faded:550, rgb:'0,0,0', maxAlpha:0.55 } },
           { id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1080, h: 1440,
-            main: { bottom:130, left:70, right:70, fs:52, lines:3, lh:'150%', center:true, color:'#1A1A1A' },
-            img:  { top:80, left:60, w:960, h:870, editable:true } }
+            main: { bottom:100, left:70, right:70, fs:56, lines:3, lh:'150%', center:true, color:'#1A1A1A' },
+            // 정사각 이미지 940×940 — 상단 100, 좌우 70 (E2 box와 같은 크기, 위치만 상단)
+            img:  { top:100, left:70, w:940, h:940, editable:true } }
         ]
       },
       // 내지 (박스 카피) — bgFull 위에 흰 박스(블랙 테두리, 라운드 X) + 메인 카피(2~3줄 자동)
@@ -1480,11 +1480,10 @@ const SPECS = {
           id: 'full', label: 'IG', uploadLabel: '배경 이미지', w: 1080, h: 1440,
           lockTextColor: true,
           img:  { top:0, left:0, w:1080, h:1440, bgFull:true, editable:true },
-          // autoHeight — 박스 높이 = main 줄 수 × 자동. 하단 100px 패딩으로 박스 바닥 고정.
-          // innerPadding 20 — 박스 안쪽 상/하 균일 패딩 (이전 40에서 다시 절반)
-          // radius 0 — 뾰족한 사각형 (border-radius 폴백 로직 수정 후 0 정상 적용)
-          copyBox: { left:50, right:50, paddingBottom:100, innerPadding:20, autoHeight:true, bg:'#FFFFFF', radius:0, border:'2px solid #1A1A1A' },
-          main: { left:100, right:100, fs:46, lines:3, lh:'150%', center:true, color:'#1A1A1A' }
+          // 공통 패딩: 좌우 70 / 하단 100. autoHeight — 박스 높이 = main 줄 수에 따라 자동.
+          // innerPadding 20 — 박스 안쪽 상/하 균일 패딩
+          copyBox: { left:70, right:70, paddingBottom:100, innerPadding:20, autoHeight:true, bg:'#FFFFFF', radius:0, border:'2px solid #1A1A1A' },
+          main: { left:120, right:120, fs:46, lines:3, lh:'150%', center:true, color:'#1A1A1A' }
         }]
       }
     }
