@@ -520,6 +520,46 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
   background: #fff;
 }
 
+/* ===== §13d multiSlide 탭 (예: 내지 1 / 내지 2 / + 추가) ===== */
+.slide-tabs {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin-bottom: 12px; padding: 6px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.slide-tabs.hidden { display: none; }
+.slide-tab {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 28px; padding: 0 10px;
+  background: transparent; color: var(--text-muted);
+  border: 1px solid transparent; border-radius: 6px;
+  font-family: var(--font-mono); font-size: 11px; font-weight: 500;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  cursor: pointer; transition: all var(--t-base) var(--ease);
+}
+.slide-tab:hover { color: var(--ink); background: var(--bg-elev); }
+.slide-tab.active {
+  background: var(--ink); color: var(--paper, #F4F1EA);
+  border-color: var(--ink);
+}
+.slide-tab-close {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 14px; height: 14px; border-radius: 50%;
+  font-size: 10px; line-height: 1; color: inherit;
+  opacity: 0.6; cursor: pointer;
+}
+.slide-tab-close:hover { opacity: 1; background: rgba(255,255,255,0.2); }
+.slide-tab-add {
+  display: inline-flex; align-items: center; gap: 4px;
+  height: 28px; padding: 0 10px;
+  background: transparent; color: var(--accent);
+  border: 1px dashed var(--border); border-radius: 6px;
+  font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+  letter-spacing: 0.06em;
+  cursor: pointer; transition: all var(--t-base) var(--ease);
+}
+.slide-tab-add:hover { border-color: var(--accent); background: rgba(255,79,31,0.05); }
+
 /* ===== §13c fade 그라데이션 높이 슬라이더 ===== */
 .fade-slider-wrap {
   margin-top: 10px; padding: 8px 10px;
@@ -740,6 +780,8 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
   <!-- 왼쪽: 입력 (탭) -->
   <div class="column-wrap input-col">
     <div class="section-group">
+      <!-- multiSlide 슬롯 전용 슬라이드 탭 (예: 내지 1 / 내지 2 / + 추가). hidden 클래스로 기본 숨김 -->
+      <div class="slide-tabs hidden" id="slide-tabs-wrap"></div>
       <div class="card input-card">
         <!-- 탭 바 -->
         <div class="tab-bar">
@@ -1232,6 +1274,8 @@ const SPECS = {
       'E2': {
         label: '내지',
         bgFixed: null, pointColor: true, noSub: true, isLarge: true,
+        multiSlide: true,   // 여러 장(슬라이드)을 탭으로 추가/전환 가능
+
         bgPresets: ['#FFFFFF', '#FDEDEF', '#F4F1EA', '#FFF8D7', '#E8F4FF', '#F4F0FF', '#EFFCE7'],
         versions: [
           { id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1080, h: 1350,
@@ -1342,6 +1386,11 @@ let currentImageRaw = {};    // { mo: dataURL, ... } — 원본 데이터(누끼
 let knockoutEnabled = true;  // 흰 배경 자동 누끼 — 사용자 토글
 let currentImageTransforms = {}; // imageEditable 슬롯에서 사용자 조작 상태 { [v.id]: { scale, x, y } }
 let currentFadeOverrides = {};   // v.fade가 있는 버전에서 슬라이더로 조정한 fade 깊이 (px) { [v.id]: depth }
+// multiSlide 슬롯의 슬라이드 상태 — 슬롯 전환/탭 전환 시 globals를 swap-in/out
+//   slideStates[slotKey] = [ { images, imageSizes, imageRaw, transforms, fadeOverrides, inputs, mainLines } ]
+//   activeSlideIdx[slotKey] = 현재 편집 중인 슬라이드 인덱스
+let slideStates = {};
+let activeSlideIdx = {};
 let editableImageAbort = null;   // 미리보기 마우스 핸들러 정리용 AbortController
 let currentTextColorMode = 'auto'; // 'auto' | 'white' | 'black' — 어두운 배경에서 사용자가 토글로 강제 지정 가능
 let currentShowButton = true; // B8 버튼 표시 여부
@@ -1390,6 +1439,143 @@ let currentSlot = 'A1';
 window.onload = () => {
   onProductChange();
 };
+// ================================================
+//  multiSlide 슬라이드 헬퍼 (예: 내지 1·2·3을 탭으로 전환)
+//   - snapshot: 현재 globals + 입력 DOM을 활성 슬라이드 상태로 저장
+//   - restore : 슬라이드 상태를 globals + DOM에 복원 후 전체 re-render
+//   - 활성 슬라이드 변경 시 항상 snapshot → 인덱스 변경 → restore 순서로 호출
+// ================================================
+const SLIDE_INPUT_IDS = ['main','main1','main2','main3','sub','sub1','sub2','btn'];
+function isMultiSlideSlot(slotKey) {
+  const spec = SPECS[currentProduct]?.slots[slotKey || currentSlot];
+  return !!(spec && spec.multiSlide);
+}
+function freshSlideState() {
+  return {
+    images: {}, imageSizes: {}, imageRaw: {},
+    transforms: {}, fadeOverrides: {},
+    inputs: {}, mainLines: 2,
+  };
+}
+function snapshotActiveSlide() {
+  if (!isMultiSlideSlot()) return;
+  const arr = slideStates[currentSlot];
+  const idx = activeSlideIdx[currentSlot];
+  if (!arr || arr[idx] === undefined) return;
+  const inputs = {};
+  SLIDE_INPUT_IDS.forEach(id => {
+    const el = document.getElementById('f-' + id);
+    if (el) inputs[id] = el.value;
+  });
+  arr[idx] = {
+    images: { ...currentImages },
+    imageSizes: { ...currentImageSizes },
+    imageRaw: { ...currentImageRaw },
+    transforms: { ...currentImageTransforms },
+    fadeOverrides: { ...currentFadeOverrides },
+    inputs,
+    mainLines: currentMainLines,
+  };
+}
+function applySlideToCurrent(idx) {
+  const arr = slideStates[currentSlot];
+  if (!arr || !arr[idx]) return;
+  const st = arr[idx];
+  currentImages = { ...st.images };
+  currentImageSizes = { ...st.imageSizes };
+  currentImageRaw = { ...st.imageRaw };
+  currentImageTransforms = { ...st.transforms };
+  currentFadeOverrides = { ...st.fadeOverrides };
+  currentMainLines = st.mainLines || 2;
+  activeSlideIdx[currentSlot] = idx;
+}
+function populateDOMFromActiveSlide() {
+  // renderInputs + renderImageUploads가 빈 DOM을 만든 뒤 호출 → 저장된 값 채우기
+  const arr = slideStates[currentSlot];
+  const idx = activeSlideIdx[currentSlot];
+  if (!arr || !arr[idx]) return;
+  const st = arr[idx];
+  Object.entries(st.inputs || {}).forEach(([id, val]) => {
+    const el = document.getElementById('f-' + id);
+    if (el) { el.value = val; updateCharCount(el); }
+  });
+  // 이미지 썸네일 복원 (renderImageUploads는 currentImages 데이터를 자동으로 안 그림)
+  const spec = SPECS[currentProduct].slots[currentSlot];
+  spec.versions.forEach(v => {
+    if (v.id.endsWith('-alt')) return;
+    if (!st.images[v.id]) return;
+    const thumb = document.getElementById('upload-thumb-' + v.id);
+    const ph = document.getElementById('upload-placeholder-' + v.id);
+    const area = document.getElementById('upload-area-' + v.id);
+    if (thumb) { thumb.src = st.images[v.id]; thumb.style.display = 'block'; }
+    if (ph) ph.style.display = 'none';
+    if (area) area.classList.add('has-image');
+  });
+}
+function ensureMultiSlideInit() {
+  if (!isMultiSlideSlot()) return;
+  if (!slideStates[currentSlot] || slideStates[currentSlot].length === 0) {
+    slideStates[currentSlot] = [freshSlideState()];
+    activeSlideIdx[currentSlot] = 0;
+  }
+  if (activeSlideIdx[currentSlot] === undefined) activeSlideIdx[currentSlot] = 0;
+}
+function switchSlide(idx) {
+  if (!isMultiSlideSlot()) return;
+  const arr = slideStates[currentSlot];
+  if (!arr || !arr[idx]) return;
+  if (activeSlideIdx[currentSlot] === idx) return;
+  snapshotActiveSlide();
+  applySlideToCurrent(idx);
+  reRenderActiveSlide();
+}
+function addSlide() {
+  if (!isMultiSlideSlot()) return;
+  snapshotActiveSlide();
+  if (!slideStates[currentSlot]) slideStates[currentSlot] = [];
+  slideStates[currentSlot].push(freshSlideState());
+  applySlideToCurrent(slideStates[currentSlot].length - 1);
+  reRenderActiveSlide();
+}
+function removeSlide(idx) {
+  if (!isMultiSlideSlot()) return;
+  const arr = slideStates[currentSlot];
+  if (!arr || arr.length <= 1) return;
+  arr.splice(idx, 1);
+  let newIdx = activeSlideIdx[currentSlot];
+  if (newIdx >= arr.length) newIdx = arr.length - 1;
+  if (newIdx < 0) newIdx = 0;
+  applySlideToCurrent(newIdx);
+  reRenderActiveSlide();
+}
+function reRenderActiveSlide() {
+  renderImageUploads();
+  renderInputs();
+  populateDOMFromActiveSlide();
+  updateBgUI();
+  updatePointColorUI();
+  updateTextColorUI();
+  renderPreviews();
+  renderSlideTabs();
+}
+function renderSlideTabs() {
+  const wrap = document.getElementById('slide-tabs-wrap');
+  if (!wrap) return;
+  if (!isMultiSlideSlot()) { wrap.innerHTML = ''; wrap.classList.add('hidden'); return; }
+  const arr = slideStates[currentSlot] || [];
+  const active = activeSlideIdx[currentSlot] || 0;
+  const slotLabel = SPECS[currentProduct].slots[currentSlot].label;
+  let html = '';
+  arr.forEach((_, i) => {
+    const closeBtn = arr.length > 1
+      ? `<span class="slide-tab-close" onclick="event.stopPropagation(); removeSlide(${i})" title="삭제">×</span>`
+      : '';
+    html += `<button type="button" class="slide-tab${i === active ? ' active' : ''}" onclick="switchSlide(${i})"><span>${slotLabel} ${i + 1}</span>${closeBtn}</button>`;
+  });
+  html += `<button type="button" class="slide-tab-add" onclick="addSlide()">+ 슬라이드 추가</button>`;
+  wrap.innerHTML = html;
+  wrap.classList.remove('hidden');
+}
 function onProductChange() {
   currentProduct = document.getElementById('sel-product').value;
   const slots = SPECS[currentProduct].slots;
@@ -1405,6 +1591,8 @@ function onProductChange() {
   onSlotChange();
 }
 function onSlotChange() {
+  // 이전 슬롯이 multiSlide면 활성 슬라이드 상태 저장 (다시 돌아왔을 때 복원하기 위해)
+  snapshotActiveSlide();
   currentSlot = document.getElementById('sel-slot').value;
   currentImages = {};
   currentImageSizes = {};
@@ -1432,8 +1620,16 @@ function onSlotChange() {
     const inList = slotSpec.bgPresets.some(c => c.toUpperCase() === upper);
     if (!inList) currentBg = slotSpec.bgPresets[0];
   }
+  // multiSlide 슬롯이면 슬라이드 상태 초기화/복원 (활성 슬라이드 데이터를 globals로 swap-in)
+  if (slotSpec.multiSlide) {
+    ensureMultiSlideInit();
+    applySlideToCurrent(activeSlideIdx[currentSlot] || 0);
+  }
   renderImageUploads();
   renderInputs();
+  // multiSlide면 globals → DOM 채워주기 (입력값/썸네일 복원)
+  if (slotSpec.multiSlide) populateDOMFromActiveSlide();
+  renderSlideTabs();
   updateBgUI();
   updatePointColorUI();
   updateNanoRatio();
