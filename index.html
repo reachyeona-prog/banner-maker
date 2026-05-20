@@ -1481,8 +1481,9 @@ const SPECS = {
           lockTextColor: true,
           img:  { top:0, left:0, w:1080, h:1440, bgFull:true, editable:true },
           // autoHeight — 박스 높이 = main 줄 수 × 자동. 하단 100px 패딩으로 박스 바닥 고정.
-          // innerPadding 40 — 박스 안쪽 상/하 균일 패딩 (이전 80에서 절반)
-          copyBox: { left:50, right:50, paddingBottom:100, innerPadding:40, autoHeight:true, bg:'#FFFFFF', radius:0, border:'2px solid #1A1A1A' },
+          // innerPadding 20 — 박스 안쪽 상/하 균일 패딩 (이전 40에서 다시 절반)
+          // radius 0 — 뾰족한 사각형 (border-radius 폴백 로직 수정 후 0 정상 적용)
+          copyBox: { left:50, right:50, paddingBottom:100, innerPadding:20, autoHeight:true, bg:'#FFFFFF', radius:0, border:'2px solid #1A1A1A' },
           main: { left:100, right:100, fs:46, lines:3, lh:'150%', center:true, color:'#1A1A1A' }
         }]
       }
@@ -3142,7 +3143,7 @@ function buildBanner(v, spec) {
       if (cb.w !== undefined) cs += `width:${cb.w}px;`;
       if (cb.h !== undefined) cs += `height:${cb.h}px;`;
     }
-    cs += `background:${cb.bg || '#FFFFFF'};border-radius:${cb.radius || 16}px;z-index:1;`;
+    cs += `background:${cb.bg || '#FFFFFF'};border-radius:${cb.radius !== undefined ? cb.radius : 16}px;z-index:1;`;
     if (cb.border) cs += `border:${cb.border};`;
     if (cb.shadow) cs += `box-shadow:0 8px 32px rgba(0,0,0,0.12);`;
     box.style.cssText = cs;
