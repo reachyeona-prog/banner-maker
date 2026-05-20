@@ -682,6 +682,7 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
         <option value="app">앱</option>
         <option value="table">테이블 오더</option>
         <option value="blog">웹 블로그</option>
+        <option value="cardnews">카드 뉴스</option>
       </select>
     </div>
     <div class="selector-group">
@@ -1162,6 +1163,33 @@ const SPECS = {
         downloadScale: 10/9, imageEditable: true,
         versions: [{ id: 'web', label: 'WEB', w: 1080, h: 600,
           img: { top:0, left:0, w:1080, h:600 } }]
+      }
+    }
+  },
+  cardnews: {
+    label: '카드 뉴스',
+    // 인스타그램 카드 뉴스 4:5 (1080×1350) 기준. downloadScale 미지정 → 기본 3배수 추출.
+    // 다만 IG 업로드 시 1080 원본을 그대로 쓰는 경우가 많아 isLarge로 0.4× 프리뷰만 적용.
+    slots: {
+      // 표지: 상단 hero 이미지 + pill 태그(서브) + 2줄 메인 카피
+      'E1': {
+        label: '표지',
+        bgFixed: null, noPointColor: true, isLarge: true,
+        pillSub: true,
+        bgPresets: ['#FFFFFF', '#F4F1EA', '#F6F8F9', '#FFEFF2', '#E8F4FF', '#EFFCE7', '#FFF8D7', '#1A1A1A'],
+        versions: [{ id: 'web', label: 'IG', w: 1080, h: 1350,
+          img:  { top:0, left:0, w:1080, h:870, cover:true },
+          sub:  { top:920, left:70, fs:32, color:'#1A1A1A' },
+          main: { top:1020, left:70, right:70, fs:78, lines:2, lh:'130%', color:'#1A1A1A' } }]
+      },
+      // 내지: 상단 2줄 메인 카피(중앙 정렬, {중괄호} 강조 가능) + 하단 인포그래픽/카드 이미지
+      'E2': {
+        label: '내지',
+        bgFixed: null, pointColor: true, noSub: true, isLarge: true,
+        bgPresets: ['#FFFFFF', '#FDEDEF', '#F4F1EA', '#FFF8D7', '#E8F4FF', '#F4F0FF', '#EFFCE7'],
+        versions: [{ id: 'web', label: 'IG', w: 1080, h: 1350,
+          main: { top:130, left:70, right:70, fs:62, lines:2, lh:'140%', center:true, color:'#1A1A1A' },
+          img:  { top:400, left:60, w:960, h:870 } }]
       }
     }
   }
