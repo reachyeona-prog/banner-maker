@@ -1205,25 +1205,25 @@ const SPECS = {
     // 다만 IG 업로드 시 1080 원본을 그대로 쓰는 경우가 많아 isLarge로 0.4× 프리뷰만 적용.
     slots: {
       // 표지: 상단 hero 이미지 + pill 태그(서브) + 2줄 메인 카피
-      //   box  — 정사각 이미지 박스 (드래그 위치 / 휠 크기 조절)
-      //   full — 배경 전체 cover + 카피 영역 아래→위 화이트 그라데이션
+      //   full — 배경 전체 cover + 옅은 검정 scrim + 흰 카피 (위에 노출)
+      //   box  — 정사각 이미지 박스 + 카피 영역 (아래에 노출)
       'E1': {
         label: '표지',
         bgFixed: null, noPointColor: true, isLarge: true,
         pillSub: true,
         bgPresets: ['#FFFFFF', '#F4F1EA', '#F6F8F9', '#FFEFF2', '#E8F4FF', '#EFFCE7', '#FFF8D7', '#1A1A1A'],
         versions: [
-          { id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1080, h: 1350,
-            img:  { top:0, left:0, w:1080, h:870, cover:true, editable:true },
-            sub:  { top:920, left:70, fs:32, color:'#1A1A1A' },
-            main: { top:1020, left:70, right:70, fs:78, lines:2, lh:'130%', color:'#1A1A1A' } },
           { id: 'full', label: '배경 이미지', uploadLabel: '배경 이미지', w: 1080, h: 1350,
             lockTextColor: true,  // bgFull+검정 scrim 위 흰 텍스트 강제 (배경색에 따른 자동 색 보정 OFF)
             img:  { top:0, left:0, w:1080, h:1350, bgFull:true, editable:true },
             sub:  { top:920, left:70, fs:32, color:'#FFFFFF' },
             main: { top:1020, left:70, right:70, fs:78, lines:2, lh:'130%', color:'#FFFFFF' },
             // 옅은 검정 scrim — 카피 영역 하단에 자연스럽게 깔림. 슬라이더로 높이 조절 가능.
-            fade: { strong:1020, faded:500, rgb:'0,0,0', maxAlpha:0.55 } }
+            fade: { strong:1020, faded:500, rgb:'0,0,0', maxAlpha:0.55 } },
+          { id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1080, h: 1350,
+            img:  { top:0, left:0, w:1080, h:870, cover:true, editable:true },
+            sub:  { top:920, left:70, fs:32, color:'#1A1A1A' },
+            main: { top:1020, left:70, right:70, fs:78, lines:2, lh:'130%', color:'#1A1A1A' } }
         ]
       },
       // 내지: 상단 2줄 메인 카피(중앙 정렬, {중괄호} 강조 가능) + 인포그래픽/카드 이미지
