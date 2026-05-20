@@ -1084,16 +1084,29 @@ function applyCardNewsJSON() {
     productSel.value = 'cardnews';
     onProductChange();
   }
-  // 2) 내지 slideStates 미리 세팅 (E2로 전환했을 때 onSlotChange가 자동으로 픽업)
+  // 2) 내지 slideStates 미리 세팅 (해당 slot으로 전환했을 때 onSlotChange가 자동 픽업)
+  //    data.interiorSlot 또는 첫 interior의 type으로 분배. 기본 E2.
+  const interiorSlot = data.interiorSlot
+    || (data.interiors && data.interiors[0] && data.interiors[0].type)
+    || 'E2';
+  const interiorSlotValid = ['E2', 'E3', 'E4', 'E5'].includes(interiorSlot);
+  const targetSlot = interiorSlotValid ? interiorSlot : 'E2';
   const interiorCount = (data.interiors && Array.isArray(data.interiors)) ? data.interiors.length : 0;
+  // 3줄 슬롯(E3/E4)은 mainLines=3, 그 외는 2
+  const interiorLines = (targetSlot === 'E3' || targetSlot === 'E4') ? 3 : 2;
   if (interiorCount > 0) {
-    slideStates['E2'] = data.interiors.map(it => ({
+    slideStates[targetSlot] = data.interiors.map(it => ({
       images: {}, imageSizes: {}, imageRaw: {},
       transforms: {}, fadeOverrides: {},
-      inputs: { main1: (it.main1 || ''), main2: (it.main2 || '') },
-      mainLines: 2,
+      inputs: {
+        main1: (it.main1 || ''),
+        main2: (it.main2 || ''),
+        main3: (it.main3 || ''),
+        sub: (it.sub || ''),  // E5 박스 카피의 라벨 (예: "Step 1")
+      },
+      mainLines: interiorLines,
     }));
-    activeSlideIdx['E2'] = 0;
+    activeSlideIdx[targetSlot] = 0;
   }
   // 3) 표지(E1)로 와서 cover 카피 입력 (사용자가 가장 먼저 보는 화면)
   if (data.cover) {
@@ -1110,8 +1123,8 @@ function applyCardNewsJSON() {
     renderPreviews();
   }
   hint.className = 'json-import-hint is-success';
-  hint.textContent = `완료 — 표지 + 내지 ${interiorCount}장`;
-  toast(`카피가 채워졌어요 (내지 ${interiorCount}장). 내지 탭으로 이동해서 확인하세요.`);
+  hint.textContent = `완료 — 표지 + ${SPECS.cardnews.slots[targetSlot].label} ${interiorCount}장`;
+  toast(`카피가 채워졌어요 (${SPECS.cardnews.slots[targetSlot].label} ${interiorCount}장).`);
 }
 // ================================================
 //  배너 스펙 데이터
@@ -1390,24 +1403,72 @@ const SPECS = {
             main: { top:1020, left:70, right:70, fs:78, lines:2, lh:'130%', color:'#1A1A1A' } }
         ]
       },
-      // 내지: 상단 2줄 메인 카피(중앙 정렬, {중괄호} 강조 가능) + 인포그래픽/카드 이미지
+      // 내지 (2줄 상단) — 상단 2줄 메인 카피 + 인포그래픽/카드 이미지
       //   box  — 메인 카피 위 + 정사각 이미지 박스 (드래그 위치 / 휠 크기 조절)
       //   full — 배경 전체 cover + 카피 영역 위→아래 화이트 그라데이션
       'E2': {
-        label: '내지',
+        label: '내지 (2줄 상단)',
         bgFixed: null, pointColor: true, noSub: true, isLarge: true,
-        multiSlide: true,   // 여러 장(슬라이드)을 탭으로 추가/전환 가능
-
+        multiSlide: true,
         bgPresets: ['#FFFFFF', '#FDEDEF', '#F4F1EA', '#FFF8D7', '#E8F4FF', '#F4F0FF', '#EFFCE7'],
         versions: [
           { id: 'full', label: '배경 이미지', uploadLabel: '배경 이미지', w: 1080, h: 1350,
             main: { top:130, left:70, right:70, fs:62, lines:2, lh:'140%', center:true, color:'#1A1A1A' },
             img:  { top:0, left:0, w:1080, h:1350, bgFull:true, editable:true },
-            fade: { strong:320, faded:780 } },  // y=320(메인 카피 하단)까지 솔리드 white, y=780까지 fade-out
+            fade: { strong:320, faded:780 } },
           { id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1080, h: 1350,
             main: { top:130, left:70, right:70, fs:62, lines:2, lh:'140%', center:true, color:'#1A1A1A' },
             img:  { top:400, left:60, w:960, h:870, editable:true } }
         ]
+      },
+      // 내지 (3줄 상단) — 메인 카피 3줄(센터) 위, 이미지 아래
+      'E3': {
+        label: '내지 (3줄 상단)',
+        bgFixed: null, pointColor: true, noSub: true, isLarge: true,
+        multiSlide: true,
+        bgPresets: ['#FFFFFF', '#F4F1EA', '#FDEDEF', '#E8F4FF', '#FFF8D7', '#F4F0FF', '#EFFCE7'],
+        versions: [
+          { id: 'full', label: '배경 이미지', uploadLabel: '배경 이미지', w: 1080, h: 1350,
+            main: { top:130, left:70, right:70, fs:54, lines:3, lh:'150%', center:true, color:'#1A1A1A' },
+            img:  { top:0, left:0, w:1080, h:1350, bgFull:true, editable:true },
+            fade: { strong:540, faded:920 } },
+          { id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1080, h: 1350,
+            main: { top:130, left:70, right:70, fs:54, lines:3, lh:'150%', center:true, color:'#1A1A1A' },
+            img:  { top:570, left:60, w:960, h:700, editable:true } }
+        ]
+      },
+      // 내지 (3줄 하단) — 이미지 위 + 메인 카피 3줄(센터) 아래
+      //   full은 카피 하단부에 검정 scrim + 흰 글씨 (E1 표지 full과 동일 톤)
+      'E4': {
+        label: '내지 (3줄 하단)',
+        bgFixed: null, pointColor: true, noSub: true, isLarge: true,
+        multiSlide: true,
+        bgPresets: ['#FFFFFF', '#F4F1EA', '#FDEDEF', '#E8F4FF', '#FFF8D7', '#F4F0FF', '#EFFCE7'],
+        versions: [
+          { id: 'full', label: '배경 이미지', uploadLabel: '배경 이미지', w: 1080, h: 1350,
+            lockTextColor: true,
+            img:  { top:0, left:0, w:1080, h:1350, bgFull:true, editable:true },
+            main: { top:1020, left:70, right:70, fs:50, lines:3, lh:'150%', center:true, color:'#FFFFFF' },
+            fade: { strong:1020, faded:500, rgb:'0,0,0', maxAlpha:0.55 } },
+          { id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1080, h: 1350,
+            main: { top:1020, left:70, right:70, fs:50, lines:3, lh:'150%', center:true, color:'#1A1A1A' },
+            img:  { top:80, left:60, w:960, h:880, editable:true } }
+        ]
+      },
+      // 내지 (박스 카피) — bgFull 위에 흰 라운드 박스 오버레이 + 라벨(sub) + 메인 카피(2~3줄)
+      'E5': {
+        label: '내지 (박스 카피)',
+        bgFixed: null, pointColor: true, isLarge: true,
+        multiSlide: true,
+        bgPresets: ['#FFFFFF', '#F4F1EA', '#1A1A1A'],
+        versions: [{
+          id: 'full', label: 'IG', uploadLabel: '배경 이미지', w: 1080, h: 1350,
+          lockTextColor: true,
+          img:  { top:0, left:0, w:1080, h:1350, bgFull:true, editable:true },
+          copyBox: { left:60, right:60, top:790, bottom:90, bg:'#FFFFFF', radius:20, shadow:true },
+          sub:  { top:840, left:110, fs:26, color:'#999999' },
+          main: { top:880, left:110, right:110, fs:46, lines:3, lh:'150%', color:'#1A1A1A' }
+        }]
       }
     }
   }
@@ -2915,6 +2976,22 @@ function buildBanner(v, spec) {
       grad.style.cssText = `position:absolute;top:0;left:0;width:100%;height:100%;background:radial-gradient(ellipse 1500px 1100px at -100px -100px, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.82) 18%, rgba(255,255,255,0.6) 38%, rgba(255,255,255,0.35) 60%, rgba(255,255,255,0.12) 82%, rgba(255,255,255,0) 100%);z-index:1;pointer-events:none;`;
     }
     banner.appendChild(grad);
+  }
+  // copyBox — 박스 카피 오버레이 (E5 내지). bg 이미지 위에 흰 라운드 박스 → 그 안에 sub/main 카피가 z:2로 얹힘
+  if (v.copyBox) {
+    const cb = v.copyBox;
+    const box = document.createElement('div');
+    let cs = 'position:absolute;';
+    if (cb.top !== undefined) cs += `top:${cb.top}px;`;
+    if (cb.bottom !== undefined) cs += `bottom:${cb.bottom}px;`;
+    if (cb.left !== undefined) cs += `left:${cb.left}px;`;
+    if (cb.right !== undefined) cs += `right:${cb.right}px;`;
+    if (cb.w !== undefined) cs += `width:${cb.w}px;`;
+    if (cb.h !== undefined) cs += `height:${cb.h}px;`;
+    cs += `background:${cb.bg || '#FFFFFF'};border-radius:${cb.radius || 16}px;z-index:1;`;
+    if (cb.shadow) cs += `box-shadow:0 8px 32px rgba(0,0,0,0.12);`;
+    box.style.cssText = cs;
+    banner.appendChild(box);
   }
   // 안전영역 (B10)
   if (v.safeZone) {
