@@ -1465,7 +1465,7 @@ const SPECS = {
           id: 'full', label: 'IG', uploadLabel: '배경 이미지', w: 1080, h: 1350,
           lockTextColor: true,
           img:  { top:0, left:0, w:1080, h:1350, bgFull:true, editable:true },
-          copyBox: { left:60, right:60, top:790, bottom:90, bg:'#FFFFFF', radius:20, shadow:true },
+          copyBox: { left:60, right:60, top:790, bottom:90, bg:'#FFFFFF', radius:20, border:'2px solid #1A1A1A' },
           sub:  { top:840, left:110, fs:26, color:'#999999' },
           main: { top:880, left:110, right:110, fs:46, lines:3, lh:'150%', color:'#1A1A1A' }
         }]
@@ -2989,6 +2989,7 @@ function buildBanner(v, spec) {
     if (cb.w !== undefined) cs += `width:${cb.w}px;`;
     if (cb.h !== undefined) cs += `height:${cb.h}px;`;
     cs += `background:${cb.bg || '#FFFFFF'};border-radius:${cb.radius || 16}px;z-index:1;`;
+    if (cb.border) cs += `border:${cb.border};`;
     if (cb.shadow) cs += `box-shadow:0 8px 32px rgba(0,0,0,0.12);`;
     box.style.cssText = cs;
     banner.appendChild(box);
@@ -3056,15 +3057,30 @@ function buildBanner(v, spec) {
     m.style.cssText = css;
     if (v.img && v.img.bgFull) m.style.zIndex = '2';
     // 입력 필드 ID는 renderInputs에서 lines 기준으로만 결정 (main1/main2/main3 또는 main).
-    // subFirst 여부와 무관하게 동일 명명 규칙을 따라야 미리보기가 입력값을 정확히 반영.
-    const mainLineCount = spec.selectableLines ? currentMainLines : (v.main.lines || 1);
+    // 자동 줄 수 감지: spec.lines가 최대값(2 또는 3), 실제 렌더는 채워진 줄만 노출.
+    //   - 마지막 줄이 비면 trim → 2줄 슬롯에서 1줄만 써도 1줄로, 3줄 슬롯에서 2줄만 써도 2줄로 표시
+    //   - 모두 비어 있을 땐 placeholder를 max줄 만큼 노출 (입력 안내 차원)
+    //   - selectableLines(C1) 슬롯은 토글값을 그대로 따름 (수동 모드)
+    const maxLines = spec.selectableLines ? currentMainLines : (v.main.lines || 1);
     let mainText;
-    if (mainLineCount >= 3) {
-      mainText = [getVal('main1')||'메인 카피 1줄', getVal('main2')||'메인 카피 2줄', getVal('main3')||'메인 카피 3줄'].join('\n');
-    } else if (mainLineCount >= 2) {
-      mainText = (getVal('main1')||'메인 카피 1줄') + '\n' + (getVal('main2')||'메인 카피 2줄');
-    } else {
+    if (maxLines === 1) {
       mainText = getVal('main') || '메인 카피';
+    } else {
+      const vals = [];
+      for (let i = 1; i <= maxLines; i++) vals.push(getVal('main' + i));
+      const allEmpty = vals.every(s => !s);
+      if (allEmpty) {
+        // placeholder를 최대 줄 수만큼 노출
+        mainText = vals.map((_, i) => `메인 카피 ${i + 1}줄`).join('\n');
+      } else if (spec.selectableLines) {
+        // C1: 토글값 강제 — 빈 줄도 placeholder로 채워 유지
+        mainText = vals.map((s, i) => s || `메인 카피 ${i + 1}줄`).join('\n');
+      } else {
+        // 자동: 뒤 빈 줄 trim (최소 1줄 유지). 중간 빈 줄은 placeholder로 채움.
+        const trimmed = [...vals];
+        while (trimmed.length > 1 && !trimmed[trimmed.length - 1]) trimmed.pop();
+        mainText = trimmed.map((s, i) => s || `메인 카피 ${i + 1}줄`).join('\n');
+      }
     }
     m.innerHTML = applyPointColor(mainText).replace(/\n/g, '<br>');
     banner.appendChild(m);
