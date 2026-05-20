@@ -1417,17 +1417,17 @@ const SPECS = {
         pillSub: true,   // 동그란 pill — 투명 채움 + 컬러 테두리 2px (가이드라인)
         bgPresets: ['#FFFFFF', '#F4F1EA', '#F6F8F9', '#FFEFF2', '#E8F4FF', '#EFFCE7', '#FFF8D7', '#1A1A1A'],
         versions: [
-          { id: 'full', label: '배경 이미지', uploadLabel: '배경 이미지', w: 1080, h: 1350,
+          { id: 'full', label: '배경 이미지', uploadLabel: '배경 이미지', w: 1080, h: 1440,
             lockTextColor: true,
-            img:  { top:0, left:0, w:1080, h:1350, bgFull:true, editable:true },
-            // 가이드라인: 좌우 95 / 상단 950 (pill 시작) / sub-main gap 30 / 메인 90px 130% -4% / 하단 패딩 51
+            img:  { top:0, left:0, w:1080, h:1440, bgFull:true, editable:true },
+            // 가이드라인: 좌우 95 / 상단 950 (pill 시작) / sub-main gap 30 / 메인 90px 130% -4% / 하단 패딩 141
             sub:  { top:950, left:95, fs:41, color:'#FFFFFF' },
-            main: { top:1065, left:95, right:95, fs:90, lines:2, lh:'130%', ls:'-0.04em', paddingBottom:51, color:'#FFFFFF' },
+            main: { top:1065, left:95, right:95, fs:90, lines:2, lh:'130%', ls:'-0.04em', paddingBottom:141, color:'#FFFFFF' },
             fade: { strong:1020, faded:500, rgb:'0,0,0', maxAlpha:0.55 } },
-          { id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1080, h: 1350,
+          { id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1080, h: 1440,
             img:  { top:0, left:0, w:1080, h:870, cover:true, editable:true },
             sub:  { top:950, left:95, fs:41, color:'#1A1A1A' },
-            main: { top:1065, left:95, right:95, fs:90, lines:2, lh:'130%', ls:'-0.04em', paddingBottom:51, color:'#1A1A1A' } }
+            main: { top:1065, left:95, right:95, fs:90, lines:2, lh:'130%', ls:'-0.04em', paddingBottom:141, color:'#1A1A1A' } }
         ]
       },
       // 내지 (카피 상단) — 메인 카피(2~3줄 자동 감지) 위 + 인포그래픽/이미지 아래
@@ -1439,15 +1439,15 @@ const SPECS = {
         multiSlide: true,
         bgPresets: ['#FFFFFF', '#FDEDEF', '#F4F1EA', '#FFF8D7', '#E8F4FF', '#F4F0FF', '#EFFCE7'],
         versions: [
-          { id: 'full', label: '배경 이미지', uploadLabel: '배경 이미지', w: 1080, h: 1350,
+          { id: 'full', label: '배경 이미지', uploadLabel: '배경 이미지', w: 1080, h: 1440,
             main: { top:130, left:70, right:70, fs:56, lines:3, lh:'150%', center:true, color:'#1A1A1A' },
-            img:  { top:0, left:0, w:1080, h:1350, bgFull:true, editable:true },
+            img:  { top:0, left:0, w:1080, h:1440, bgFull:true, editable:true },
             // 캔버스 전 영역 선형 그라데이션 — 끊긴 경계 없이 위→아래 균일 전환 (text 영역은 자연스레 더 불투명)
-            fade: { strong:0, faded:1350 } },
-          { id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1080, h: 1350,
+            fade: { strong:0, faded:1440 } },
+          { id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1080, h: 1440,
             main: { top:130, left:70, right:70, fs:56, lines:3, lh:'150%', center:true, color:'#1A1A1A' },
             // 2줄 카피 하단(y≈298) + 100px = y≈398부터 끝까지 풀폭 이미지
-            img:  { top:398, left:0, w:1080, h:952, editable:true } }
+            img:  { top:398, left:0, w:1080, h:1042, editable:true } }
         ]
       },
       // 내지 (카피 하단) — 이미지 위 + 메인 카피(2~3줄 자동 감지) 아래
@@ -1459,12 +1459,12 @@ const SPECS = {
         multiSlide: true,
         bgPresets: ['#FFFFFF', '#F4F1EA', '#FDEDEF', '#E8F4FF', '#FFF8D7', '#F4F0FF', '#EFFCE7'],
         versions: [
-          { id: 'full', label: '배경 이미지', uploadLabel: '배경 이미지', w: 1080, h: 1350,
+          { id: 'full', label: '배경 이미지', uploadLabel: '배경 이미지', w: 1080, h: 1440,
             lockTextColor: true,
-            img:  { top:0, left:0, w:1080, h:1350, bgFull:true, editable:true },
+            img:  { top:0, left:0, w:1080, h:1440, bgFull:true, editable:true },
             main: { bottom:130, left:70, right:70, fs:52, lines:3, lh:'150%', center:true, color:'#FFFFFF' },
             fade: { strong:1100, faded:550, rgb:'0,0,0', maxAlpha:0.55 } },
-          { id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1080, h: 1350,
+          { id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1080, h: 1440,
             main: { bottom:130, left:70, right:70, fs:52, lines:3, lh:'150%', center:true, color:'#1A1A1A' },
             img:  { top:80, left:60, w:960, h:870, editable:true } }
         ]
@@ -1477,9 +1477,9 @@ const SPECS = {
         multiSlide: true,
         bgPresets: ['#FFFFFF', '#F4F1EA', '#1A1A1A'],
         versions: [{
-          id: 'full', label: 'IG', uploadLabel: '배경 이미지', w: 1080, h: 1350,
+          id: 'full', label: 'IG', uploadLabel: '배경 이미지', w: 1080, h: 1440,
           lockTextColor: true,
-          img:  { top:0, left:0, w:1080, h:1350, bgFull:true, editable:true },
+          img:  { top:0, left:0, w:1080, h:1440, bgFull:true, editable:true },
           copyBox: { left:50, right:50, top:560, bottom:480, bg:'#FFFFFF', radius:0, border:'2px solid #1A1A1A' },
           main: { top:640, left:100, right:100, fs:46, lines:3, lh:'150%', center:true, color:'#1A1A1A' }
         }]
