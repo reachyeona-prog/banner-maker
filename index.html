@@ -520,6 +520,51 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
   background: #fff;
 }
 
+/* ===== §13e Claude JSON 붙여넣기 패널 (카드 뉴스 전용) ===== */
+.json-import {
+  margin-bottom: 10px; padding: 12px 14px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.json-import.hidden { display: none; }
+.json-import-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; margin-bottom: 8px;
+}
+.json-import-label {
+  font-family: var(--font-mono); font-size: 10px; font-weight: 500;
+  color: var(--text-muted); letter-spacing: 0.06em;
+  text-transform: uppercase; white-space: nowrap;
+}
+.json-import-hint {
+  font-family: var(--font-mono); font-size: 10px;
+  color: var(--text-muted); letter-spacing: 0.04em;
+  text-align: right; line-height: 1.4;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.json-import-hint.is-success { color: #1F9E5B; }
+.json-import-hint.is-error { color: #D93838; }
+.json-import-textarea {
+  width: 100%; min-height: 76px; max-height: 200px;
+  padding: 8px 10px; resize: vertical;
+  background: var(--bg-elev); border: 1px solid var(--border);
+  border-radius: 6px; font-family: var(--font-mono);
+  font-size: 11px; line-height: 1.5; color: var(--text-primary);
+  outline: none; box-sizing: border-box;
+  transition: border-color var(--t-base) var(--ease);
+}
+.json-import-textarea:focus { border-color: var(--ink); }
+.json-import-btn {
+  width: 100%; margin-top: 8px; height: 32px; padding: 0 14px;
+  background: var(--ink); color: #fff;
+  border: 1px solid var(--ink); border-radius: 6px;
+  font-family: var(--font); font-size: 12px; font-weight: 600;
+  cursor: pointer; white-space: nowrap;
+  transition: all var(--t-base) var(--ease);
+}
+.json-import-btn:hover { background: var(--accent); border-color: var(--accent); }
+.json-import-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
 /* ===== §13d multiSlide 탭 (예: 내지 1 / 내지 2 / + 추가) ===== */
 .slide-tabs {
   display: flex; flex-wrap: wrap; gap: 6px;
@@ -780,6 +825,15 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
   <!-- 왼쪽: 입력 (탭) -->
   <div class="column-wrap input-col">
     <div class="section-group">
+      <!-- 카드 뉴스 전용 JSON 붙여넣기 패널 — Claude 프로젝트에서 받은 JSON을 표지+내지 슬라이드 전체에 자동 채움 -->
+      <div class="json-import hidden" id="json-import-wrap">
+        <div class="json-import-head">
+          <span class="json-import-label">Claude 카피 한 번에 채우기</span>
+          <span class="json-import-hint" id="json-import-hint">JSON 붙여넣고 버튼 클릭</span>
+        </div>
+        <textarea id="f-json" class="json-import-textarea" placeholder='{"cover":{...},"interiors":[...]}'></textarea>
+        <button type="button" class="json-import-btn" onclick="applyCardNewsJSON()">표지 + 내지 자동 채우기</button>
+      </div>
       <!-- multiSlide 슬롯 전용 슬라이드 탭 (예: 내지 1 / 내지 2 / + 추가). hidden 클래스로 기본 숨김 -->
       <div class="slide-tabs hidden" id="slide-tabs-wrap"></div>
       <div class="card input-card">
@@ -990,6 +1044,74 @@ function toast(msg, opts = {}) {
     el.classList.remove('show');
     setTimeout(() => el.remove(), 200);
   }, opts.duration || 2400);
+}
+// ================================================
+//  Claude 프로젝트 JSON → 카드 뉴스 자동 채우기
+//   - 입력: { cover: {pill, main1, main2}, interiors: [{main1, main2}, ...] }
+//   - 동작: cardnews 프로덕트로 전환 → 내지(E2) slideStates 일괄 세팅 → 표지(E1)로 와서 cover 카피 채움
+//   - 사용자는 마지막에 표지 화면을 보고, 내지 탭을 누르면 N장이 펼쳐져 있음
+// ================================================
+function applyCardNewsJSON() {
+  const ta = document.getElementById('f-json');
+  const hint = document.getElementById('json-import-hint');
+  const raw = (ta.value || '').trim();
+  if (!raw) {
+    hint.className = 'json-import-hint is-error';
+    hint.textContent = 'JSON 비어있음';
+    toast('JSON을 붙여넣어 주세요.', { danger: true });
+    return;
+  }
+  // ```json ... ``` 래퍼나 코드블록 안에 들어있어도 벗겨냄
+  const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
+  let data;
+  try {
+    data = JSON.parse(cleaned);
+  } catch (e) {
+    hint.className = 'json-import-hint is-error';
+    hint.textContent = 'JSON 파싱 실패: ' + e.message;
+    toast('JSON 형식이 잘못됐어요', { danger: true });
+    return;
+  }
+  if (!data.cover && !data.interiors) {
+    hint.className = 'json-import-hint is-error';
+    hint.textContent = 'cover 또는 interiors가 필요합니다';
+    toast('cover/interiors 필드가 없어요.', { danger: true });
+    return;
+  }
+  // 1) cardnews 프로덕트로 강제 전환 (slot dropdown이 E1/E2로 채워지도록)
+  const productSel = document.getElementById('sel-product');
+  if (productSel.value !== 'cardnews') {
+    productSel.value = 'cardnews';
+    onProductChange();
+  }
+  // 2) 내지 slideStates 미리 세팅 (E2로 전환했을 때 onSlotChange가 자동으로 픽업)
+  const interiorCount = (data.interiors && Array.isArray(data.interiors)) ? data.interiors.length : 0;
+  if (interiorCount > 0) {
+    slideStates['E2'] = data.interiors.map(it => ({
+      images: {}, imageSizes: {}, imageRaw: {},
+      transforms: {}, fadeOverrides: {},
+      inputs: { main1: (it.main1 || ''), main2: (it.main2 || '') },
+      mainLines: 2,
+    }));
+    activeSlideIdx['E2'] = 0;
+  }
+  // 3) 표지(E1)로 와서 cover 카피 입력 (사용자가 가장 먼저 보는 화면)
+  if (data.cover) {
+    const slotSel = document.getElementById('sel-slot');
+    slotSel.value = 'E1';
+    onSlotChange();
+    const fillIfExists = (id, val) => {
+      const el = document.getElementById('f-' + id);
+      if (el && val !== undefined) { el.value = val; updateCharCount(el); }
+    };
+    fillIfExists('sub', data.cover.pill);
+    fillIfExists('main1', data.cover.main1);
+    fillIfExists('main2', data.cover.main2);
+    renderPreviews();
+  }
+  hint.className = 'json-import-hint is-success';
+  hint.textContent = `완료 — 표지 + 내지 ${interiorCount}장`;
+  toast(`카피가 채워졌어요 (내지 ${interiorCount}장). 내지 탭으로 이동해서 확인하세요.`);
 }
 // ================================================
 //  배너 스펙 데이터
@@ -1588,6 +1710,9 @@ function onProductChange() {
   });
   currentSlot = Object.keys(slots)[0];
   sel.value = currentSlot;
+  // JSON 임포터 패널은 카드 뉴스 전용
+  const jsonImport = document.getElementById('json-import-wrap');
+  if (jsonImport) jsonImport.classList.toggle('hidden', currentProduct !== 'cardnews');
   onSlotChange();
 }
 function onSlotChange() {
