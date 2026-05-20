@@ -1172,24 +1172,41 @@ const SPECS = {
     // 다만 IG 업로드 시 1080 원본을 그대로 쓰는 경우가 많아 isLarge로 0.4× 프리뷰만 적용.
     slots: {
       // 표지: 상단 hero 이미지 + pill 태그(서브) + 2줄 메인 카피
+      //   box  — 정사각 이미지 박스 (드래그 위치 / 휠 크기 조절)
+      //   full — 배경 전체 cover + 카피 영역 아래→위 화이트 그라데이션
       'E1': {
         label: '표지',
         bgFixed: null, noPointColor: true, isLarge: true,
         pillSub: true,
         bgPresets: ['#FFFFFF', '#F4F1EA', '#F6F8F9', '#FFEFF2', '#E8F4FF', '#EFFCE7', '#FFF8D7', '#1A1A1A'],
-        versions: [{ id: 'web', label: 'IG', w: 1080, h: 1350,
-          img:  { top:0, left:0, w:1080, h:870, cover:true },
-          sub:  { top:920, left:70, fs:32, color:'#1A1A1A' },
-          main: { top:1020, left:70, right:70, fs:78, lines:2, lh:'130%', color:'#1A1A1A' } }]
+        versions: [
+          { id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1080, h: 1350,
+            img:  { top:0, left:0, w:1080, h:870, cover:true, editable:true },
+            sub:  { top:920, left:70, fs:32, color:'#1A1A1A' },
+            main: { top:1020, left:70, right:70, fs:78, lines:2, lh:'130%', color:'#1A1A1A' } },
+          { id: 'full', label: '배경 이미지', uploadLabel: '배경 이미지', w: 1080, h: 1350,
+            img:  { top:0, left:0, w:1080, h:1350, bgFull:true, editable:true },
+            sub:  { top:920, left:70, fs:32, color:'#1A1A1A' },
+            main: { top:1020, left:70, right:70, fs:78, lines:2, lh:'130%', color:'#1A1A1A' },
+            fade: { strong:1350, faded:880 } }   // 카피 하단 → 위로 흰색 그라데이션
+        ]
       },
-      // 내지: 상단 2줄 메인 카피(중앙 정렬, {중괄호} 강조 가능) + 하단 인포그래픽/카드 이미지
+      // 내지: 상단 2줄 메인 카피(중앙 정렬, {중괄호} 강조 가능) + 인포그래픽/카드 이미지
+      //   box  — 메인 카피 위 + 정사각 이미지 박스 (드래그 위치 / 휠 크기 조절)
+      //   full — 배경 전체 cover + 카피 영역 위→아래 화이트 그라데이션
       'E2': {
         label: '내지',
         bgFixed: null, pointColor: true, noSub: true, isLarge: true,
         bgPresets: ['#FFFFFF', '#FDEDEF', '#F4F1EA', '#FFF8D7', '#E8F4FF', '#F4F0FF', '#EFFCE7'],
-        versions: [{ id: 'web', label: 'IG', w: 1080, h: 1350,
-          main: { top:130, left:70, right:70, fs:62, lines:2, lh:'140%', center:true, color:'#1A1A1A' },
-          img:  { top:400, left:60, w:960, h:870 } }]
+        versions: [
+          { id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1080, h: 1350,
+            main: { top:130, left:70, right:70, fs:62, lines:2, lh:'140%', center:true, color:'#1A1A1A' },
+            img:  { top:400, left:60, w:960, h:870, editable:true } },
+          { id: 'full', label: '배경 이미지', uploadLabel: '배경 이미지', w: 1080, h: 1350,
+            main: { top:130, left:70, right:70, fs:62, lines:2, lh:'140%', center:true, color:'#1A1A1A' },
+            img:  { top:0, left:0, w:1080, h:1350, bgFull:true, editable:true },
+            fade: { strong:0, faded:340 } }      // 카피 상단 → 아래로 흰색 그라데이션
+        ]
       }
     }
   }
@@ -1369,6 +1386,7 @@ function onSlotChange() {
     slotSpec.versions.forEach(v => { currentBgPerVersion[v.id] = '#F8F8F8'; });
   }
   // 실사 썸네일은 사용자 사진을 그대로 사용하므로 Nano Banana(AI 일러스트 생성) 영역 숨김
+  // (카드뉴스는 AI 생성 hero 이미지 수요가 있어 editable이어도 노출 유지)
   const nanoSection = document.getElementById('nano-section');
   if (nanoSection) nanoSection.style.display = slotSpec.imageEditable ? 'none' : '';
   // 슬롯 전용 bgPresets가 있고 직전 색이 목록 밖이면 첫 프리셋으로 (슬롯 진입 시에만 실행)
@@ -1895,8 +1913,10 @@ function renderImageUploads() {
   const spec = SPECS[currentProduct].slots[currentSlot];
   const wrap = document.getElementById('upload-area-wrap');
   wrap.innerHTML = '';
-  // 실사 슬롯은 항상 원본 사용 → 누끼 토글 노출 안 함. 그 외는 토글 노출.
-  if (!spec.imageEditable) {
+  // 실사/editable 전용 슬롯은 항상 원본 사용 → 누끼 토글 노출 안 함. 모든 버전이 editable인 경우도 동일.
+  const allEditable = spec.imageEditable
+    || (spec.versions.length > 0 && spec.versions.every(v => v.img && v.img.editable));
+  if (!allEditable) {
     const toggle = document.createElement('div');
     toggle.className = 'field';
     toggle.style.cssText = 'margin-bottom:14px;';
@@ -1919,7 +1939,8 @@ function renderImageUploads() {
   versionsToRender.forEach(v => {
     const item = document.createElement('div');
     item.className = 'upload-item';
-    const sizeText = spec.imageEditable ? '사진 원본 그대로 사용 · 클릭 또는 드래그'
+    const verEditable = spec.imageEditable || (v.img && v.img.editable);
+    const sizeText = verEditable ? '사진 원본 그대로 사용 · 미리보기에서 드래그 / 휠로 조절'
       : (v.img ? '클릭 또는 드래그' : 'PNG · JPG · 클릭 또는 드래그');
     item.innerHTML = `
       ${showVersionLabel ? `<div class="upload-version-label">${v.uploadLabel || (v.label + ' 이미지')}</div>` : ''}
@@ -1970,6 +1991,8 @@ function processImageFile(file, versionId) {
   reader.onload = (ev) => {
     // 원본 보관 (토글 변경 시 재처리용)
     currentImageRaw[versionId] = ev.target.result;
+    // 새 이미지 업로드 시 editable 슬롯의 위치/크기 transform은 초기화 (이전 이미지 잔상 방지)
+    currentImageTransforms[versionId] = { scale: 1, x: 0, y: 0 };
     applyKnockoutForVersion(versionId, () => {
       // 썸네일 + 미리보기 갱신은 applyKnockoutForVersion 안에서 처리
       const thumb = document.getElementById('upload-thumb-' + versionId);
@@ -1989,8 +2012,10 @@ function applyKnockoutForVersion(versionId, done) {
   const img = new Image();
   img.onload = () => {
     const spec = SPECS[currentProduct].slots[currentSlot];
-    // 실사 슬롯은 토글과 무관하게 항상 원본 (사진 보존). 그 외는 토글 따라 처리.
-    const shouldKnockout = !spec.imageEditable && knockoutEnabled;
+    // 실사/editable 이미지는 토글과 무관하게 항상 원본 (사진 보존). 그 외는 토글 따라 처리.
+    const ver = spec.versions.find(x => x.id === versionId);
+    const isEditable = spec.imageEditable || (ver && ver.img && ver.img.editable);
+    const shouldKnockout = !isEditable && knockoutEnabled;
     let dataURL;
     if (!shouldKnockout) {
       dataURL = raw;
@@ -2218,6 +2243,9 @@ function updateFilenames() {
   });
 }
 function renderPreviews() {
+  // 이전 렌더의 editable 이미지 핸들러 모두 정리 후 한 렌더 사이클용 controller 새로 생성
+  if (editableImageAbort) editableImageAbort.abort();
+  editableImageAbort = new AbortController();
   const spec = SPECS[currentProduct].slots[currentSlot];
   const container = document.getElementById('preview-sections');
   container.innerHTML = '';
@@ -2252,8 +2280,9 @@ function renderPreviews() {
       outer.appendChild(buildBanner(v, spec));
     }
     section.appendChild(outer);
-    // 실사 썸네일: 위치/크기 초기화 버튼 (이미지가 업로드된 경우에만)
-    if (spec.imageEditable && currentImages[v.id]) {
+    // editable 이미지: 위치/크기 초기화 버튼 (이미지가 업로드된 경우에만)
+    const isVerEditable = spec.imageEditable || (v.img && v.img.editable);
+    if (isVerEditable && currentImages[v.id]) {
       const resetBtn = document.createElement('button');
       resetBtn.type = 'button';
       resetBtn.className = 'editable-reset-btn';
@@ -2380,10 +2409,11 @@ function buildEditableImage(banner, v) {
   banner.appendChild(container);
   attachEditableImageHandlers(container, v);
 }
-// 마우스 드래그 + 휠 줌 핸들러. AbortController로 이전 슬롯/렌더의 리스너 정리
+// 마우스 드래그 + 휠 줌 핸들러.
+//   AbortController는 renderPreviews 시작 시점에 한 번 새로 만들고
+//   한 렌더 안에서 여러 editable 이미지가 같은 signal을 공유 (E1/E2 처럼 box+full 두 버전 동시 렌더 대응)
 function attachEditableImageHandlers(container, v) {
-  if (editableImageAbort) editableImageAbort.abort();
-  editableImageAbort = new AbortController();
+  if (!editableImageAbort) editableImageAbort = new AbortController();
   const signal = editableImageAbort.signal;
   const img = container.querySelector('img');
   if (!img) return; // 이미지가 아직 없으면 핸들러 부착 무의미
@@ -2436,9 +2466,10 @@ function buildBanner(v, spec) {
   if (v.img && v.img.bgFull) {
     const imgURL = currentImages[v.id];
     const imgSize = currentImageSizes[v.id];
+    const editable = !!v.img.editable;
     if (imgURL && imgSize) {
       const bg = document.createElement('div');
-      bg.style.cssText = `position:absolute;top:0;left:0;width:${v.w}px;height:${v.h}px;overflow:hidden;z-index:0;`;
+      bg.style.cssText = `position:absolute;top:0;left:0;width:${v.w}px;height:${v.h}px;overflow:hidden;z-index:0;${editable ? 'cursor:grab;user-select:none;' : ''}`;
       const srcRatio = imgSize.w / imgSize.h;
       const dstRatio = v.w / v.h;
       let fitW, fitH;
@@ -2448,13 +2479,39 @@ function buildBanner(v, spec) {
       const offsetY = (fitH - v.h) / 2;
       const img = document.createElement('img');
       img.src = imgURL;
-      img.style.cssText = `width:${fitW}px;height:${fitH}px;display:block;margin-left:${-offsetX}px;margin-top:${-offsetY}px;max-width:none;`;
+      img.draggable = false;
+      let imgCSS = `width:${fitW}px;height:${fitH}px;display:block;margin-left:${-offsetX}px;margin-top:${-offsetY}px;max-width:none;`;
+      if (editable) {
+        const state = currentImageTransforms[v.id] || (currentImageTransforms[v.id] = { scale:1, x:0, y:0 });
+        imgCSS += `transform-origin:center center;transform:translate(${state.x}px,${state.y}px) scale(${state.scale});pointer-events:none;`;
+      }
+      img.style.cssText = imgCSS;
       bg.appendChild(img);
       banner.appendChild(bg);
+      if (editable) attachEditableImageHandlers(bg, v);
+    } else if (editable) {
+      // 업로드 전 안내 — bgFull은 banner bg가 transparent라 자체 배경색 채워 가시화
+      const ph = document.createElement('div');
+      ph.style.cssText = `position:absolute;top:0;left:0;width:${v.w}px;height:${v.h}px;background:#F2F2F2;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#9A9A9A;font-size:32px;font-weight:600;gap:14px;letter-spacing:-0.5px;z-index:0;`;
+      ph.innerHTML = `<div>배경 이미지를 업로드하세요</div><div style="font-size:20px;font-weight:400;color:#B0B0B0;">업로드 후 드래그로 위치 · 휠로 크기 조절</div>`;
+      banner.appendChild(ph);
     }
-    // 좌측 상단에서 부드럽게 확산되는 그라데이션 — 경계 자연스럽게 처리
+    // 그라데이션 — v.fade가 있으면 선형(상→하 또는 하→상), 없으면 기존 좌상단 radial
     const grad = document.createElement('div');
-    grad.style.cssText = `position:absolute;top:0;left:0;width:100%;height:100%;background:radial-gradient(ellipse 1500px 1100px at -100px -100px, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.82) 18%, rgba(255,255,255,0.6) 38%, rgba(255,255,255,0.35) 60%, rgba(255,255,255,0.12) 82%, rgba(255,255,255,0) 100%);z-index:1;pointer-events:none;`;
+    if (v.fade) {
+      // strong = 불투명 흰색(카피 가독성 보장 지점), faded = 완전 투명 지점.
+      // strong이 위/아래 어디 있는지로 그라데이션 방향 자동 결정.
+      const { strong, faded } = v.fade;
+      const lowPct = Math.min(strong, faded) / v.h * 100;
+      const highPct = Math.max(strong, faded) / v.h * 100;
+      const opaqueAtTop = strong < faded;
+      const stop0 = opaqueAtTop ? 'rgba(255,255,255,1)' : 'rgba(255,255,255,0)';
+      const stop1 = opaqueAtTop ? 'rgba(255,255,255,0)' : 'rgba(255,255,255,1)';
+      grad.style.cssText = `position:absolute;top:0;left:0;width:100%;height:100%;background:linear-gradient(to bottom, ${stop0} 0%, ${stop0} ${lowPct}%, ${stop1} ${highPct}%, ${stop1} 100%);z-index:1;pointer-events:none;`;
+    } else {
+      // 좌측 상단에서 부드럽게 확산되는 그라데이션 — 경계 자연스럽게 처리
+      grad.style.cssText = `position:absolute;top:0;left:0;width:100%;height:100%;background:radial-gradient(ellipse 1500px 1100px at -100px -100px, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.82) 18%, rgba(255,255,255,0.6) 38%, rgba(255,255,255,0.35) 60%, rgba(255,255,255,0.12) 82%, rgba(255,255,255,0) 100%);z-index:1;pointer-events:none;`;
+    }
     banner.appendChild(grad);
   }
   // 안전영역 (B10)
@@ -2592,16 +2649,29 @@ function buildBanner(v, spec) {
       }
       const img = document.createElement('img');
       img.src = imgURL;
+      img.draggable = false;
       // 박스 사이즈를 넘는 경우 음수 마진으로 가운데 정렬 (overflow:hidden이 clip 처리)
       const offsetX = (fitW - v.img.w) / 2;
       const offsetY = (fitH - v.img.h) / 2;
-      img.style.cssText = `width:${fitW}px;height:${fitH}px;display:block;margin-left:${-offsetX}px;margin-top:${-offsetY}px;flex-shrink:0;max-width:none;`;
+      let imgCSS = `width:${fitW}px;height:${fitH}px;display:block;margin-left:${-offsetX}px;margin-top:${-offsetY}px;flex-shrink:0;max-width:none;`;
+      if (v.img.editable) {
+        const state = currentImageTransforms[v.id] || (currentImageTransforms[v.id] = { scale:1, x:0, y:0 });
+        imgCSS += `transform-origin:center center;transform:translate(${state.x}px,${state.y}px) scale(${state.scale});pointer-events:none;`;
+        iw.style.cursor = 'grab';
+        iw.style.userSelect = 'none';
+      }
+      img.style.cssText = imgCSS;
       iw.appendChild(img);
+      if (v.img.editable) attachEditableImageHandlers(iw, v);
     } else {
       const ph = document.createElement('div');
       ph.className = 'ph';
       if (spec.isLarge) ph.style.fontSize = '25px'; // isLarge 0.4x 스케일 보정
-      ph.innerHTML = `<span>이미지</span><span>${v.img.w.toLocaleString()}×${v.img.h.toLocaleString()}px</span>`;
+      if (v.img.editable) {
+        ph.innerHTML = `<span>이미지</span><span style="font-size:0.7em;color:#9A9A9A;">업로드 후 드래그·휠로 조절</span>`;
+      } else {
+        ph.innerHTML = `<span>이미지</span><span>${v.img.w.toLocaleString()}×${v.img.h.toLocaleString()}px</span>`;
+      }
       iw.appendChild(ph);
     }
     banner.appendChild(iw);
