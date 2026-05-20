@@ -1414,21 +1414,20 @@ const SPECS = {
       'E1': {
         label: '표지',
         bgFixed: null, noPointColor: true, isLarge: true,
-        pillSub: true,
-        pillSubBoxed: true,   // 투명 채움 + 흰 테두리 2px + 사각 박스 (가이드라인)
+        pillSub: true,   // 동그란 pill — 투명 채움 + 컬러 테두리 2px (가이드라인)
         bgPresets: ['#FFFFFF', '#F4F1EA', '#F6F8F9', '#FFEFF2', '#E8F4FF', '#EFFCE7', '#FFF8D7', '#1A1A1A'],
         versions: [
           { id: 'full', label: '배경 이미지', uploadLabel: '배경 이미지', w: 1080, h: 1350,
             lockTextColor: true,
             img:  { top:0, left:0, w:1080, h:1350, bgFull:true, editable:true },
-            // 패딩: 좌우 95 / 상단 950 (가이드라인). pill은 메인 위쪽으로 ~77+gap 만큼 올림
-            sub:  { top:840, left:95, fs:41, color:'#FFFFFF' },
-            main: { top:950, left:95, right:95, fs:90, lines:2, lh:'130%', color:'#FFFFFF' },
+            // 가이드라인: 좌우 95 / 상단 950 (= pill 시작점). 메인은 pill 아래 gap 45
+            sub:  { top:950, left:95, fs:41, color:'#FFFFFF' },
+            main: { top:1080, left:95, right:95, fs:90, lines:2, lh:'130%', color:'#FFFFFF' },
             fade: { strong:1020, faded:500, rgb:'0,0,0', maxAlpha:0.55 } },
           { id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1080, h: 1350,
             img:  { top:0, left:0, w:1080, h:870, cover:true, editable:true },
-            sub:  { top:840, left:95, fs:41, color:'#1A1A1A' },
-            main: { top:950, left:95, right:95, fs:90, lines:2, lh:'130%', color:'#1A1A1A' } }
+            sub:  { top:950, left:95, fs:41, color:'#1A1A1A' },
+            main: { top:1080, left:95, right:95, fs:90, lines:2, lh:'130%', color:'#1A1A1A' } }
         ]
       },
       // 내지 (카피 상단) — 메인 카피(2~3줄 자동 감지) 위 + 인포그래픽/이미지 아래
@@ -1491,38 +1490,36 @@ const SPECS = {
     label: '릴스',
     // 인스타그램 릴스 9:16 (1080×1920) 기준. downloadScale 미지정 → 기본 3배수.
     slots: {
-      // 릴스 표지 — 영상 안 이미지 + 균일 검정 dim + pill 뱃지(흰 테두리 박스) + 흰 메인 카피(90px, 2줄)
-      //   가이드라인: 좌우 패딩 95 / 상단 패딩 950
+      // 릴스 표지 — 영상 안 이미지 + 균일 검정 dim + 동그란 pill + 흰 메인 카피(90px, 2줄)
+      //   가이드라인: 좌우 패딩 95 / 상단 패딩 950 (= pill 시작점)
       'F1': {
         label: '릴스 표지',
         bgFixed: null, noPointColor: true, isLarge: true,
         pillSub: true,
-        pillSubBoxed: true,
         bgPresets: ['#1A1A1A', '#F4F1EA', '#FFFFFF'],
         versions: [{
           id: 'full', label: 'IG', uploadLabel: '배경 이미지', w: 1080, h: 1920,
           lockTextColor: true,
           img:  { top:0, left:0, w:1080, h:1920, bgFull:true, editable:true },
           dim:  { color:'0,0,0', alpha:0.45 },
-          sub:  { top:840, left:95, fs:41, color:'#FFFFFF' },
-          main: { top:950, left:95, right:95, fs:90, lines:2, lh:'130%', color:'#FFFFFF' }
+          sub:  { top:950, left:95, fs:41, color:'#FFFFFF' },
+          main: { top:1080, left:95, right:95, fs:90, lines:2, lh:'130%', color:'#FFFFFF' }
         }]
       },
-      // 릴스 썸네일 — 피드 그리드에서 노출되는 버전. 표지와 동일 톤이되 카피 위치만 1190px로 내림
-      //   (피드 crop 시 표지와 시각적으로 동일한 영역에 카피가 보이도록 패딩 조정)
+      // 릴스 썸네일 — 피드 그리드에서 노출되는 버전. 카피 위치만 1190px로 내림
+      //   (피드 crop 시 표지와 시각적으로 동일한 영역에 카피가 보이도록)
       'F2': {
         label: '릴스 썸네일',
         bgFixed: null, noPointColor: true, isLarge: true,
         pillSub: true,
-        pillSubBoxed: true,
         bgPresets: ['#1A1A1A', '#F4F1EA', '#FFFFFF'],
         versions: [{
           id: 'full', label: 'IG', uploadLabel: '배경 이미지', w: 1080, h: 1920,
           lockTextColor: true,
           img:  { top:0, left:0, w:1080, h:1920, bgFull:true, editable:true },
           dim:  { color:'0,0,0', alpha:0.45 },
-          sub:  { top:1080, left:95, fs:41, color:'#FFFFFF' },
-          main: { top:1190, left:95, right:95, fs:90, lines:2, lh:'130%', color:'#FFFFFF' }
+          sub:  { top:1190, left:95, fs:41, color:'#FFFFFF' },
+          main: { top:1320, left:95, right:95, fs:90, lines:2, lh:'130%', color:'#FFFFFF' }
         }]
       }
     }
