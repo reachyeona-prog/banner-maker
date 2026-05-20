@@ -325,6 +325,20 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
 .copy-chip.copied { border-color: var(--accent); border-style: solid; color: var(--accent); }
 .copy-chip.copied .icon { opacity: 1; }
 
+/* 마크업 칩 — 포인트 스타일 단축어. 클릭으로 클립보드 복사 */
+.markup-chips {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;
+}
+.markup-chip {
+  display: inline-block; padding: 3px 8px; border-radius: 4px;
+  border: 1px dashed var(--border); background: var(--bg-elev);
+  font-family: var(--font-mono); font-size: 11px; font-weight: 500;
+  color: var(--ink); cursor: pointer; user-select: none;
+  transition: border-color var(--t-base), color var(--t-base), background var(--t-base);
+}
+.markup-chip:hover { border-color: var(--ink); border-style: solid; }
+.markup-chip:active { transform: translateY(1px); }
+
 /* ===== §9 텍스트 컬러 토글 (세그먼트) ===== */
 .text-color-toggle {
   display: none; margin-top: 10px;
@@ -426,6 +440,7 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
   line-height: 130%; letter-spacing: -0.5px;
   color: #000000; text-align: left; white-space: pre-line;
 }
+.banner-wrap .b-sub.center { text-align: center; }
 .banner-wrap .b-img { position: absolute; overflow: hidden; }
 .banner-wrap .b-img img,
 .banner-wrap .b-img canvas { display: block; }
@@ -617,17 +632,24 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
   color: var(--text-muted); letter-spacing: 0.06em;
   text-transform: uppercase; white-space: nowrap;
 }
-.overlay-color-input {
-  flex: 1; height: 28px; padding: 0; margin: 0;
-  border: 1px solid var(--border); border-radius: 4px;
-  background: transparent; cursor: pointer;
-  -webkit-appearance: none; appearance: none;
+/* 색 스와치 — <label for=...> 트릭. 라벨 클릭 → 연결된 input 클릭 → OS 컬러 피커. */
+.overlay-color-btn {
+  flex: 0 0 auto;
+  width: 44px; height: 28px; padding: 0;
+  border: 1.5px solid var(--ink); border-radius: 4px;
+  cursor: pointer; display: inline-block;
+  transition: transform .15s ease;
 }
-.overlay-color-input::-webkit-color-swatch-wrapper { padding: 2px; }
-.overlay-color-input::-webkit-color-swatch { border: none; border-radius: 3px; }
+.overlay-color-btn:hover { transform: scale(1.05); }
+.overlay-color-input {
+  /* visually hidden — 표준 스크린리더 친화 패턴. 화면엔 안 보이지만 input은 'visible'로 취급 */
+  position: absolute; width: 1px; height: 1px; padding: 0;
+  margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0);
+  white-space: nowrap; border: 0;
+}
 .overlay-color-val {
   font-family: var(--font-mono); font-size: 11px; font-weight: 500;
-  color: var(--text-primary); min-width: 70px; text-align: right;
+  color: var(--text-primary); flex: 1; text-align: right;
   letter-spacing: 0.02em;
 }
 
@@ -930,11 +952,19 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
     <div class="field" id="pt-field" style="display:none;">
       <div class="field-label">포인트 컬러</div>
       <div class="field-spec pt-guide">
-        <span>카피에 {중괄호}로 감싼 키워드에 적용됩니다</span>
+        <span>카피에 감싼 키워드에 포인트 스타일 적용</span>
         <button type="button" class="copy-chip" id="pt-snippet-chip" onclick="copyPointSnippet()" title="클립보드에 복사">
           <span class="copy-chip-text">{중괄호 복사}</span>
           <svg class="icon copy-chip-icon"><use href="#i-copy"/></svg>
         </button>
+      </div>
+      <!-- 마크업 칩 — 클릭으로 클립보드 복사 -->
+      <div class="markup-chips">
+        <span class="markup-chip" onclick="copyMarkup('##컬러##')" title="포인트 컬러 텍스트">##컬러##</span>
+        <span class="markup-chip" onclick="copyMarkup('/밑줄/')" title="포인트 컬러 + 밑줄">/밑줄/</span>
+        <span class="markup-chip" onclick="copyMarkup('==형광펜==')" title="포인트 컬러 배경 (형광펜)">==형광펜==</span>
+        <span class="markup-chip" onclick="copyMarkup('[[박스]]')" title="포인트 컬러 보더 박스">[[박스]]</span>
+        <span class="markup-chip" onclick="copyMarkup('((미디엄))')" title="프리텐다드 Medium 굵기">((미디엄))</span>
       </div>
       <!-- 추천 컬러 영역 (배경색에 따라 자동 갱신) -->
       <div id="pt-recommend-wrap" style="display:none;"></div>
@@ -1116,7 +1146,7 @@ function applyCardNewsJSON() {
   const interiorSlot = data.interiorSlot
     || (data.interiors && data.interiors[0] && data.interiors[0].type)
     || 'E2';
-  const interiorSlotValid = ['E2', 'E4', 'E5'].includes(interiorSlot);
+  const interiorSlotValid = ['E2', 'E4', 'E5', 'E6'].includes(interiorSlot);
   const targetSlot = interiorSlotValid ? interiorSlot : 'E2';
   const interiorCount = (data.interiors && Array.isArray(data.interiors)) ? data.interiors.length : 0;
   // 모든 내지 슬롯이 lines:3 max → mainLines 3 통일 (자동 감지로 실제 렌더는 2/3 적응)
@@ -1423,30 +1453,34 @@ const SPECS = {
             // 가이드라인: 좌우 95 / 상단 950 (pill 시작) / sub-main gap 30 / 메인 90px 130% -4% / 하단 패딩 160
             sub:  { top:950, left:95, fs:41, color:'#FFFFFF' },
             main: { top:1046, left:95, right:95, fs:90, lines:2, lh:'130%', ls:'-0.04em', paddingBottom:160, color:'#FFFFFF' },
-            fade: { strong:1020, faded:500, rgb:'0,0,0', maxAlpha:0.55 } },
+            // 그라데이션: strong 이미지 하단 고정. 기본 dim 범위 y:920~1440 (텍스트 영역 커버) → 슬라이더 0 = no dim.
+            fade: { strong:1440, faded:920, rgb:'0,0,0', maxAlpha:0.55 } },
           { id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1080, h: 1440,
-            img:  { top:0, left:0, w:1080, h:870, cover:true, editable:true },
+            // 이미지 h:880 — 하단(880) ~ sub 시작(950) 간격 70px
+            img:  { top:0, left:0, w:1080, h:880, cover:true, editable:true },
             sub:  { top:950, left:95, fs:41, color:'#1A1A1A' },
             main: { top:1046, left:95, right:95, fs:90, lines:2, lh:'130%', ls:'-0.04em', paddingBottom:160, color:'#1A1A1A' } }
         ]
       },
       // 내지 (카피 상단) — 메인 카피(2~3줄 자동 감지) 위 + 인포그래픽/이미지 아래
-      //   공통 패딩: 좌우 70 / 상단 100 / 하단 100
+      //   공통 패딩: 좌우 70 / 상단 100 (full·box 동일)
       'E2': {
         label: '내지 (카피 상단)',
         bgFixed: null, pointColor: true, noSub: true, isLarge: true,
-        multiSlide: true,
+        multiSlide: true, showMainPad: true,
         bgPresets: ['#FFFFFF', '#FDEDEF', '#F4F1EA', '#FFF8D7', '#E8F4FF', '#F4F0FF', '#EFFCE7'],
         versions: [
           { id: 'full', label: '배경 이미지', uploadLabel: '배경 이미지', w: 1080, h: 1440,
-            main: { top:100, left:70, right:70, fs:56, lines:3, lh:'150%', center:true, color:'#1A1A1A' },
+            lockTextColor: true,
+            main: { top:100, left:70, right:70, fs:56, lines:3, lh:'150%', center:true, color:'#FFFFFF' },
             img:  { top:0, left:0, w:1080, h:1440, bgFull:true, editable:true },
-            // 캔버스 전 영역 선형 그라데이션 — 끊긴 경계 없이 위→아래 균일 전환
-            fade: { strong:0, faded:1440 } },
+            // 캔버스 전 영역 선형 그라데이션 — 상단 dim → 하단 클리어. 기본 dim 컬러 블랙.
+            fade: { strong:0, faded:1440, rgb:'0,0,0', maxAlpha:0.55 } },
           { id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1080, h: 1440,
             main: { top:100, left:70, right:70, fs:56, lines:3, lh:'150%', center:true, color:'#1A1A1A' },
-            // 정사각 이미지 940×940 — 상단 400, 좌우 70, 하단 100 (= top 400 + h 940 = bottom 1340)
-            img:  { top:400, left:70, w:940, h:940, editable:true } }
+            // 이미지 — 캔버스 하단 풀폭 (left 0, bottom 0, w 1080). top·height는 autoSize로 카피 줄 수에 따라 동적
+            //   gapToText:70 = 메인 끝~이미지 시작 간격 (3줄 기준 imgTop=422, h=1018)
+            img:  { bottom:0, left:0, w:1080, h:1018, editable:true, autoSize:true, gapToText:70 } }
         ]
       },
       // 내지 (카피 하단) — 이미지 위 + 메인 카피(2~3줄 자동 감지) 아래
@@ -1455,18 +1489,22 @@ const SPECS = {
       'E4': {
         label: '내지 (카피 하단)',
         bgFixed: null, pointColor: true, noSub: true, isLarge: true,
-        multiSlide: true,
+        multiSlide: true, showMainPad: true,
         bgPresets: ['#FFFFFF', '#F4F1EA', '#FDEDEF', '#E8F4FF', '#FFF8D7', '#F4F0FF', '#EFFCE7'],
         versions: [
           { id: 'full', label: '배경 이미지', uploadLabel: '배경 이미지', w: 1080, h: 1440,
             lockTextColor: true,
             img:  { top:0, left:0, w:1080, h:1440, bgFull:true, editable:true },
             main: { bottom:100, left:70, right:70, fs:56, lines:3, lh:'150%', center:true, color:'#FFFFFF' },
-            fade: { strong:1100, faded:550, rgb:'0,0,0', maxAlpha:0.55 } },
+            // 그라데이션: strong(불투명) 이미지 하단 고정. 기본은 바닥쪽 짧은 dim(400px) → 슬라이더로 위로 확장.
+            //   - faded:1040 → 기본 dim 범위 y:1040~1440 (카피 영역 + 약간의 buffer)
+            //   - 슬라이더 max = strong = 1440 → 풀스팬까지 확장 가능
+            fade: { strong:1440, faded:1040, rgb:'0,0,0', maxAlpha:0.55 } },
           { id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1080, h: 1440,
             main: { bottom:100, left:70, right:70, fs:56, lines:3, lh:'150%', center:true, color:'#1A1A1A' },
-            // 정사각 이미지 940×940 — 상단 100, 좌우 70 (E2 box와 같은 크기, 위치만 상단)
-            img:  { top:100, left:70, w:940, h:940, editable:true } }
+            // 이미지 — 캔버스 상단 풀폭 (top 0, left 0, w 1080). height는 autoSize로 카피 줄 수에 따라 동적
+            //   gapToText:70 = 이미지 하단~메인 시작 간격 (3줄 기준 h=1018, 2줄 h=1102)
+            img:  { top:0, left:0, w:1080, h:1018, editable:true, autoSize:true, gapToText:70 } }
         ]
       },
       // 내지 (박스 카피) — bgFull 위에 흰 박스(블랙 테두리, 라운드 X) + 메인 카피(2~3줄 자동)
@@ -1478,12 +1516,30 @@ const SPECS = {
         bgPresets: ['#FFFFFF', '#F4F1EA', '#1A1A1A'],
         versions: [{
           id: 'full', label: 'IG', uploadLabel: '배경 이미지', w: 1080, h: 1440,
-          lockTextColor: true,
+          lockTextColor: true, noDefaultOverlay: true,
           img:  { top:0, left:0, w:1080, h:1440, bgFull:true, editable:true },
           // 공통 패딩: 좌우 70 / 하단 100. autoHeight — 박스 높이 = main 줄 수에 따라 자동.
           // innerPadding 20 — 박스 안쪽 상/하 균일 패딩
           copyBox: { left:70, right:70, paddingBottom:100, innerPadding:20, autoHeight:true, bg:'#FFFFFF', radius:0, border:'2px solid #1A1A1A' },
           main: { left:120, right:120, fs:46, lines:3, lh:'150%', center:true, color:'#1A1A1A' }
+        }]
+      },
+      // 내지 (서브 카피) — 이미지(상단 풀폭) + 메인 카피(1줄, 헤드) + 서브 카피(2~3줄, 본문)
+      //   sub는 bottom 고정 → 줄 수에 따라 main과 image도 동적 조정 (subDrivesMainPos)
+      //   공통 패딩: 좌우 70 / 하단 100. main-sub gap 30 / image-main gap 70.
+      'E6': {
+        label: '내지 (서브 카피)',
+        bgFixed: null, pointColor: true, isLarge: true,
+        multiSlide: true, showMainPad: true,
+        bgPresets: ['#FFFFFF', '#F4F1EA', '#FDEDEF', '#E8F4FF', '#FFF8D7', '#F4F0FF', '#EFFCE7'],
+        versions: [{
+          id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1080, h: 1440,
+          sub:  { bottom:100, left:70, right:70, fs:40, lines:3, lh:'150%', center:true, color:'#1A1A1A' },
+          // main.bottom은 subDrivesMainPos가 동적 산출 (3줄 sub 기준 310)
+          main: { bottom:310, left:70, right:70, fs:72, lines:1, lh:'130%', center:true, color:'#1A1A1A' },
+          // 이미지: 상단 풀폭. autoSize + subDrivesMainPos → sub 줄 수에 맞춰 height 자동 조정
+          //   3줄 sub: imgH=966, 2줄: 1026, 1줄: 1086
+          img:  { top:0, left:0, w:1080, h:966, editable:true, autoSize:true, gapToText:70, subDrivesMainPos:true, mainSubGap:30 }
         }]
       }
     }
@@ -1492,27 +1548,9 @@ const SPECS = {
     label: '릴스',
     // 인스타그램 릴스 9:16 (1080×1920) 기준. downloadScale 미지정 → 기본 3배수.
     slots: {
-      // 릴스 표지 — 영상 안 이미지 + 균일 검정 dim + 동그란 pill + 흰 메인 카피(90px, 2줄)
-      //   가이드라인: 좌우 패딩 95 / 상단 패딩 950 (= pill 시작점)
-      'F1': {
-        label: '릴스 표지',
-        bgFixed: null, noPointColor: true, isLarge: true,
-        pillSub: true,
-        bgPresets: ['#1A1A1A', '#F4F1EA', '#FFFFFF'],
-        versions: [{
-          id: 'full', label: 'IG', uploadLabel: '배경 이미지', w: 1080, h: 1920,
-          lockTextColor: true,
-          img:  { top:0, left:0, w:1080, h:1920, bgFull:true, editable:true },
-          dim:  { color:'0,0,0', alpha:0.45 },
-          // 가이드라인: 좌우 95 / 상단 950 / sub-main gap 30 / 메인 90px 130% -4% / 하단 패딩 640
-          sub:  { top:950, left:95, fs:41, color:'#FFFFFF' },
-          main: { top:1046, left:95, right:95, fs:90, lines:2, lh:'130%', ls:'-0.04em', paddingBottom:640, color:'#FFFFFF' }
-        }]
-      },
-      // 릴스 썸네일 — 피드 그리드에서 노출되는 버전. 카피 위치만 1190px로 내림
-      //   (피드 crop 시 표지와 시각적으로 동일한 영역에 카피가 보이도록)
+      // 릴스 표지 — 피드 그리드 crop 영역에 카피가 노출되는 위치
       'F2': {
-        label: '릴스 썸네일',
+        label: '표지',
         bgFixed: null, noPointColor: true, isLarge: true,
         pillSub: true,
         bgPresets: ['#1A1A1A', '#F4F1EA', '#FFFFFF'],
@@ -1685,7 +1723,7 @@ window.onload = () => {
 //   - restore : 슬라이드 상태를 globals + DOM에 복원 후 전체 re-render
 //   - 활성 슬라이드 변경 시 항상 snapshot → 인덱스 변경 → restore 순서로 호출
 // ================================================
-const SLIDE_INPUT_IDS = ['main','main1','main2','main3','sub','sub1','sub2','btn'];
+const SLIDE_INPUT_IDS = ['main','main1','main2','main3','sub','sub1','sub2','sub3','btn'];
 function isMultiSlideSlot(slotKey) {
   const spec = SPECS[currentProduct]?.slots[slotKey || currentSlot];
   return !!(spec && spec.multiSlide);
@@ -2183,8 +2221,44 @@ function updatePointColorUI() {
 }
 function applyPointColor(text) {
   // 모든 구좌에서 사용 가능 — HTML 특수문자를 먼저 escape해야 사용자 입력이 HTML로 해석되지 않음
-  const escaped = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  return escaped.replace(/\{([^}]+)\}/g, `<span style="color:${currentPointColor}">$1</span>`);
+  // 마크업 시리즈:
+  //   ((text))   — Pretendard Medium (font-weight 500)
+  //   [[text]]   — 박스 (point color 풀 배경 + 패딩)
+  //   ==text==   — 형광펜 (point color 하단 부분 하이라이트, 실제 형광펜 마크 느낌)
+  //   ##text##   — 포인트 컬러 텍스트
+  //   /text/     — 밑줄만 (text 컬러 유지, underline만 point color)
+  //   {text}     — 포인트 컬러 (기존 호환)
+  const pc = currentPointColor || '#1D99FF';
+  let html = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  // 마크업 결과를 플레이스홀더로 보관해 후속 regex가 자신의 출력을 재매치하지 못하도록 격리
+  const placeholders = [];
+  const reserve = (innerHtml) => {
+    const i = placeholders.length;
+    placeholders.push(innerHtml);
+    return `PH${i}`;
+  };
+  // 패턴별 적용 — 더블 delimiter (((,[[,==,##) 먼저 처리해 single이 partial 매칭하지 않도록
+  html = html.replace(/\(\(([^)]+)\)\)/g, (_, c) => reserve(`<span style="font-weight:500">${c}</span>`));
+  html = html.replace(/\[\[([^\]]+)\]\]/g, (_, c) => reserve(`<span style="background:${pc};padding:0 12px;">${c}</span>`));
+  html = html.replace(/==([^=]+)==/g, (_, c) => reserve(`<span style="background:linear-gradient(180deg,transparent 55%,${pc} 55%);padding:0 4px;">${c}</span>`));
+  html = html.replace(/##([^#]+)##/g, (_, c) => reserve(`<span style="color:${pc}">${c}</span>`));
+  html = html.replace(/\/([^/\n<>]+)\//g, (_, c) => reserve(`<span style="text-decoration:underline ${pc};text-decoration-thickness:3px;text-underline-offset:6px;">${c}</span>`));
+  html = html.replace(/\{([^}]+)\}/g, (_, c) => reserve(`<span style="color:${pc}">${c}</span>`));
+  // 플레이스홀더를 실제 HTML로 치환 (중첩 케이스를 위해 변화가 없을 때까지 반복)
+  let prev;
+  do {
+    prev = html;
+    html = html.replace(/PH(\d+)/g, (_, i) => placeholders[parseInt(i, 10)]);
+  } while (prev !== html);
+  return html;
+}
+// 마크업 스니펫을 클립보드에 복사 — 칩 클릭 시 toast로 안내
+function copyMarkup(snippet) {
+  navigator.clipboard.writeText(snippet).then(() => {
+    toast('"' + snippet + '" 복사 완료');
+  }).catch(() => {
+    toast('클립보드 복사 실패. 직접 입력해 주세요.', { danger: true });
+  });
 }
 function copyPointSnippet() {
   const snippet = '{중괄호 복사}';
@@ -2317,7 +2391,11 @@ function renderInputs() {
     if (!v.sub || spec.noSub) return;
     const subSpec = `${fsStr('sub')}  │  Medium<br>행간 ${v.sub.lh || '130%'}  │  자간 -0.5px  │  컬러 ${v.sub.color}`;
     const subLines = v.sub.lines || 1;
-    if (subLines >= 2) {
+    if (subLines >= 3) {
+      area.appendChild(makeField('sub1', '서브 카피 1줄', subSpec, 1));
+      area.appendChild(makeField('sub2', '서브 카피 2줄', subSpec, 1));
+      area.appendChild(makeField('sub3', '서브 카피 3줄', subSpec, 1));
+    } else if (subLines >= 2) {
       area.appendChild(makeField('sub1', '서브 카피 1줄', subSpec, 1));
       area.appendChild(makeField('sub2', '서브 카피 2줄', subSpec, 1));
     } else {
@@ -2780,16 +2858,20 @@ function renderPreviews() {
       const currentHex = currentOverlayColors[v.id] || rgbStringToHex(baseRgb);
       const wrap = document.createElement('div');
       wrap.className = 'overlay-color-wrap';
+      const inputId = `overlay-color-${v.id}`;
       wrap.innerHTML = `
         <span class="overlay-color-label">오버레이 컬러</span>
-        <input type="color" class="overlay-color-input" value="${currentHex}" data-vid="${v.id}">
+        <input type="color" id="${inputId}" class="overlay-color-input" value="${currentHex}" data-vid="${v.id}">
+        <label for="${inputId}" class="overlay-color-btn" style="background:${currentHex};" title="오버레이 컬러 선택"></label>
         <span class="overlay-color-val">${currentHex.toUpperCase()}</span>
       `;
       const input = wrap.querySelector('input');
       const valSpan = wrap.querySelector('.overlay-color-val');
+      const btn = wrap.querySelector('.overlay-color-btn');
       input.addEventListener('input', () => {
         currentOverlayColors[v.id] = input.value;
         valSpan.textContent = input.value.toUpperCase();
+        btn.style.background = input.value;
         // 라이브 갱신 — fade는 background, dim div도 background만 교체
         const rgb = hexToRgbString(input.value) || '0,0,0';
         if (v.fade) {
@@ -2816,7 +2898,7 @@ function renderPreviews() {
       wrap.className = 'fade-slider-wrap';
       wrap.innerHTML = `
         <span class="fade-slider-label">그라데이션 높이</span>
-        <input type="range" class="fade-slider" min="50" max="${maxDepth}" step="10" value="${currentDepth}" data-vid="${v.id}">
+        <input type="range" class="fade-slider" min="0" max="${maxDepth}" step="10" value="${currentDepth}" data-vid="${v.id}">
         <span class="fade-slider-val">${currentDepth}px</span>
       `;
       const input = wrap.querySelector('input');
@@ -3017,6 +3099,9 @@ function buildFadeGradientCSS(v) {
     const sign = baseFaded > baseStrong ? 1 : -1;
     faded = baseStrong + sign * override;
   }
+  // 슬라이더 0(또는 strong=faded) → dim 완전 제거. CSS 그라데이션 stop 중첩 시
+  // 다크가 0%~100%로 퍼지는 동작 회피.
+  if (strong === faded) return 'transparent';
   const lowPct = Math.min(strong, faded) / v.h * 100;
   const highPct = Math.max(strong, faded) / v.h * 100;
   const opaqueAtTop = strong < faded;
@@ -3058,6 +3143,61 @@ function buildBanner(v, spec) {
     const boxTop = v.h - boxBottom - boxHeight;
     _computedCopyBox = { top: boxTop, height: boxHeight };
     _computedMainTop = boxTop + innerPad;
+  }
+  // v.img.subDrivesMainPos 사전 계산 (E6) — sub 줄 수에 따라 main의 bottom CSS 값 동적 조정
+  //   - sub는 bottom 고정 → 줄 수가 줄면 sub top이 아래로 이동 → main도 같이 따라 내려감
+  //   - 결과: 하단 패딩과 main-sub 간격 모두 일관 유지
+  let _computedMainBottom = null;
+  if (v.img && v.img.subDrivesMainPos && v.main && v.sub) {
+    const maxSubLines = v.sub.lines || 1;
+    let filledSubLines = maxSubLines;
+    if (maxSubLines > 1) {
+      filledSubLines = 0;
+      for (let i = 1; i <= maxSubLines; i++) {
+        if (getVal('sub' + i)) filledSubLines = i;
+      }
+      if (filledSubLines === 0) filledSubLines = maxSubLines;
+    }
+    const subLhPct = (parseFloat(v.sub.lh) || 150) / 100;
+    const subHeight = Math.round(filledSubLines * v.sub.fs * subLhPct);
+    const mainSubGap = v.img.mainSubGap || 30;
+    const subBottom = (v.sub.bottom !== undefined) ? v.sub.bottom : 0;
+    _computedMainBottom = subBottom + subHeight + mainSubGap;
+  }
+  // v.img.autoSize 사전 계산 (E2/E4 box, E6) — 카피 줄 수에 따라 이미지 높이 동적 조정
+  //   - text 위/아래에 따라 image top 또는 height 자동 산출
+  //   - gapToText: 이미지와 카피 사이 고정 패딩 (예: 70)
+  let _computedImgTop = null;
+  let _computedImgHeight = null;
+  if (v.img && v.img.autoSize && v.main) {
+    const maxLines = v.main.lines || 1;
+    let filledLines = maxLines;
+    if (maxLines > 1) {
+      filledLines = 0;
+      for (let i = 1; i <= maxLines; i++) {
+        if (getVal('main' + i)) filledLines = i;
+      }
+      if (filledLines === 0) filledLines = maxLines;
+    }
+    const lhPct = (parseFloat(v.main.lh) || 130) / 100;
+    const mainHeight = Math.round(filledLines * v.main.fs * lhPct);
+    const gap = v.img.gapToText || 0;
+    const effectiveMainBottom = _computedMainBottom !== null ? _computedMainBottom : v.main.bottom;
+    if (effectiveMainBottom !== undefined) {
+      // text at bottom → image is above text (E4, E6)
+      const mainTop = v.h - effectiveMainBottom - mainHeight;
+      const imgBottom = mainTop - gap;
+      const imgTop = v.img.top !== undefined ? v.img.top : 0;
+      _computedImgTop = imgTop;
+      _computedImgHeight = imgBottom - imgTop;
+    } else if (v.main.top !== undefined) {
+      // text at top → image is below text (E2)
+      const mainBottom = v.main.top + mainHeight;
+      const imgTop = mainBottom + gap;
+      const imgBottom = v.h - (v.img.bottom !== undefined ? v.img.bottom : 0);
+      _computedImgTop = imgTop;
+      _computedImgHeight = imgBottom - imgTop;
+    }
   }
   // 실사 썸네일(imageEditable): 전체 캔버스에 cover-fit + 사용자 transform 적용
   if (spec.imageEditable) {
@@ -3113,12 +3253,13 @@ function buildBanner(v, spec) {
     //   v.fade 있음     → 선형 그라데이션 (slider override 가능)
     //   v.fade 없음 + v.dim 없음 → 기본 좌상단 radial (C1 'bg' 버전 등 호환)
     //   v.dim 있음      → 기본 radial 생략 (균일 dim만으로 충분)
+    //   v.noDefaultOverlay → radial도 생략 (사진 배경 클린 렌더 — E5 박스 카피 등)
     if (v.fade) {
       const grad = document.createElement('div');
       grad.dataset.fadeFor = v.id;
       grad.style.cssText = `position:absolute;top:0;left:0;width:100%;height:100%;background:${buildFadeGradientCSS(v)};z-index:1;pointer-events:none;`;
       banner.appendChild(grad);
-    } else if (!v.dim) {
+    } else if (!v.dim && !v.noDefaultOverlay) {
       const grad = document.createElement('div');
       grad.style.cssText = `position:absolute;top:0;left:0;width:100%;height:100%;background:radial-gradient(ellipse 1500px 1100px at -100px -100px, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.82) 18%, rgba(255,255,255,0.6) 38%, rgba(255,255,255,0.35) 60%, rgba(255,255,255,0.12) 82%, rgba(255,255,255,0) 100%);z-index:1;pointer-events:none;`;
       banner.appendChild(grad);
@@ -3190,8 +3331,10 @@ function buildBanner(v, spec) {
       if (v.main.left !== undefined) css += `left:${v.main.left}px;`;
       if (v.main.right !== undefined) css += `right:${v.main.right}px;`;
       if (v.main.left === undefined && v.main.right === undefined) css += `left:0;`;
-    } else if (v.main.bottom !== undefined) {
-      css += `bottom:${v.main.bottom}px;`;
+    } else if (v.main.bottom !== undefined || _computedMainBottom !== null) {
+      // subDrivesMainPos가 set이면 _computedMainBottom이 v.main.bottom을 대체 (E6)
+      const mainBottomVal = _computedMainBottom !== null ? _computedMainBottom : v.main.bottom;
+      css += `bottom:${mainBottomVal}px;`;
       if (v.main.center && v.main.left === undefined && v.main.right === undefined) {
         css += `left:0;right:0;`;
       } else {
@@ -3245,7 +3388,7 @@ function buildBanner(v, spec) {
   // 서브 카피
   if (v.sub && !spec.noSub) {
     const s = document.createElement('div');
-    s.className = 'b-sub';
+    s.className = 'b-sub' + (v.sub.center ? ' center' : '');
     const subTextColor = resolveTextColor(v.sub.color, v);
     let css = `font-size:${v.sub.fs}px;line-height:${v.sub.lh || '130%'};color:${subTextColor};`;
     if (v.sub.textAlign) css += `text-align:${v.sub.textAlign};`;
@@ -3271,11 +3414,22 @@ function buildBanner(v, spec) {
     }
     if (v.img && v.img.bgFull) css += 'z-index:2;';
     s.style.cssText = css;
+    // 줄 수 자동 감지: 채워진 줄 만 노출, 뒤 빈 줄 trim. main과 동일 패턴.
+    const subMaxLines = v.sub.lines || 1;
     let subText;
-    if ((v.sub.lines || 1) >= 2) {
-      subText = (getVal('sub1') || '서브 카피 1줄') + '\n' + (getVal('sub2') || '서브 카피 2줄');
-    } else {
+    if (subMaxLines === 1) {
       subText = getVal('sub') || '서브 카피';
+    } else {
+      const vals = [];
+      for (let i = 1; i <= subMaxLines; i++) vals.push(getVal('sub' + i));
+      const allEmpty = vals.every(s => !s);
+      if (allEmpty) {
+        subText = vals.map((_, i) => `서브 카피 ${i + 1}줄`).join('\n');
+      } else {
+        const trimmed = [...vals];
+        while (trimmed.length > 1 && !trimmed[trimmed.length - 1]) trimmed.pop();
+        subText = trimmed.map((s, i) => s || `서브 카피 ${i + 1}줄`).join('\n');
+      }
     }
     s.innerHTML = applyPointColor(subText).replace(/\n/g, '<br>');
     banner.appendChild(s);
@@ -3284,15 +3438,21 @@ function buildBanner(v, spec) {
   if (v.img && !v.img.bgFull) {
     const iw = document.createElement('div');
     iw.className = 'b-img' + (v.img.cover ? ' cover' : '');
-    let css = `width:${v.img.w}px;height:${v.img.h}px;`;
+    // autoSize 적용: 카피 줄 수에 따라 top/height 동적 산출 (E2/E4 box).
+    //   _computedImgTop / _computedImgHeight 가 set일 때만 v.img.top/h 를 override.
+    const imgW = v.img.w;
+    const imgH = _computedImgHeight !== null ? _computedImgHeight : v.img.h;
+    const imgTopVal = _computedImgTop !== null ? _computedImgTop : v.img.top;
+    let css = `width:${imgW}px;height:${imgH}px;`;
     if (v.img.vcenter) {
-      css += `top:${Math.round((v.h - v.img.h) / 2)}px;`;
+      css += `top:${Math.round((v.h - imgH) / 2)}px;`;
     } else if (v.img.hcenter) {
-      css += `left:${Math.round((v.w - v.img.w) / 2)}px;top:${v.img.top !== undefined ? v.img.top : 0}px;`;
-    } else if (v.img.top !== undefined) {
-      css += `top:${v.img.top}px;`;
+      css += `left:${Math.round((v.w - imgW) / 2)}px;top:${imgTopVal !== undefined ? imgTopVal : 0}px;`;
+    } else if (imgTopVal !== undefined) {
+      css += `top:${imgTopVal}px;`;
     }
-    if (v.img.bottom !== undefined) css += `bottom:${v.img.bottom}px;`;
+    // autoSize 모드: top + height 로 위치 고정 → bottom 중복 적용 방지
+    if (v.img.bottom !== undefined && _computedImgTop === null) css += `bottom:${v.img.bottom}px;`;
     if (v.img.right !== undefined) css += `right:${v.img.right}px;`;
     if (v.img.left !== undefined && !v.img.hcenter) css += `left:${v.img.left}px;`;
     iw.style.cssText = css;
@@ -3301,23 +3461,23 @@ function buildBanner(v, spec) {
     if (imgURL && imgSize) {
       // 비율 사전 계산 — html2canvas의 object-fit 미지원으로 인한 stretch 회피
       const srcRatio = imgSize.w / imgSize.h;
-      const dstRatio = v.img.w / v.img.h;
+      const dstRatio = imgW / imgH;
       let fitW, fitH;
       if (v.img.cover) {
         // 박스를 채움, 일부 잘림 (.b-img의 overflow:hidden이 처리)
-        if (srcRatio > dstRatio) { fitH = v.img.h; fitW = v.img.h * srcRatio; }
-        else                     { fitW = v.img.w; fitH = v.img.w / srcRatio; }
+        if (srcRatio > dstRatio) { fitH = imgH; fitW = imgH * srcRatio; }
+        else                     { fitW = imgW; fitH = imgW / srcRatio; }
       } else {
         // contain: 박스 안에 비율 유지하며 들어감
-        if (srcRatio > dstRatio) { fitW = v.img.w; fitH = v.img.w / srcRatio; }
-        else                     { fitH = v.img.h; fitW = v.img.h * srcRatio; }
+        if (srcRatio > dstRatio) { fitW = imgW; fitH = imgW / srcRatio; }
+        else                     { fitH = imgH; fitW = imgH * srcRatio; }
       }
       const img = document.createElement('img');
       img.src = imgURL;
       img.draggable = false;
       // 박스 사이즈를 넘는 경우 음수 마진으로 가운데 정렬 (overflow:hidden이 clip 처리)
-      const offsetX = (fitW - v.img.w) / 2;
-      const offsetY = (fitH - v.img.h) / 2;
+      const offsetX = (fitW - imgW) / 2;
+      const offsetY = (fitH - imgH) / 2;
       let imgCSS = `width:${fitW}px;height:${fitH}px;display:block;margin-left:${-offsetX}px;margin-top:${-offsetY}px;flex-shrink:0;max-width:none;`;
       if (v.img.editable) {
         const state = currentImageTransforms[v.id] || (currentImageTransforms[v.id] = { scale:1, x:0, y:0 });
@@ -3421,7 +3581,8 @@ function buildBanner(v, spec) {
     }
   }
   // 메인 카피 전용 위/아래 패딩 가이드 (showMainPad 슬롯)
-  if (spec.showMainPad && v.main) {
+  //   bgFull 버전(이미지가 캔버스 전체)은 카피~이미지 간격 개념이 없어 skip
+  if (spec.showMainPad && v.main && !(v.img && v.img.bgFull)) {
     const lines = spec.selectableLines ? currentMainLines : (v.main.lines || 1);
     const lhPct = v.main.lh ? parseFloat(v.main.lh) / 100 : 1.3;
     const mainH = Math.round(v.main.fs * lhPct * lines);
@@ -3434,18 +3595,40 @@ function buildBanner(v, spec) {
       }
     } else {
       // top/bottom 기준 — 이미지가 위/아래에 있으면 이미지 에지부터 측정
-      let mainTop = (v.main.bottom !== undefined) ? (v.h - v.main.bottom - mainH) : (v.main.top || 0);
+      // subDrivesMainPos가 있으면 _computedMainBottom이 v.main.bottom을 대체 (E6)
+      const effMainBottom = _computedMainBottom !== null ? _computedMainBottom : v.main.bottom;
+      let mainTop = (effMainBottom !== undefined) ? (v.h - effMainBottom - mainH) : (v.main.top || 0);
       mainTop = Math.round(mainTop);
       const mainBot = mainTop + mainH;
-      // 이미지 bbox (수직)
+      // 이미지 bbox (수직). autoSize 모드면 _computedImgTop/Height가 동적 산출값 제공
       let imgTop, imgBot;
       if (v.img && !v.img.vcenter) {
-        const ih = v.img.h || 0;
-        if (v.img.top !== undefined) { imgTop = v.img.top; imgBot = v.img.top + ih; }
+        const ih = (_computedImgHeight !== null ? _computedImgHeight : v.img.h) || 0;
+        const imgTopRef = _computedImgTop !== null ? _computedImgTop : v.img.top;
+        if (imgTopRef !== undefined) { imgTop = imgTopRef; imgBot = imgTopRef + ih; }
         else if (v.img.bottom !== undefined) { imgBot = v.h - v.img.bottom; imgTop = imgBot - ih; }
       }
-      // 위 패딩
-      const aboveStart = (imgBot !== undefined && imgBot <= mainTop) ? imgBot : 0;
+      // 서브 bbox — main 아래/위에 sub가 있는 경우(E6) main-sub 간격을 정확히 노출하기 위해 사용
+      let subTop, subBot;
+      if (v.sub && !v.sub.vcenter && !spec.noSub) {
+        const subMaxLines = v.sub.lines || 1;
+        let filledSubLines = subMaxLines;
+        if (subMaxLines > 1) {
+          filledSubLines = 0;
+          for (let i = 1; i <= subMaxLines; i++) {
+            if (getVal('sub' + i)) filledSubLines = i;
+          }
+          if (filledSubLines === 0) filledSubLines = subMaxLines;
+        }
+        const subLhPct = (parseFloat(v.sub.lh) || 130) / 100;
+        const subH = Math.round(filledSubLines * v.sub.fs * subLhPct);
+        if (v.sub.top !== undefined) { subTop = v.sub.top; subBot = v.sub.top + subH; }
+        else if (v.sub.bottom !== undefined) { subBot = v.h - v.sub.bottom; subTop = subBot - subH; }
+      }
+      // 위 패딩 — image 또는 sub가 main 위에 있으면 그 에지부터 측정
+      let aboveStart = 0;
+      if (imgBot !== undefined && imgBot <= mainTop) aboveStart = Math.max(aboveStart, imgBot);
+      if (subBot !== undefined && subBot <= mainTop) aboveStart = Math.max(aboveStart, subBot);
       const aboveSize = mainTop - aboveStart;
       if (aboveSize > 0) {
         if (aboveStart === 0) {
@@ -3454,10 +3637,13 @@ function buildBanner(v, spec) {
           addPadGuide(banner, 'h-mid', aboveStart, aboveSize, v.w, aboveSize, padGuideFs);
         }
       }
-      // 아래 패딩
-      const belowEnd = (imgTop !== undefined && imgTop >= mainBot) ? imgTop : v.h;
+      // 아래 패딩 — image가 main 아래에 있으면 그 에지까지 측정.
+      //   sub가 main 아래에 있으면(E6 패턴) main-sub gap은 사용자 요청으로 가이드 노출 생략.
+      const hasSubBelow = subTop !== undefined && subTop >= mainBot;
+      let belowEnd = v.h;
+      if (imgTop !== undefined && imgTop >= mainBot) belowEnd = Math.min(belowEnd, imgTop);
       const belowSize = belowEnd - mainBot;
-      if (belowSize > 0) {
+      if (belowSize > 0 && !hasSubBelow) {
         if (belowEnd === v.h) {
           if (belowSize !== padB) addPadGuide(banner, 'h-bot', v.h - belowSize, belowSize, v.w, belowSize, padGuideFs);
         } else {
