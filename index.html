@@ -1420,14 +1420,14 @@ const SPECS = {
           { id: 'full', label: '배경 이미지', uploadLabel: '배경 이미지', w: 1080, h: 1350,
             lockTextColor: true,
             img:  { top:0, left:0, w:1080, h:1350, bgFull:true, editable:true },
-            // 가이드라인: 좌우 95 / 상단 950 (= pill 시작점). 메인은 pill 아래 gap 45
+            // 가이드라인: 좌우 95 / 상단 950 (pill 시작) / sub-main gap 30 / 메인 90px 130% -4% / 하단 패딩 51
             sub:  { top:950, left:95, fs:41, color:'#FFFFFF' },
-            main: { top:1080, left:95, right:95, fs:90, lines:2, lh:'130%', color:'#FFFFFF' },
+            main: { top:1065, left:95, right:95, fs:90, lines:2, lh:'130%', ls:'-0.04em', paddingBottom:51, color:'#FFFFFF' },
             fade: { strong:1020, faded:500, rgb:'0,0,0', maxAlpha:0.55 } },
           { id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1080, h: 1350,
             img:  { top:0, left:0, w:1080, h:870, cover:true, editable:true },
             sub:  { top:950, left:95, fs:41, color:'#1A1A1A' },
-            main: { top:1080, left:95, right:95, fs:90, lines:2, lh:'130%', color:'#1A1A1A' } }
+            main: { top:1065, left:95, right:95, fs:90, lines:2, lh:'130%', ls:'-0.04em', paddingBottom:51, color:'#1A1A1A' } }
         ]
       },
       // 내지 (카피 상단) — 메인 카피(2~3줄 자동 감지) 위 + 인포그래픽/이미지 아래
@@ -1502,8 +1502,9 @@ const SPECS = {
           lockTextColor: true,
           img:  { top:0, left:0, w:1080, h:1920, bgFull:true, editable:true },
           dim:  { color:'0,0,0', alpha:0.45 },
+          // 가이드라인: 좌우 95 / 상단 950 / sub-main gap 30 / 메인 90px 130% -4% / 하단 패딩 621
           sub:  { top:950, left:95, fs:41, color:'#FFFFFF' },
-          main: { top:1080, left:95, right:95, fs:90, lines:2, lh:'130%', color:'#FFFFFF' }
+          main: { top:1065, left:95, right:95, fs:90, lines:2, lh:'130%', ls:'-0.04em', paddingBottom:621, color:'#FFFFFF' }
         }]
       },
       // 릴스 썸네일 — 피드 그리드에서 노출되는 버전. 카피 위치만 1190px로 내림
@@ -1518,8 +1519,9 @@ const SPECS = {
           lockTextColor: true,
           img:  { top:0, left:0, w:1080, h:1920, bgFull:true, editable:true },
           dim:  { color:'0,0,0', alpha:0.45 },
+          // 가이드라인: 좌우 95 / 상단 1190 / sub-main gap 30 / 메인 90px 130% -4% / 하단 패딩 381
           sub:  { top:1190, left:95, fs:41, color:'#FFFFFF' },
-          main: { top:1320, left:95, right:95, fs:90, lines:2, lh:'130%', color:'#FFFFFF' }
+          main: { top:1305, left:95, right:95, fs:90, lines:2, lh:'130%', ls:'-0.04em', paddingBottom:381, color:'#FFFFFF' }
         }]
       }
     }
@@ -2281,7 +2283,9 @@ function renderInputs() {
     if (!v.main) return;
     const lines = spec.selectableLines ? currentMainLines : (v.main.lines || 1);
     const mainColor = v.main.color || '#111111';
-    const mainSpec = `${fsStr('main')}  │  Bold<br>행간 ${v.main.lh}  │  자간 -0.5px  │  컬러 ${mainColor}`;
+    const lsDisplay = v.main.ls || '-0.5px';
+    const pbDisplay = (v.main.paddingBottom !== undefined) ? `  │  하단 패딩 ${v.main.paddingBottom}px` : '';
+    const mainSpec = `${fsStr('main')}  │  Bold<br>행간 ${v.main.lh}  │  자간 ${lsDisplay}${pbDisplay}  │  컬러 ${mainColor}`;
     if (spec.selectableLines) {
       const linesField = document.createElement('div');
       linesField.className = 'field';
@@ -3145,6 +3149,7 @@ function buildBanner(v, spec) {
     m.className = 'b-main' + (v.main.center ? ' center' : '');
     let css = `font-size:${v.main.fs}px;font-weight:${v.main.fw || 700};line-height:${v.main.lh};`;
     css += `color:${resolveTextColor(v.main.color, v)};`;
+    if (v.main.ls) css += `letter-spacing:${v.main.ls};`;  // 자간 ('-0.04em' = -4%)
     if (v.main.textAlign) css += `text-align:${v.main.textAlign};`;
     if (v.main.vcenter) {
       css += `top:0;bottom:0;height:100%;display:flex;align-items:center;`;
