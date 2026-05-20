@@ -3319,6 +3319,7 @@ function buildBanner(v, spec) {
   if (v.main) {
     if (v.main.top !== undefined) pads.top.push(v.main.top);
     if (v.main.bottom !== undefined) pads.bottom.push(v.main.bottom);
+    if (v.main.paddingBottom !== undefined) pads.bottom.push(v.main.paddingBottom);  // 정보용 하단 패딩도 가이드로 노출
     if (v.main.left !== undefined) pads.left.push(v.main.left); // undefined이면 제외 (center 모드)
     if (v.main.right !== undefined) pads.right.push(v.main.right);
   }
