@@ -1480,8 +1480,10 @@ const SPECS = {
           id: 'full', label: 'IG', uploadLabel: '배경 이미지', w: 1080, h: 1440,
           lockTextColor: true,
           img:  { top:0, left:0, w:1080, h:1440, bgFull:true, editable:true },
-          copyBox: { left:50, right:50, top:560, bottom:480, bg:'#FFFFFF', radius:0, border:'2px solid #1A1A1A' },
-          main: { top:640, left:100, right:100, fs:46, lines:3, lh:'150%', center:true, color:'#1A1A1A' }
+          // autoHeight — 박스 높이 = main 줄 수 × 자동. 하단 100px 패딩으로 박스 바닥 고정.
+          // innerPadding 40 — 박스 안쪽 상/하 균일 패딩 (이전 80에서 절반)
+          copyBox: { left:50, right:50, paddingBottom:100, innerPadding:40, autoHeight:true, bg:'#FFFFFF', radius:0, border:'2px solid #1A1A1A' },
+          main: { left:100, right:100, fs:46, lines:3, lh:'150%', center:true, color:'#1A1A1A' }
         }]
       }
     }
@@ -3032,6 +3034,31 @@ function buildBanner(v, spec) {
   banner.id = 'banner-' + v.id;
   const bannerBg = (v.img && v.img.bgFull) ? 'transparent' : getBgFor(v);
   banner.style.cssText = `width:${v.w}px;height:${v.h}px;background:${bannerBg};`;
+  // copyBox.autoHeight 사전 계산 (E5): 메인 카피 줄 수에 맞춰 박스 높이를 동적으로 조정
+  //   - 캔버스 하단 paddingBottom만큼 떨어진 위치에 박스 바닥 고정
+  //   - 박스 높이 = main 높이 + 2 * innerPadding (top/bottom 균일 내부 패딩)
+  //   - main top은 박스 top + innerPadding로 자동 산출 → 아래 main 렌더링에서 override
+  let _computedCopyBox = null;
+  let _computedMainTop = null;
+  if (v.copyBox && v.copyBox.autoHeight && v.main) {
+    const maxLines = v.main.lines || 1;
+    let filledLines = maxLines;
+    if (maxLines > 1) {
+      filledLines = 0;
+      for (let i = 1; i <= maxLines; i++) {
+        if (getVal('main' + i)) filledLines = i;
+      }
+      if (filledLines === 0) filledLines = maxLines;  // 모두 비면 placeholder 줄 수만큼
+    }
+    const lhPct = (parseFloat(v.main.lh) || 150) / 100;
+    const mainHeight = Math.round(filledLines * v.main.fs * lhPct);
+    const innerPad = (v.copyBox.innerPadding !== undefined) ? v.copyBox.innerPadding : 40;
+    const boxHeight = mainHeight + 2 * innerPad;
+    const boxBottom = v.copyBox.paddingBottom || 0;
+    const boxTop = v.h - boxBottom - boxHeight;
+    _computedCopyBox = { top: boxTop, height: boxHeight };
+    _computedMainTop = boxTop + innerPad;
+  }
   // 실사 썸네일(imageEditable): 전체 캔버스에 cover-fit + 사용자 transform 적용
   if (spec.imageEditable) {
     buildEditableImage(banner, v);
@@ -3102,12 +3129,19 @@ function buildBanner(v, spec) {
     const cb = v.copyBox;
     const box = document.createElement('div');
     let cs = 'position:absolute;';
-    if (cb.top !== undefined) cs += `top:${cb.top}px;`;
-    if (cb.bottom !== undefined) cs += `bottom:${cb.bottom}px;`;
-    if (cb.left !== undefined) cs += `left:${cb.left}px;`;
-    if (cb.right !== undefined) cs += `right:${cb.right}px;`;
-    if (cb.w !== undefined) cs += `width:${cb.w}px;`;
-    if (cb.h !== undefined) cs += `height:${cb.h}px;`;
+    if (_computedCopyBox) {
+      // autoHeight: 사전 계산된 top/height 사용
+      cs += `top:${_computedCopyBox.top}px;height:${_computedCopyBox.height}px;`;
+      if (cb.left !== undefined) cs += `left:${cb.left}px;`;
+      if (cb.right !== undefined) cs += `right:${cb.right}px;`;
+    } else {
+      if (cb.top !== undefined) cs += `top:${cb.top}px;`;
+      if (cb.bottom !== undefined) cs += `bottom:${cb.bottom}px;`;
+      if (cb.left !== undefined) cs += `left:${cb.left}px;`;
+      if (cb.right !== undefined) cs += `right:${cb.right}px;`;
+      if (cb.w !== undefined) cs += `width:${cb.w}px;`;
+      if (cb.h !== undefined) cs += `height:${cb.h}px;`;
+    }
     cs += `background:${cb.bg || '#FFFFFF'};border-radius:${cb.radius || 16}px;z-index:1;`;
     if (cb.border) cs += `border:${cb.border};`;
     if (cb.shadow) cs += `box-shadow:0 8px 32px rgba(0,0,0,0.12);`;
@@ -3166,7 +3200,9 @@ function buildBanner(v, spec) {
         if (v.main.left === undefined && v.main.right === undefined) css += `left:0;`;
       }
     } else {
-      css += `top:${v.main.top}px;`;
+      // copyBox.autoHeight가 있으면 _computedMainTop이 v.main.top을 대체
+      const mainTopVal = (typeof _computedMainTop === 'number') ? _computedMainTop : v.main.top;
+      if (typeof mainTopVal === 'number') css += `top:${mainTopVal}px;`;
       if (v.main.center && v.main.left === undefined && v.main.right === undefined) {
         css += `left:0;right:0;`;
       } else {
@@ -3341,6 +3377,13 @@ function buildBanner(v, spec) {
   if (v.btn && getShowButton()) {
     if (v.btn.bottom !== undefined) pads.bottom.push(v.btn.bottom);
     if (v.btn.left !== undefined) pads.left.push(v.btn.left);
+  }
+  // copyBox 패딩 가이드 (E5 — autoHeight인 경우 paddingBottom 노출)
+  if (v.copyBox) {
+    if (v.copyBox.paddingBottom !== undefined) pads.bottom.push(v.copyBox.paddingBottom);
+    if (v.copyBox.top !== undefined) pads.top.push(v.copyBox.top);
+    if (v.copyBox.left !== undefined) pads.left.push(v.copyBox.left);
+    if (v.copyBox.right !== undefined) pads.right.push(v.copyBox.right);
   }
   const padT = pads.top.filter(v => v > 0).length ? Math.min(...pads.top.filter(v => v > 0)) : 0;
   const padB = pads.bottom.filter(v => v > 0).length ? Math.min(...pads.bottom.filter(v => v > 0)) : 0;
