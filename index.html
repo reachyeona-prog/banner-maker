@@ -4110,6 +4110,14 @@ function buildProductCardBanner(v, spec) {
   ['badgeTL', 'badgeBR'].forEach(key => {
     if (!v[key]) return;
     const cfg = { ...v[key], defaultText: getTemplateText(v.id, key, v[key].defaultText) };
+    // pill 박스 컬러 override (templatePillBg)
+    if (cfg.pillStyle) {
+      const bg = getPillBgValue(v.id, key, cfg.pillStyle.bg);
+      cfg.pillStyle = { ...cfg.pillStyle, bg };
+    }
+    // 텍스트 컬러 override (templateTextColor)
+    const colorOverride = templateTextColor[v.id] && templateTextColor[v.id][key];
+    if (colorOverride) cfg.color = colorOverride;
     banner.appendChild(buildTemplateTextEl(cfg));
   });
   return banner;
