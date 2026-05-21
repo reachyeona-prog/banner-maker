@@ -565,7 +565,7 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
 }
 .template-text-row input:focus { border-color: var(--ink); }
 .template-pill-row {
-  display: flex; align-items: center; gap: 8px;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
   margin-top: 4px;
 }
 .template-pill-row .pill-row-label {
@@ -573,6 +573,7 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
   font-family: var(--font-mono); font-size: 10px; font-weight: 500;
   color: var(--text-muted); letter-spacing: 0.05em;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 .template-pill-row input[type="color"] {
   /* 글로벌 input[type=color] 규칙(line ~311, opacity:0/position:absolute/pointer-events:none)을 명시적으로 override */
@@ -585,11 +586,12 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
 .template-pill-row input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
 .template-pill-row input[type="color"]::-webkit-color-swatch { border: none; border-radius: 3px; }
 .template-pill-row .pill-grad-btn {
-  height: 26px; padding: 0 8px;
+  height: 30px; padding: 0 10px;
   background: var(--card); color: var(--text-primary);
   border: 1px solid var(--border); border-radius: 4px;
   font-family: var(--font); font-size: 11px; font-weight: 500;
   cursor: pointer;
+  white-space: nowrap; flex-shrink: 0;
 }
 .template-pill-row .pill-grad-btn:hover { border-color: var(--ink); color: var(--ink); }
 
@@ -615,11 +617,12 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
 .template-bg-ctrl input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
 .template-bg-ctrl input[type="color"]::-webkit-color-swatch { border: none; border-radius: 3px; }
 .tpl-bg-grad-btn {
-  height: 28px; padding: 0 10px;
+  height: 30px; padding: 0 10px;
   background: var(--card); color: var(--text-primary);
   border: 1px solid var(--border); border-radius: 4px;
   font-family: var(--font); font-size: 11px; font-weight: 600;
   cursor: pointer; transition: all var(--t-base) var(--ease);
+  white-space: nowrap; flex-shrink: 0;
 }
 .tpl-bg-grad-btn:hover { border-color: var(--ink); color: var(--ink); }
 
@@ -1887,7 +1890,7 @@ const SPECS = {
             rightImage: { id:'1_R', uploadLabel:'리스트 1 우측 이미지', clipPath:'polygon(450px 0, 800px 0, 800px 100%, 350px 100%)' },
             // 좌측 = 하단 가운데 정렬 (sub 위, pill 아래). 좌측 영역 = x:0~450, 가운데 ~225 (사선 고려)
             //   sub/main 모두 fs:25, gap 좁힘
-            leftSub:  { bottom:108, left:0, right:450, fs:25, color:'#FFFFFF', fw:500, textAlign:'center', defaultText:'네이버 판매 1위' },
+            leftSub:  { bottom:108, left:0, right:450, fs:25, color:'#FFFFFF', fw:500, textAlign:'center', textShadow:'0 2px 8px rgba(0,0,0,0.45)', defaultText:'네이버 판매 1위' },
             leftMain: { bottom:45,  left:0, right:450, fs:25, color:'#FFFFFF', fw:700, textAlign:'center',
                         defaultText:'무선 단말기', pillStyle:{ bg:'#2D7DFC', radius:10, padding:'14px 28px' } },
             // 우측 = 상단 가운데 정렬 (sub 위, pill 아래). 우측 영역 = x:450~800, 가운데 ~625
@@ -1897,8 +1900,9 @@ const SPECS = {
           // 리스트 2~5 — 상품 카드 (1:1)
           { id: '2', label: '리스트 2', uploadLabel: '리스트 2 (800×800)', w: 800, h: 800,
             template: 'productCard',
-            // 이미지: bgFull로 전체 캔버스 차지 (크기 제한 없음, editable로 드래그·휠 조절)
-            img: { top:0, left:0, w:800, h:800, bgFull:true, editable:true },
+            imageFrame: 10,  // 캔버스 가장자리에 10px 흰 프레임 (이미지 주변)
+            // 이미지: bgFull로 전체 캔버스 차지, forceKnockout으로 흰 배경 자동 누끼
+            img: { top:0, left:0, w:800, h:800, bgFull:true, editable:true, forceKnockout:true },
             // 좌상단 뱃지: 캔버스 모서리에 패딩 없이 붙임, BR 코너만 radius 16
             badgeTL:{ top:0, left:0, fs:60, fw:800, color:'#FFFFFF', defaultText:'~63%',
                       pillStyle:{ bg:'#2D7DFC', radius:'0 0 16px 0', padding:'24px 36px' } },
@@ -1907,8 +1911,9 @@ const SPECS = {
                       pillStyle:{ bg:'#3D2D8C', shape:'ticket', padding:'36px 72px' } } },
           { id: '3', label: '리스트 3', uploadLabel: '리스트 3 (800×800)', w: 800, h: 800,
             template: 'productCard',
-            // 이미지: bgFull로 전체 캔버스 차지 (크기 제한 없음, editable로 드래그·휠 조절)
-            img: { top:0, left:0, w:800, h:800, bgFull:true, editable:true },
+            imageFrame: 10,  // 캔버스 가장자리에 10px 흰 프레임 (이미지 주변)
+            // 이미지: bgFull로 전체 캔버스 차지, forceKnockout으로 흰 배경 자동 누끼
+            img: { top:0, left:0, w:800, h:800, bgFull:true, editable:true, forceKnockout:true },
             // 좌상단 뱃지: 캔버스 모서리에 패딩 없이 붙임, BR 코너만 radius 16
             badgeTL:{ top:0, left:0, fs:60, fw:800, color:'#FFFFFF', defaultText:'~63%',
                       pillStyle:{ bg:'#2D7DFC', radius:'0 0 16px 0', padding:'24px 36px' } },
@@ -1917,8 +1922,9 @@ const SPECS = {
                       pillStyle:{ bg:'#3D2D8C', shape:'ticket', padding:'36px 72px' } } },
           { id: '4', label: '리스트 4', uploadLabel: '리스트 4 (800×800)', w: 800, h: 800,
             template: 'productCard',
-            // 이미지: bgFull로 전체 캔버스 차지 (크기 제한 없음, editable로 드래그·휠 조절)
-            img: { top:0, left:0, w:800, h:800, bgFull:true, editable:true },
+            imageFrame: 10,  // 캔버스 가장자리에 10px 흰 프레임 (이미지 주변)
+            // 이미지: bgFull로 전체 캔버스 차지, forceKnockout으로 흰 배경 자동 누끼
+            img: { top:0, left:0, w:800, h:800, bgFull:true, editable:true, forceKnockout:true },
             // 좌상단 뱃지: 캔버스 모서리에 패딩 없이 붙임, BR 코너만 radius 16
             badgeTL:{ top:0, left:0, fs:60, fw:800, color:'#FFFFFF', defaultText:'~63%',
                       pillStyle:{ bg:'#2D7DFC', radius:'0 0 16px 0', padding:'24px 36px' } },
@@ -3120,7 +3126,9 @@ function applyKnockoutForVersion(versionId, done) {
     // 실사/editable 이미지는 토글과 무관하게 항상 원본 (사진 보존). 그 외는 토글 따라 처리.
     const ver = spec.versions.find(x => x.id === versionId);
     const isEditable = spec.imageEditable || (ver && ver.img && ver.img.editable);
-    const shouldKnockout = !isEditable && knockoutEnabled;
+    // forceKnockout 플래그가 있으면 editable과 무관하게 항상 누끼 적용 (예: K3 productCard)
+    const forceKnockout = !!(ver && ver.img && ver.img.forceKnockout);
+    const shouldKnockout = forceKnockout || (!isEditable && knockoutEnabled);
     let dataURL;
     if (!shouldKnockout) {
       dataURL = raw;
@@ -3871,6 +3879,7 @@ function buildTemplateTextEl(cfg) {
   outer.style.cssText = outerCss;
   const inner = document.createElement('div');
   let innerCss = `display:inline-block;font-family:var(--font);font-weight:${cfg.fw || 600};font-size:${cfg.fs}px;color:${cfg.color || '#FFFFFF'};line-height:1;letter-spacing:-0.02em;white-space:nowrap;`;
+  if (cfg.textShadow) innerCss += `text-shadow:${cfg.textShadow};`;
   if (cfg.pillStyle) {
     const ps = cfg.pillStyle;
     // radius: 숫자(전체) 또는 CSS 문자열('0 0 16px 0' 같은 코너별 값)
@@ -4025,6 +4034,12 @@ function buildProductCardBanner(v, spec) {
   // 배경: per-version bg(단색/그라데이션) override → 슬롯 default bg
   banner.style.cssText = `width:${v.w}px;height:${v.h}px;background:${getVersionBg(v)};`;
   renderTemplateImage(banner, v);
+  // 캔버스 가장자리 흰 프레임 (이미지 주변)
+  if (v.imageFrame) {
+    const frame = document.createElement('div');
+    frame.style.cssText = `position:absolute;top:0;left:0;width:${v.w}px;height:${v.h}px;border:${v.imageFrame}px solid #FFFFFF;box-sizing:border-box;z-index:1;pointer-events:none;`;
+    banner.appendChild(frame);
+  }
   ['badgeTL', 'badgeBR'].forEach(key => {
     if (!v[key]) return;
     const cfg = { ...v[key], defaultText: getTemplateText(v.id, key, v[key].defaultText) };
