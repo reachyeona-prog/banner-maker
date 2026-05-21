@@ -575,13 +575,14 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
   text-transform: uppercase;
 }
 .template-pill-row input[type="color"] {
-  width: 32px; height: 26px; padding: 0; margin: 0;
+  /* 글로벌 input[type=color] 규칙(line ~311, opacity:0/position:absolute/pointer-events:none)을 명시적으로 override */
+  position: static; opacity: 1; pointer-events: auto;
+  width: 40px; height: 30px; padding: 2px; margin: 0;
   border: 1px solid var(--border); border-radius: 4px;
   background: transparent; cursor: pointer;
-  -webkit-appearance: none; appearance: none;
 }
 .template-pill-row input[type="color"]:disabled { opacity: 0.3; cursor: not-allowed; }
-.template-pill-row input[type="color"]::-webkit-color-swatch-wrapper { padding: 2px; }
+.template-pill-row input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
 .template-pill-row input[type="color"]::-webkit-color-swatch { border: none; border-radius: 3px; }
 .template-pill-row .pill-grad-btn {
   height: 26px; padding: 0 8px;
@@ -604,13 +605,14 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
   text-transform: uppercase;
 }
 .template-bg-ctrl input[type="color"] {
-  width: 36px; height: 28px; padding: 0; margin: 0;
+  /* 글로벌 input[type=color] 규칙 override (line ~311 참고) */
+  position: static; opacity: 1; pointer-events: auto;
+  width: 40px; height: 30px; padding: 2px; margin: 0;
   border: 1px solid var(--border); border-radius: 4px;
   background: transparent; cursor: pointer;
-  -webkit-appearance: none; appearance: none;
 }
 .template-bg-ctrl input[type="color"]:disabled { opacity: 0.3; cursor: not-allowed; }
-.template-bg-ctrl input[type="color"]::-webkit-color-swatch-wrapper { padding: 2px; }
+.template-bg-ctrl input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
 .template-bg-ctrl input[type="color"]::-webkit-color-swatch { border: none; border-radius: 3px; }
 .tpl-bg-grad-btn {
   height: 28px; padding: 0 10px;
