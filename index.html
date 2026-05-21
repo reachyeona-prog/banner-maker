@@ -3382,7 +3382,10 @@ function buildBanner(v, spec) {
         mainText = trimmed.map((s, i) => s || `메인 카피 ${i + 1}줄`).join('\n');
       }
     }
-    m.innerHTML = applyPointColor(mainText).replace(/\n/g, '<br>');
+    // vcenter는 display:flex로 세로 정렬 → text 노드 + <br> + <span class="pt">가 각각 flex item이 되어
+    //   {} 강조 추가 시 좁은 컬럼으로 쪼개짐. 인너 div로 감싸서 단일 flex item으로 만듦.
+    const _innerMainHTML = applyPointColor(mainText).replace(/\n/g, '<br>');
+    m.innerHTML = v.main.vcenter ? `<div>${_innerMainHTML}</div>` : _innerMainHTML;
     banner.appendChild(m);
   }
   // 서브 카피
