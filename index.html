@@ -3100,21 +3100,6 @@ function renderImageUploads() {
       const baseLabel = label || (v.label ? (v.label + ' 이미지') : '이미지');
       createUploadItem(v.id, baseLabel + ' 1', sizeText);
       createUploadItem(v.id + '_2', baseLabel + ' 2', sizeText);
-      // 활성 이미지 토글 — 위로 올라와 마우스 이벤트를 받는 쪽을 선택
-      const active = currentDualActive[v.id] || '2';
-      const toggle = document.createElement('div');
-      toggle.className = 'field';
-      toggle.style.cssText = 'margin:0 0 14px 0;';
-      toggle.innerHTML = `
-        <div class="field-label" style="display:flex;align-items:center;gap:10px;">
-          ${baseLabel ? baseLabel + ' ' : ''}편집 대상
-          <div class="text-color-segments" style="margin-left:auto;">
-            <div class="text-color-segment ${active === '1' ? 'active' : ''}" onclick="setDualActive('${v.id}','1')">이미지 1</div>
-            <div class="text-color-segment ${active === '2' ? 'active' : ''}" onclick="setDualActive('${v.id}','2')">이미지 2</div>
-          </div>
-        </div>
-        <div class="field-spec">선택한 이미지가 위로 올라와 드래그 / 휠로 조절돼요.</div>`;
-      wrap.appendChild(toggle);
     } else {
       createUploadItem(v.id, label, sizeText);
     }
@@ -3155,7 +3140,7 @@ function processImageFile(file, versionId) {
     // 원본 보관 (토글 변경 시 재처리용)
     currentImageRaw[versionId] = ev.target.result;
     // 새 이미지 업로드 시 editable 슬롯의 위치/크기 transform은 초기화 (이전 이미지 잔상 방지)
-    currentImageTransforms[versionId] = { scale: 1, x: 0, y: 0 };
+    currentImageTransforms[versionId] = { scale: 1, x: 0, y: 0, rotation: 0 };
     applyKnockoutForVersion(versionId, () => {
       // 썸네일 + 미리보기 갱신은 applyKnockoutForVersion 안에서 처리
       const thumb = document.getElementById('upload-thumb-' + versionId);
@@ -3243,21 +3228,6 @@ function setKnockoutEnabled(enabled) {
 // dualImage 슬롯에서 위로 올라올 이미지 선택. '1' → base id, '2' → '_2' 접미사
 function setDualActive(versionId, which) {
   currentDualActive[versionId] = which;
-  renderImageUploads();
-  // 업로드 영역은 재생성됐으니 썸네일도 복원
-  const spec = SPECS[currentProduct].slots[currentSlot];
-  spec.versions.forEach(v => {
-    if (v.id.endsWith('-alt')) return;
-    [v.id, v.id + '_2'].forEach(id => {
-      if (!currentImages[id]) return;
-      const thumb = document.getElementById('upload-thumb-' + id);
-      const ph = document.getElementById('upload-placeholder-' + id);
-      const area = document.getElementById('upload-area-' + id);
-      if (thumb) { thumb.src = currentImages[id]; thumb.style.display = 'block'; }
-      if (ph) ph.style.display = 'none';
-      if (area) area.classList.add('has-image');
-    });
-  });
   renderPreviews();
 }
 // ================================================
@@ -3485,24 +3455,59 @@ function renderPreviews() {
       };
       // 좌우 가운데 정렬 — state.x = 0 (scale 유지)
       btnRow.appendChild(makeBtn('↔ 좌우 가운데', () => {
-        const t = currentImageTransforms[v.id] || { scale:1, x:0, y:0 };
+        const t = currentImageTransforms[v.id] || { scale:1, x:0, y:0, rotation:0 };
         t.x = 0;
         currentImageTransforms[v.id] = t;
         renderPreviews();
       }));
       // 상하 가운데 정렬 — state.y = 0 (scale 유지)
       btnRow.appendChild(makeBtn('↕ 상하 가운데', () => {
-        const t = currentImageTransforms[v.id] || { scale:1, x:0, y:0 };
+        const t = currentImageTransforms[v.id] || { scale:1, x:0, y:0, rotation:0 };
         t.y = 0;
         currentImageTransforms[v.id] = t;
         renderPreviews();
       }));
       // 위치/크기 전체 초기화
       btnRow.appendChild(makeBtn('↺ 위치 · 크기 초기화', () => {
-        currentImageTransforms[v.id] = { scale: 1, x: 0, y: 0 };
+        currentImageTransforms[v.id] = { scale: 1, x: 0, y: 0, rotation: 0 };
         renderPreviews();
       }));
       section.appendChild(btnRow);
+    }
+    // dualImage 슬롯: 두 이미지 모두 업로드된 경우 — 편집 대상 선택 + 활성 이미지 위치/크기/각도 초기화
+    if (spec.dualImage && currentImages[v.id] && currentImages[v.id + '_2']) {
+      const dualRow = document.createElement('div');
+      dualRow.className = 'editable-btn-row';
+      const active = currentDualActive[v.id] || '2';
+      const makeDualBtn = (label, which, isReset) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'editable-reset-btn';
+        b.textContent = label;
+        if (!isReset && active === which) {
+          b.style.cssText = 'background:var(--accent);color:#fff;border-color:var(--accent);';
+        }
+        b.onclick = () => {
+          if (isReset) {
+            const id = active === '1' ? v.id : v.id + '_2';
+            currentImageTransforms[id] = { scale:1, x:0, y:0, rotation:0 };
+            renderPreviews();
+          } else {
+            setDualActive(v.id, which);
+          }
+        };
+        return b;
+      };
+      dualRow.appendChild(makeDualBtn('① 이미지 1', '1'));
+      dualRow.appendChild(makeDualBtn('② 이미지 2', '2'));
+      dualRow.appendChild(makeDualBtn('↺ 활성 이미지 초기화', null, true));
+      section.appendChild(dualRow);
+      // 회전 사용법 안내
+      const hint = document.createElement('div');
+      hint.className = 'field-spec';
+      hint.style.cssText = 'margin-top:6px;text-align:center;color:#9A9A9A;';
+      hint.textContent = '드래그=위치 · 휠=크기 · Shift+휠=회전';
+      section.appendChild(hint);
     }
     // 친구톡 K3 템플릿 — per-version 텍스트 인풋 + (productCard) bg 컬러/그라데이션 픽커
     if (v.template === 'vsCompare' || v.template === 'productCard') {
@@ -3858,7 +3863,7 @@ function addPadGuide(banner, type, offset, size, w, val, labelFs = 9) {
 }
 // 실사 썸네일: 전체 캔버스 cover-fit + 사용자 드래그(위치)·휠(크기) 조작
 function buildEditableImage(banner, v) {
-  const state = currentImageTransforms[v.id] || (currentImageTransforms[v.id] = { scale: 1, x: 0, y: 0 });
+  const state = currentImageTransforms[v.id] || (currentImageTransforms[v.id] = { scale: 1, x: 0, y: 0, rotation: 0 });
   const imgURL = currentImages[v.id];
   const imgSize = currentImageSizes[v.id];
   const container = document.createElement('div');
@@ -3875,7 +3880,7 @@ function buildEditableImage(banner, v) {
     const img = document.createElement('img');
     img.src = imgURL;
     img.draggable = false;
-    img.style.cssText = `width:${fitW}px;height:${fitH}px;display:block;position:absolute;left:${baseX}px;top:${baseY}px;max-width:none;transform-origin:center center;transform:translate(${state.x}px, ${state.y}px) scale(${state.scale});pointer-events:none;`;
+    img.style.cssText = `width:${fitW}px;height:${fitH}px;display:block;position:absolute;left:${baseX}px;top:${baseY}px;max-width:none;transform-origin:center center;transform:translate(${state.x}px, ${state.y}px) rotate(${state.rotation || 0}deg) scale(${state.scale});pointer-events:none;`;
     container.appendChild(img);
   } else {
     const ph = document.createElement('div');
@@ -3897,8 +3902,9 @@ function attachEditableImageHandlers(container, v) {
   const state = currentImageTransforms[v.id];
   const spec = SPECS[currentProduct].slots[currentSlot];
   const previewScale = spec.isLarge ? 0.4 : 1; // 미리보기 축소율 보정
+  if (state.rotation === undefined) state.rotation = 0;
   const apply = () => {
-    img.style.transform = `translate(${state.x}px, ${state.y}px) scale(${state.scale})`;
+    img.style.transform = `translate(${state.x}px, ${state.y}px) rotate(${state.rotation}deg) scale(${state.scale})`;
   };
   let dragging = false, lastX = 0, lastY = 0;
   container.addEventListener('mousedown', (e) => {
@@ -3923,8 +3929,14 @@ function attachEditableImageHandlers(container, v) {
   container.addEventListener('wheel', (e) => {
     if (!currentImages[v.id]) return;
     e.preventDefault();
-    const factor = e.deltaY > 0 ? 0.95 : 1.05;
-    state.scale = Math.max(0.3, Math.min(8, state.scale * factor));
+    if (e.shiftKey) {
+      // Shift + 휠 → 회전. 브라우저에 따라 deltaX/deltaY 어느 쪽이 큰지 다를 수 있어 큰 쪽 사용 (한 틱당 3°)
+      const delta = Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
+      state.rotation += delta > 0 ? -3 : 3;
+    } else {
+      const factor = e.deltaY > 0 ? 0.95 : 1.05;
+      state.scale = Math.max(0.3, Math.min(8, state.scale * factor));
+    }
     apply();
   }, { signal, passive: false });
 }
@@ -4045,8 +4057,8 @@ function renderTemplateImage(banner, v) {
       img.draggable = false;
       let imgCSS = `width:${fitW}px;height:${fitH}px;display:block;margin-left:${-offsetX}px;margin-top:${-offsetY}px;max-width:none;`;
       if (editable) {
-        const state = currentImageTransforms[v.id] || (currentImageTransforms[v.id] = { scale:1, x:0, y:0 });
-        imgCSS += `transform-origin:center center;transform:translate(${state.x}px,${state.y}px) scale(${state.scale});pointer-events:none;`;
+        const state = currentImageTransforms[v.id] || (currentImageTransforms[v.id] = { scale:1, x:0, y:0, rotation:0 });
+        imgCSS += `transform-origin:center center;transform:translate(${state.x}px,${state.y}px) rotate(${state.rotation || 0}deg) scale(${state.scale});pointer-events:none;`;
       }
       img.style.cssText = imgCSS;
       bg.appendChild(img);
@@ -4081,8 +4093,8 @@ function renderTemplateImage(banner, v) {
     const offsetY = (fitH - v.img.h) / 2;
     let imgCSS = `width:${fitW}px;height:${fitH}px;display:block;margin-left:${-offsetX}px;margin-top:${-offsetY}px;flex-shrink:0;max-width:none;`;
     if (editable) {
-      const state = currentImageTransforms[v.id] || (currentImageTransforms[v.id] = { scale:1, x:0, y:0 });
-      imgCSS += `transform-origin:center center;transform:translate(${state.x}px,${state.y}px) scale(${state.scale});pointer-events:none;`;
+      const state = currentImageTransforms[v.id] || (currentImageTransforms[v.id] = { scale:1, x:0, y:0, rotation:0 });
+      imgCSS += `transform-origin:center center;transform:translate(${state.x}px,${state.y}px) rotate(${state.rotation || 0}deg) scale(${state.scale});pointer-events:none;`;
     }
     img.style.cssText = imgCSS;
     iw.appendChild(img);
@@ -4112,8 +4124,8 @@ function renderClippedImage(banner, v, imgSpec) {
     const img = document.createElement('img');
     img.src = imgURL;
     img.draggable = false;
-    const state = currentImageTransforms[imgSpec.id] || (currentImageTransforms[imgSpec.id] = { scale:1, x:0, y:0 });
-    img.style.cssText = `width:${fitW}px;height:${fitH}px;display:block;margin-left:${-offsetX}px;margin-top:${-offsetY}px;max-width:none;transform-origin:center center;transform:translate(${state.x}px,${state.y}px) scale(${state.scale});pointer-events:none;`;
+    const state = currentImageTransforms[imgSpec.id] || (currentImageTransforms[imgSpec.id] = { scale:1, x:0, y:0, rotation:0 });
+    img.style.cssText = `width:${fitW}px;height:${fitH}px;display:block;margin-left:${-offsetX}px;margin-top:${-offsetY}px;max-width:none;transform-origin:center center;transform:translate(${state.x}px,${state.y}px) rotate(${state.rotation || 0}deg) scale(${state.scale});pointer-events:none;`;
     bg.appendChild(img);
     attachEditableImageHandlers(bg, { id: imgSpec.id });
   } else {
@@ -4296,8 +4308,8 @@ function buildBanner(v, spec) {
       img.draggable = false;
       let imgCSS = `width:${fitW}px;height:${fitH}px;display:block;margin-left:${-offsetX}px;margin-top:${-offsetY}px;max-width:none;`;
       if (editable) {
-        const state = currentImageTransforms[v.id] || (currentImageTransforms[v.id] = { scale:1, x:0, y:0 });
-        imgCSS += `transform-origin:center center;transform:translate(${state.x}px,${state.y}px) scale(${state.scale});pointer-events:none;`;
+        const state = currentImageTransforms[v.id] || (currentImageTransforms[v.id] = { scale:1, x:0, y:0, rotation:0 });
+        imgCSS += `transform-origin:center center;transform:translate(${state.x}px,${state.y}px) rotate(${state.rotation || 0}deg) scale(${state.scale});pointer-events:none;`;
       }
       img.style.cssText = imgCSS;
       bg.appendChild(img);
@@ -4551,8 +4563,8 @@ function buildBanner(v, spec) {
         const offsetY = (fitH - imgH) / 2;
         let imgCSS = `width:${fitW}px;height:${fitH}px;display:block;margin-left:${-offsetX}px;margin-top:${-offsetY}px;flex-shrink:0;max-width:none;`;
         if (editable) {
-          const state = currentImageTransforms[stateId] || (currentImageTransforms[stateId] = { scale:1, x:0, y:0 });
-          imgCSS += `transform-origin:center center;transform:translate(${state.x}px,${state.y}px) scale(${state.scale});pointer-events:none;`;
+          const state = currentImageTransforms[stateId] || (currentImageTransforms[stateId] = { scale:1, x:0, y:0, rotation:0 });
+          imgCSS += `transform-origin:center center;transform:translate(${state.x}px,${state.y}px) rotate(${state.rotation || 0}deg) scale(${state.scale});pointer-events:none;`;
           iw.style.cursor = 'grab';
           iw.style.userSelect = 'none';
         }
@@ -4574,15 +4586,19 @@ function buildBanner(v, spec) {
     };
     if (spec.dualImage) {
       // dualImage: 두 이미지 모두 같은 위치에 스택. 활성 이미지를 마지막에 그려서 z-order 상단(마우스 이벤트 수신)
-      // 두 번째 이미지는 업로드됐을 때만 렌더 (빈 placeholder 중첩 방지)
+      // placeholder는 둘 다 비어있을 때만 표시 (중첩 방지)
+      const has1 = !!currentImages[v.id];
       const has2 = !!currentImages[v.id + '_2'];
-      const activeIsSecond = has2 && (currentDualActive[v.id] || '2') === '2';
-      if (activeIsSecond) {
+      const active = currentDualActive[v.id] || '2';
+      if (has1 && has2) {
+        if (active === '1') { renderOne(v.id + '_2'); renderOne(v.id); }
+        else                { renderOne(v.id); renderOne(v.id + '_2'); }
+      } else if (has1) {
         renderOne(v.id);
+      } else if (has2) {
         renderOne(v.id + '_2');
       } else {
-        if (has2) renderOne(v.id + '_2');
-        renderOne(v.id);
+        renderOne(v.id); // 빈 placeholder
       }
     } else {
       renderOne(v.id);
