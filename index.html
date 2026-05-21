@@ -563,6 +563,34 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
   font-size: 12px; color: var(--text-primary); outline: none;
 }
 .template-text-row input:focus { border-color: var(--ink); }
+.template-pill-row {
+  display: flex; align-items: center; gap: 8px;
+  margin-top: 4px;
+}
+.template-pill-row .pill-row-label {
+  flex: 0 0 110px;
+  font-family: var(--font-mono); font-size: 10px; font-weight: 500;
+  color: var(--text-muted); letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.template-pill-row input[type="color"] {
+  width: 32px; height: 26px; padding: 0; margin: 0;
+  border: 1px solid var(--border); border-radius: 4px;
+  background: transparent; cursor: pointer;
+  -webkit-appearance: none; appearance: none;
+}
+.template-pill-row input[type="color"]:disabled { opacity: 0.3; cursor: not-allowed; }
+.template-pill-row input[type="color"]::-webkit-color-swatch-wrapper { padding: 2px; }
+.template-pill-row input[type="color"]::-webkit-color-swatch { border: none; border-radius: 3px; }
+.template-pill-row .pill-grad-btn {
+  height: 26px; padding: 0 8px;
+  background: var(--card); color: var(--text-primary);
+  border: 1px solid var(--border); border-radius: 4px;
+  font-family: var(--font); font-size: 11px; font-weight: 500;
+  cursor: pointer;
+}
+.template-pill-row .pill-grad-btn:hover { border-color: var(--ink); color: var(--ink); }
+
 .template-bg-ctrl {
   margin-top: 8px; padding: 8px 12px;
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
@@ -2094,6 +2122,17 @@ let carouselExtras = {};
 //   currentVersionBg[v.id] = { color1, color2 (선택, 그라데이션이면 사용) }
 let templateTexts = {};
 let currentVersionBg = {};
+// pill 박스 컬러/그라데이션 per-element (예: 리스트 1의 leftMain / rightMain pill)
+//   templatePillBg[v.id] = { [key]: { color1, color2 } }
+let templatePillBg = {};
+function getPillBgValue(vId, key, fallback) {
+  const cfg = templatePillBg[vId] && templatePillBg[vId][key];
+  if (!cfg) return fallback;
+  if (cfg.color2 && cfg.color2 !== cfg.color1) {
+    return `linear-gradient(180deg, ${cfg.color1}, ${cfg.color2})`;
+  }
+  return cfg.color1 || fallback;
+}
 function getTemplateText(vId, key, fallback) {
   return (templateTexts[vId] && templateTexts[vId][key] !== undefined)
     ? templateTexts[vId][key]
@@ -2359,6 +2398,7 @@ function onSlotChange() {
   carouselExtras = {};
   templateTexts = {};
   currentVersionBg = {};
+  templatePillBg = {};
   currentTextColorMode = 'auto';
   currentShowButton = true;
   currentMainLines = 3;
@@ -3367,10 +3407,10 @@ function renderPreviews() {
     if (v.template === 'vsCompare' || v.template === 'productCard') {
       const fieldDefs = v.template === 'vsCompare'
         ? [
-            { key:'leftSub',  label:'좌측 상단' },
-            { key:'leftMain', label:'좌측 pill' },
-            { key:'rightSub', label:'우측 상단' },
-            { key:'rightMain',label:'우측 pill' }
+            { key:'leftSub',  label:'좌측 서브 카피' },
+            { key:'leftMain', label:'좌측 메인 카피' },
+            { key:'rightSub', label:'우측 서브 카피' },
+            { key:'rightMain',label:'우측 메인 카피' }
           ]
         : [
             { key:'badgeTL', label:'좌상단 뱃지' },
@@ -3390,6 +3430,43 @@ function renderPreviews() {
           templateTexts[v.id][key] = inp.value;
           // 라이브 갱신 — 해당 banner의 텍스트 노드만 교체 (전체 re-render 피함)
           renderPreviews();
+        });
+        textPanel.appendChild(row);
+      });
+      // pill 박스 컬러 픽커 (pillStyle 있는 요소만)
+      fieldDefs.forEach(({ key, label }) => {
+        if (!v[key] || !v[key].pillStyle) return;
+        const pillCfg = (templatePillBg[v.id] && templatePillBg[v.id][key])
+          || { color1: v[key].pillStyle.bg || '#2D7DFC', color2: null };
+        const row = document.createElement('div');
+        row.className = 'template-pill-row';
+        const grad2 = pillCfg.color2 || pillCfg.color1;
+        row.innerHTML = `
+          <span class="pill-row-label">${label} 컬러</span>
+          <input type="color" class="pill-c1" value="${pillCfg.color1}">
+          <input type="color" class="pill-c2" value="${grad2}" ${pillCfg.color2 ? '' : 'disabled'}>
+          <button type="button" class="pill-grad-btn">${pillCfg.color2 ? '× 끄기' : '+ 그라데이션'}</button>
+        `;
+        const c1 = row.querySelector('.pill-c1');
+        const c2 = row.querySelector('.pill-c2');
+        const gbtn = row.querySelector('.pill-grad-btn');
+        const updatePillBg = (next) => {
+          if (!templatePillBg[v.id]) templatePillBg[v.id] = {};
+          templatePillBg[v.id][key] = next;
+          renderPreviews();
+        };
+        c1.addEventListener('input', () => {
+          const cur = (templatePillBg[v.id] && templatePillBg[v.id][key]) || { color1: c1.value, color2: null };
+          updatePillBg({ ...cur, color1: c1.value });
+        });
+        c2.addEventListener('input', () => {
+          const cur = (templatePillBg[v.id] && templatePillBg[v.id][key]) || { color1: c1.value, color2: null };
+          updatePillBg({ ...cur, color2: c2.value });
+        });
+        gbtn.addEventListener('click', () => {
+          const cur = (templatePillBg[v.id] && templatePillBg[v.id][key]) || { color1: c1.value, color2: null };
+          if (cur.color2) updatePillBg({ ...cur, color2: null });
+          else            updatePillBg({ ...cur, color2: c1.value });
         });
         textPanel.appendChild(row);
       });
@@ -3892,17 +3969,21 @@ function buildVsCompareBanner(v, spec) {
   // 두 개의 사선 클립 이미지 (좌/우)
   if (v.leftImage) renderClippedImage(banner, v, v.leftImage);
   if (v.rightImage) renderClippedImage(banner, v, v.rightImage);
-  // 슬라이스 경계선 — 7px 흰 사선 (좌·우 이미지 사이 시각적 구분)
-  //   슬라이스가 (450, 0) → (350, 100%)이므로 7px 수평 폭의 평행사변형으로 라인 시각화
+  // 슬라이스 경계선 — 17.5px 흰 사선 (좌·우 이미지 사이 시각적 구분, 2.5배 두께)
+  //   슬라이스가 (450, 0) → (350, 100%)이므로 17.5px 수평 폭의 평행사변형으로 라인 시각화
   if (v.leftImage && v.rightImage) {
     const line = document.createElement('div');
-    line.style.cssText = `position:absolute;top:0;left:0;width:${v.w}px;height:${v.h}px;background:#FFFFFF;z-index:1;pointer-events:none;clip-path:polygon(446.5px 0, 453.5px 0, 353.5px 100%, 346.5px 100%);`;
+    line.style.cssText = `position:absolute;top:0;left:0;width:${v.w}px;height:${v.h}px;background:#FFFFFF;z-index:1;pointer-events:none;clip-path:polygon(441.25px 0, 458.75px 0, 358.75px 100%, 341.25px 100%);`;
     banner.appendChild(line);
   }
-  // 텍스트 오버레이 — templateTexts에서 덮어쓴 값 우선
+  // 텍스트 오버레이 — templateTexts에서 덮어쓴 값 우선 + pill 컬러 override
   ['leftSub', 'leftMain', 'rightSub', 'rightMain'].forEach(key => {
     if (!v[key]) return;
     const cfg = { ...v[key], defaultText: getTemplateText(v.id, key, v[key].defaultText) };
+    if (cfg.pillStyle) {
+      const bg = getPillBgValue(v.id, key, cfg.pillStyle.bg);
+      cfg.pillStyle = { ...cfg.pillStyle, bg };
+    }
     banner.appendChild(buildTemplateTextEl(cfg));
   });
   return banner;
