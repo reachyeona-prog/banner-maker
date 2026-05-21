@@ -564,12 +564,26 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
   font-size: 12px; color: var(--text-primary); outline: none;
 }
 .template-text-row input:focus { border-color: var(--ink); }
+.text-color-toggle {
+  display: flex; gap: 4px; flex-shrink: 0;
+}
+.text-color-swatch {
+  width: 24px; height: 24px; padding: 0;
+  background: #FFFFFF;
+  border: 1px solid var(--border); border-radius: 4px;
+  cursor: pointer; transition: all var(--t-base) var(--ease);
+}
+.text-color-swatch.dark { background: #1A1A1A; }
+.text-color-swatch.active {
+  border-color: var(--accent); border-width: 2px;
+  box-shadow: 0 0 0 1px var(--accent);
+}
 .template-pill-row {
-  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  display: flex; align-items: center; gap: 6px; flex-wrap: nowrap;
   margin-top: 4px;
 }
 .template-pill-row .pill-row-label {
-  flex: 0 0 110px;
+  flex: 0 0 76px;   /* template-text-row label과 동일 폭으로 정렬 */
   font-family: var(--font-mono); font-size: 10px; font-weight: 500;
   color: var(--text-muted); letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -578,9 +592,9 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
 .template-pill-row input[type="color"] {
   /* 글로벌 input[type=color] 규칙(line ~311, opacity:0/position:absolute/pointer-events:none)을 명시적으로 override */
   position: static; opacity: 1; pointer-events: auto;
-  width: 40px; height: 30px; padding: 2px; margin: 0;
+  width: 32px; height: 30px; padding: 2px; margin: 0;
   border: 1px solid var(--border); border-radius: 4px;
-  background: transparent; cursor: pointer;
+  background: transparent; cursor: pointer; flex-shrink: 0;
 }
 .template-pill-row input[type="color"]:disabled { opacity: 0.3; cursor: not-allowed; }
 .template-pill-row input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
@@ -1894,7 +1908,7 @@ const SPECS = {
             leftMain: { bottom:45,  left:0, right:450, fs:25, color:'#FFFFFF', fw:700, textAlign:'center',
                         defaultText:'무선 단말기', pillStyle:{ bg:'#2D7DFC', radius:10, padding:'14px 28px' } },
             // 우측 = 상단 가운데 정렬 (sub 위, pill 아래). 우측 영역 = x:450~800, 가운데 ~625
-            rightSub: { top:45,  left:450, right:0, fs:25, color:'#FFFFFF', fw:500, textAlign:'center', defaultText:'평점 4.9 · 만족도 1위' },
+            rightSub: { top:45,  left:450, right:0, fs:25, color:'#FFFFFF', fw:500, textAlign:'center', textShadow:'0 2px 8px rgba(0,0,0,0.45)', defaultText:'평점 4.9 · 만족도 1위' },
             rightMain:{ top:80,  left:450, right:0, fs:25, color:'#FFFFFF', fw:700, textAlign:'center',
                         defaultText:'유·무선 단말기', pillStyle:{ bg:'#2D7DFC', radius:10, padding:'14px 28px' } } },
           // 리스트 2~5 — 상품 카드 (1:1)
@@ -2144,6 +2158,8 @@ let currentVersionBg = {};
 // pill 박스 컬러/그라데이션 per-element (예: 리스트 1의 leftMain / rightMain pill)
 //   templatePillBg[v.id] = { [key]: { color1, color2 } }
 let templatePillBg = {};
+// 서브 카피 등 텍스트 컬러 W/B 토글 — templateTextColor[v.id][key] = '#FFFFFF' | '#1A1A1A'
+let templateTextColor = {};
 function getPillBgValue(vId, key, fallback) {
   const cfg = templatePillBg[vId] && templatePillBg[vId][key];
   if (!cfg) return fallback;
@@ -2418,6 +2434,7 @@ function onSlotChange() {
   templateTexts = {};
   currentVersionBg = {};
   templatePillBg = {};
+  templateTextColor = {};
   currentTextColorMode = 'auto';
   currentShowButton = true;
   currentMainLines = 3;
@@ -3447,31 +3464,60 @@ function renderPreviews() {
         const cur = getTemplateText(v.id, key, v[key].defaultText);
         const row = document.createElement('div');
         row.className = 'template-text-row';
-        row.innerHTML = `<label>${label}</label><input type="text" maxlength="40" value="${cur.replace(/"/g, '&quot;')}">`;
+        // sub 카피(leftSub/rightSub)는 W/B 컬러 토글도 같이 노출
+        const showColorToggle = (key === 'leftSub' || key === 'rightSub');
+        let inner = `<label>${label}</label><input type="text" maxlength="40" value="${cur.replace(/"/g, '&quot;')}">`;
+        if (showColorToggle) {
+          const curColor = (templateTextColor[v.id] && templateTextColor[v.id][key])
+            || v[key].color || '#FFFFFF';
+          const isWhite = curColor.toUpperCase() === '#FFFFFF';
+          inner += `
+            <div class="text-color-toggle">
+              <button type="button" class="text-color-swatch ${isWhite ? 'active' : ''}" data-color="#FFFFFF" title="흰색"></button>
+              <button type="button" class="text-color-swatch dark ${!isWhite ? 'active' : ''}" data-color="#1A1A1A" title="검정"></button>
+            </div>
+          `;
+        }
+        row.innerHTML = inner;
         const inp = row.querySelector('input');
         inp.addEventListener('input', () => {
           if (!templateTexts[v.id]) templateTexts[v.id] = {};
           templateTexts[v.id][key] = inp.value;
-          // 라이브 갱신 — 해당 banner의 텍스트 노드만 교체 (전체 re-render 피함)
           renderPreviews();
         });
+        if (showColorToggle) {
+          row.querySelectorAll('.text-color-swatch').forEach(btn => {
+            btn.addEventListener('click', () => {
+              if (!templateTextColor[v.id]) templateTextColor[v.id] = {};
+              templateTextColor[v.id][key] = btn.dataset.color;
+              renderPreviews();
+            });
+          });
+        }
         textPanel.appendChild(row);
       });
       // pill 박스 컬러 픽커 (pillStyle 있는 요소만)
-      //   - c2(두 번째 컬러)는 그라데이션 ON일 때만 노출
-      //   - 그라데이션 토글 ON → color2 기본값 '#FFFFFF' (사용자가 변경)
-      //   - 색상 픽커는 'change' 이벤트 사용 (input 이벤트는 native dialog 중 DOM 파괴로 적용 누락 가능)
+      //   - 라벨: leftMain/rightMain/badgeTL/badgeBR → "좌측/우측 박스 컬러" (짧게)
+      //   - c2 그라데이션 ON일 때만 노출
+      //   - 색상 픽커는 'change' 이벤트 사용 (input은 native dialog 중 DOM 파괴로 누락 가능)
+      const pillLabelMap = {
+        leftMain: '좌측 박스 컬러',
+        rightMain: '우측 박스 컬러',
+        badgeTL: '좌측 박스 컬러',
+        badgeBR: '우측 박스 컬러',
+      };
       fieldDefs.forEach(({ key, label }) => {
         if (!v[key] || !v[key].pillStyle) return;
         const pillCfg = (templatePillBg[v.id] && templatePillBg[v.id][key])
           || { color1: v[key].pillStyle.bg || '#2D7DFC', color2: null };
         const row = document.createElement('div');
         row.className = 'template-pill-row';
+        const pillLabel = pillLabelMap[key] || `${label} 컬러`;
         row.innerHTML = `
-          <span class="pill-row-label">${label} 컬러</span>
+          <span class="pill-row-label">${pillLabel}</span>
           <input type="color" class="pill-c1" value="${pillCfg.color1}">
           ${pillCfg.color2 ? `<input type="color" class="pill-c2" value="${pillCfg.color2}">` : ''}
-          <button type="button" class="pill-grad-btn">${pillCfg.color2 ? '× 그라데이션 끄기' : '+ 그라데이션'}</button>
+          <button type="button" class="pill-grad-btn">${pillCfg.color2 ? '× 끄기' : '+ 그라데이션'}</button>
         `;
         const c1 = row.querySelector('.pill-c1');
         const c2 = row.querySelector('.pill-c2'); // 그라데이션 OFF면 null
@@ -4033,10 +4079,13 @@ function buildVsCompareBanner(v, spec) {
     line.style.cssText = `position:absolute;top:0;left:0;width:${v.w}px;height:${v.h}px;background:#FFFFFF;z-index:1;pointer-events:none;clip-path:polygon(441.25px 0, 458.75px 0, 358.75px 100%, 341.25px 100%);`;
     banner.appendChild(line);
   }
-  // 텍스트 오버레이 — templateTexts에서 덮어쓴 값 우선 + pill 컬러 override
+  // 텍스트 오버레이 — templateTexts에서 덮어쓴 값 우선 + pill 컬러 override + sub 텍스트 W/B 컬러
   ['leftSub', 'leftMain', 'rightSub', 'rightMain'].forEach(key => {
     if (!v[key]) return;
     const cfg = { ...v[key], defaultText: getTemplateText(v.id, key, v[key].defaultText) };
+    // sub 카피 W/B 컬러 override
+    const colorOverride = templateTextColor[v.id] && templateTextColor[v.id][key];
+    if (colorOverride) cfg.color = colorOverride;
     if (cfg.pillStyle) {
       const bg = getPillBgValue(v.id, key, cfg.pillStyle.bg);
       cfg.pillStyle = { ...cfg.pillStyle, bg };
