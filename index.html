@@ -1897,31 +1897,34 @@ const SPECS = {
           // 리스트 2~5 — 상품 카드 (1:1)
           { id: '2', label: '리스트 2', uploadLabel: '리스트 2 (800×800)', w: 800, h: 800,
             template: 'productCard',
-            img: { hcenter:true, vcenter:true, w:560, h:560, editable:true },
+            // 이미지: bgFull로 전체 캔버스 차지 (크기 제한 없음, editable로 드래그·휠 조절)
+            img: { top:0, left:0, w:800, h:800, bgFull:true, editable:true },
             // 좌상단 뱃지: 캔버스 모서리에 패딩 없이 붙임, BR 코너만 radius 16
             badgeTL:{ top:0, left:0, fs:60, fw:800, color:'#FFFFFF', defaultText:'~63%',
                       pillStyle:{ bg:'#2D7DFC', radius:'0 0 16px 0', padding:'24px 36px' } },
-            // 우하단 뱃지: 쿠폰 모양 (좌·우 가운데 반원형 노치)
-            badgeBR:{ bottom:60, right:50, fs:32, fw:700, color:'#FFFFFF', defaultText:'+ 65,000원',
-                      pillStyle:{ bg:'#3D2D8C', shape:'ticket', padding:'18px 36px' } } },
+            // 우하단 뱃지: 쿠폰 모양 (좌·우 가운데 둥근 노치), 크기 2배 (fs 32→64, padding 2x)
+            badgeBR:{ bottom:60, right:50, fs:64, fw:700, color:'#FFFFFF', defaultText:'+ 65,000원',
+                      pillStyle:{ bg:'#3D2D8C', shape:'ticket', padding:'36px 72px' } } },
           { id: '3', label: '리스트 3', uploadLabel: '리스트 3 (800×800)', w: 800, h: 800,
             template: 'productCard',
-            img: { hcenter:true, vcenter:true, w:560, h:560, editable:true },
+            // 이미지: bgFull로 전체 캔버스 차지 (크기 제한 없음, editable로 드래그·휠 조절)
+            img: { top:0, left:0, w:800, h:800, bgFull:true, editable:true },
             // 좌상단 뱃지: 캔버스 모서리에 패딩 없이 붙임, BR 코너만 radius 16
             badgeTL:{ top:0, left:0, fs:60, fw:800, color:'#FFFFFF', defaultText:'~63%',
                       pillStyle:{ bg:'#2D7DFC', radius:'0 0 16px 0', padding:'24px 36px' } },
-            // 우하단 뱃지: 쿠폰 모양 (좌·우 가운데 반원형 노치)
-            badgeBR:{ bottom:60, right:50, fs:32, fw:700, color:'#FFFFFF', defaultText:'+ 65,000원',
-                      pillStyle:{ bg:'#3D2D8C', shape:'ticket', padding:'18px 36px' } } },
+            // 우하단 뱃지: 쿠폰 모양 (좌·우 가운데 둥근 노치), 크기 2배 (fs 32→64, padding 2x)
+            badgeBR:{ bottom:60, right:50, fs:64, fw:700, color:'#FFFFFF', defaultText:'+ 65,000원',
+                      pillStyle:{ bg:'#3D2D8C', shape:'ticket', padding:'36px 72px' } } },
           { id: '4', label: '리스트 4', uploadLabel: '리스트 4 (800×800)', w: 800, h: 800,
             template: 'productCard',
-            img: { hcenter:true, vcenter:true, w:560, h:560, editable:true },
+            // 이미지: bgFull로 전체 캔버스 차지 (크기 제한 없음, editable로 드래그·휠 조절)
+            img: { top:0, left:0, w:800, h:800, bgFull:true, editable:true },
             // 좌상단 뱃지: 캔버스 모서리에 패딩 없이 붙임, BR 코너만 radius 16
             badgeTL:{ top:0, left:0, fs:60, fw:800, color:'#FFFFFF', defaultText:'~63%',
                       pillStyle:{ bg:'#2D7DFC', radius:'0 0 16px 0', padding:'24px 36px' } },
-            // 우하단 뱃지: 쿠폰 모양 (좌·우 가운데 반원형 노치)
-            badgeBR:{ bottom:60, right:50, fs:32, fw:700, color:'#FFFFFF', defaultText:'+ 65,000원',
-                      pillStyle:{ bg:'#3D2D8C', shape:'ticket', padding:'18px 36px' } } },
+            // 우하단 뱃지: 쿠폰 모양 (좌·우 가운데 둥근 노치), 크기 2배 (fs 32→64, padding 2x)
+            badgeBR:{ bottom:60, right:50, fs:64, fw:700, color:'#FFFFFF', defaultText:'+ 65,000원',
+                      pillStyle:{ bg:'#3D2D8C', shape:'ticket', padding:'36px 72px' } } },
           { id: '5', label: '리스트 5', uploadLabel: '리스트 5 (800×800)', w: 800, h: 800,
             template: 'productCard',
             img: { hcenter:true, vcenter:true, w:560, h:560, editable:true },
@@ -3875,9 +3878,10 @@ function buildTemplateTextEl(cfg) {
       ? ps.radius
       : `${ps.radius !== undefined ? ps.radius : 10}px`;
     innerCss += `background:${ps.bg || '#1A1A1A'};border-radius:${radiusVal};padding:${ps.padding || '12px 22px'};`;
-    // shape:'ticket' — 좌·우 가운데 노치 잘라낸 쿠폰 모양 (radius 무시)
+    // shape:'ticket' — 좌·우 가운데 둥근 노치 잘라낸 쿠폰 모양 (radius 무시)
+    //   각 노치에 5개 중간점을 두어 곡선 근사 (단일 꼭지점 V 대신 둥근 반원형 효과)
     if (ps.shape === 'ticket') {
-      innerCss += `clip-path:polygon(0 0, 100% 0, 100% 32%, 90% 50%, 100% 68%, 100% 100%, 0 100%, 0 68%, 10% 50%, 0 32%);border-radius:0;`;
+      innerCss += `clip-path:polygon(0 0, 100% 0, 100% 30%, 96% 36%, 92% 43%, 90% 50%, 92% 57%, 96% 64%, 100% 70%, 100% 100%, 0 100%, 0 70%, 4% 64%, 8% 57%, 10% 50%, 8% 43%, 4% 36%, 0 30%);border-radius:0;`;
     }
   }
   inner.style.cssText = innerCss;
