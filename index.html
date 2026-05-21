@@ -1884,35 +1884,42 @@ const SPECS = {
             leftImage:  { id:'1_L', uploadLabel:'리스트 1 좌측 이미지', clipPath:'polygon(0 0, 450px 0, 350px 100%, 0 100%)' },
             rightImage: { id:'1_R', uploadLabel:'리스트 1 우측 이미지', clipPath:'polygon(450px 0, 800px 0, 800px 100%, 350px 100%)' },
             // 좌측 = 하단 가운데 정렬 (sub 위, pill 아래). 좌측 영역 = x:0~450, 가운데 ~225 (사선 고려)
-            leftSub:  { bottom:120, left:0, right:450, fs:24, color:'#FFFFFF', fw:500, textAlign:'center', defaultText:'네이버 판매 1위' },
-            leftMain: { bottom:45,  left:0, right:450, fs:30, color:'#FFFFFF', fw:700, textAlign:'center',
+            //   sub/main 모두 fs:25, gap 좁힘
+            leftSub:  { bottom:108, left:0, right:450, fs:25, color:'#FFFFFF', fw:500, textAlign:'center', defaultText:'네이버 판매 1위' },
+            leftMain: { bottom:45,  left:0, right:450, fs:25, color:'#FFFFFF', fw:700, textAlign:'center',
                         defaultText:'무선 단말기', pillStyle:{ bg:'#2D7DFC', radius:10, padding:'14px 28px' } },
             // 우측 = 상단 가운데 정렬 (sub 위, pill 아래). 우측 영역 = x:450~800, 가운데 ~625
-            rightSub: { top:45,  left:450, right:0, fs:24, color:'#FFFFFF', fw:500, textAlign:'center', defaultText:'평점 4.9 · 만족도 1위' },
-            rightMain:{ top:90,  left:450, right:0, fs:30, color:'#FFFFFF', fw:700, textAlign:'center',
+            rightSub: { top:45,  left:450, right:0, fs:25, color:'#FFFFFF', fw:500, textAlign:'center', defaultText:'평점 4.9 · 만족도 1위' },
+            rightMain:{ top:80,  left:450, right:0, fs:25, color:'#FFFFFF', fw:700, textAlign:'center',
                         defaultText:'유·무선 단말기', pillStyle:{ bg:'#2D7DFC', radius:10, padding:'14px 28px' } } },
           // 리스트 2~5 — 상품 카드 (1:1)
           { id: '2', label: '리스트 2', uploadLabel: '리스트 2 (800×800)', w: 800, h: 800,
             template: 'productCard',
             img: { hcenter:true, vcenter:true, w:560, h:560, editable:true },
-            badgeTL:{ top:50, left:50, fs:60, fw:800, color:'#FFFFFF', defaultText:'~63%',
-                      pillStyle:{ bg:'#2D7DFC', radius:26, padding:'16px 32px' } },
+            // 좌상단 뱃지: 캔버스 모서리에 패딩 없이 붙임, BR 코너만 radius 16
+            badgeTL:{ top:0, left:0, fs:60, fw:800, color:'#FFFFFF', defaultText:'~63%',
+                      pillStyle:{ bg:'#2D7DFC', radius:'0 0 16px 0', padding:'24px 36px' } },
+            // 우하단 뱃지: 쿠폰 모양 (좌·우 가운데 반원형 노치)
             badgeBR:{ bottom:60, right:50, fs:32, fw:700, color:'#FFFFFF', defaultText:'+ 65,000원',
-                      pillStyle:{ bg:'#3D2D8C', radius:18, padding:'14px 24px' } } },
+                      pillStyle:{ bg:'#3D2D8C', shape:'ticket', padding:'18px 36px' } } },
           { id: '3', label: '리스트 3', uploadLabel: '리스트 3 (800×800)', w: 800, h: 800,
             template: 'productCard',
             img: { hcenter:true, vcenter:true, w:560, h:560, editable:true },
-            badgeTL:{ top:50, left:50, fs:60, fw:800, color:'#FFFFFF', defaultText:'~63%',
-                      pillStyle:{ bg:'#2D7DFC', radius:26, padding:'16px 32px' } },
+            // 좌상단 뱃지: 캔버스 모서리에 패딩 없이 붙임, BR 코너만 radius 16
+            badgeTL:{ top:0, left:0, fs:60, fw:800, color:'#FFFFFF', defaultText:'~63%',
+                      pillStyle:{ bg:'#2D7DFC', radius:'0 0 16px 0', padding:'24px 36px' } },
+            // 우하단 뱃지: 쿠폰 모양 (좌·우 가운데 반원형 노치)
             badgeBR:{ bottom:60, right:50, fs:32, fw:700, color:'#FFFFFF', defaultText:'+ 65,000원',
-                      pillStyle:{ bg:'#3D2D8C', radius:18, padding:'14px 24px' } } },
+                      pillStyle:{ bg:'#3D2D8C', shape:'ticket', padding:'18px 36px' } } },
           { id: '4', label: '리스트 4', uploadLabel: '리스트 4 (800×800)', w: 800, h: 800,
             template: 'productCard',
             img: { hcenter:true, vcenter:true, w:560, h:560, editable:true },
-            badgeTL:{ top:50, left:50, fs:60, fw:800, color:'#FFFFFF', defaultText:'~63%',
-                      pillStyle:{ bg:'#2D7DFC', radius:26, padding:'16px 32px' } },
+            // 좌상단 뱃지: 캔버스 모서리에 패딩 없이 붙임, BR 코너만 radius 16
+            badgeTL:{ top:0, left:0, fs:60, fw:800, color:'#FFFFFF', defaultText:'~63%',
+                      pillStyle:{ bg:'#2D7DFC', radius:'0 0 16px 0', padding:'24px 36px' } },
+            // 우하단 뱃지: 쿠폰 모양 (좌·우 가운데 반원형 노치)
             badgeBR:{ bottom:60, right:50, fs:32, fw:700, color:'#FFFFFF', defaultText:'+ 65,000원',
-                      pillStyle:{ bg:'#3D2D8C', radius:18, padding:'14px 24px' } } },
+                      pillStyle:{ bg:'#3D2D8C', shape:'ticket', padding:'18px 36px' } } },
           { id: '5', label: '리스트 5', uploadLabel: '리스트 5 (800×800)', w: 800, h: 800,
             template: 'productCard',
             img: { hcenter:true, vcenter:true, w:560, h:560, editable:true },
@@ -3438,39 +3445,43 @@ function renderPreviews() {
         textPanel.appendChild(row);
       });
       // pill 박스 컬러 픽커 (pillStyle 있는 요소만)
+      //   - c2(두 번째 컬러)는 그라데이션 ON일 때만 노출
+      //   - 그라데이션 토글 ON → color2 기본값 '#FFFFFF' (사용자가 변경)
+      //   - 색상 픽커는 'change' 이벤트 사용 (input 이벤트는 native dialog 중 DOM 파괴로 적용 누락 가능)
       fieldDefs.forEach(({ key, label }) => {
         if (!v[key] || !v[key].pillStyle) return;
         const pillCfg = (templatePillBg[v.id] && templatePillBg[v.id][key])
           || { color1: v[key].pillStyle.bg || '#2D7DFC', color2: null };
         const row = document.createElement('div');
         row.className = 'template-pill-row';
-        const grad2 = pillCfg.color2 || pillCfg.color1;
         row.innerHTML = `
           <span class="pill-row-label">${label} 컬러</span>
           <input type="color" class="pill-c1" value="${pillCfg.color1}">
-          <input type="color" class="pill-c2" value="${grad2}" ${pillCfg.color2 ? '' : 'disabled'}>
-          <button type="button" class="pill-grad-btn">${pillCfg.color2 ? '× 끄기' : '+ 그라데이션'}</button>
+          ${pillCfg.color2 ? `<input type="color" class="pill-c2" value="${pillCfg.color2}">` : ''}
+          <button type="button" class="pill-grad-btn">${pillCfg.color2 ? '× 그라데이션 끄기' : '+ 그라데이션'}</button>
         `;
         const c1 = row.querySelector('.pill-c1');
-        const c2 = row.querySelector('.pill-c2');
+        const c2 = row.querySelector('.pill-c2'); // 그라데이션 OFF면 null
         const gbtn = row.querySelector('.pill-grad-btn');
         const updatePillBg = (next) => {
           if (!templatePillBg[v.id]) templatePillBg[v.id] = {};
           templatePillBg[v.id][key] = next;
           renderPreviews();
         };
-        c1.addEventListener('input', () => {
+        c1.addEventListener('change', () => {
           const cur = (templatePillBg[v.id] && templatePillBg[v.id][key]) || { color1: c1.value, color2: null };
           updatePillBg({ ...cur, color1: c1.value });
         });
-        c2.addEventListener('input', () => {
-          const cur = (templatePillBg[v.id] && templatePillBg[v.id][key]) || { color1: c1.value, color2: null };
-          updatePillBg({ ...cur, color2: c2.value });
-        });
+        if (c2) {
+          c2.addEventListener('change', () => {
+            const cur = (templatePillBg[v.id] && templatePillBg[v.id][key]) || { color1: c1.value, color2: c2.value };
+            updatePillBg({ ...cur, color2: c2.value });
+          });
+        }
         gbtn.addEventListener('click', () => {
           const cur = (templatePillBg[v.id] && templatePillBg[v.id][key]) || { color1: c1.value, color2: null };
           if (cur.color2) updatePillBg({ ...cur, color2: null });
-          else            updatePillBg({ ...cur, color2: c1.value });
+          else            updatePillBg({ ...cur, color2: '#FFFFFF' });  // 흰색 기본값 → 사용자가 변경
         });
         textPanel.appendChild(row);
       });
@@ -3480,11 +3491,10 @@ function renderPreviews() {
         const bgCfg = currentVersionBg[v.id] || { color1: '#FFFFFF', color2: null };
         const bgPanel = document.createElement('div');
         bgPanel.className = 'template-bg-ctrl';
-        const grad2 = bgCfg.color2 || bgCfg.color1;
         bgPanel.innerHTML = `
           <span class="template-bg-label">배경</span>
           <input type="color" class="tpl-bg-c1" value="${bgCfg.color1}">
-          <input type="color" class="tpl-bg-c2" value="${grad2}" ${bgCfg.color2 ? '' : 'disabled'}>
+          ${bgCfg.color2 ? `<input type="color" class="tpl-bg-c2" value="${bgCfg.color2}">` : ''}
           <button type="button" class="tpl-bg-grad-btn">${bgCfg.color2 ? '× 그라데이션 끄기' : '+ 그라데이션'}</button>
         `;
         const c1 = bgPanel.querySelector('.tpl-bg-c1');
@@ -3494,18 +3504,20 @@ function renderPreviews() {
           currentVersionBg[v.id] = next;
           renderPreviews();
         };
-        c1.addEventListener('input', () => {
+        c1.addEventListener('change', () => {
           const cur = currentVersionBg[v.id] || { color1: '#FFFFFF', color2: null };
           updateBg({ ...cur, color1: c1.value });
         });
-        c2.addEventListener('input', () => {
-          const cur = currentVersionBg[v.id] || { color1: c1.value, color2: null };
-          updateBg({ ...cur, color2: c2.value });
-        });
+        if (c2) {
+          c2.addEventListener('change', () => {
+            const cur = currentVersionBg[v.id] || { color1: c1.value, color2: c2.value };
+            updateBg({ ...cur, color2: c2.value });
+          });
+        }
         gbtn.addEventListener('click', () => {
           const cur = currentVersionBg[v.id] || { color1: c1.value, color2: null };
           if (cur.color2) updateBg({ ...cur, color2: null });
-          else            updateBg({ ...cur, color2: c1.value });
+          else            updateBg({ ...cur, color2: '#FFFFFF' });
         });
         section.appendChild(bgPanel);
       }
@@ -3856,7 +3868,15 @@ function buildTemplateTextEl(cfg) {
   let innerCss = `display:inline-block;font-family:var(--font);font-weight:${cfg.fw || 600};font-size:${cfg.fs}px;color:${cfg.color || '#FFFFFF'};line-height:1;letter-spacing:-0.02em;white-space:nowrap;`;
   if (cfg.pillStyle) {
     const ps = cfg.pillStyle;
-    innerCss += `background:${ps.bg || '#1A1A1A'};border-radius:${ps.radius !== undefined ? ps.radius : 10}px;padding:${ps.padding || '12px 22px'};`;
+    // radius: 숫자(전체) 또는 CSS 문자열('0 0 16px 0' 같은 코너별 값)
+    const radiusVal = (typeof ps.radius === 'string')
+      ? ps.radius
+      : `${ps.radius !== undefined ? ps.radius : 10}px`;
+    innerCss += `background:${ps.bg || '#1A1A1A'};border-radius:${radiusVal};padding:${ps.padding || '12px 22px'};`;
+    // shape:'ticket' — 좌·우 가운데 노치 잘라낸 쿠폰 모양 (radius 무시)
+    if (ps.shape === 'ticket') {
+      innerCss += `clip-path:polygon(0 0, 100% 0, 100% 32%, 90% 50%, 100% 68%, 100% 100%, 0 100%, 0 68%, 10% 50%, 0 32%);border-radius:0;`;
+    }
   }
   inner.style.cssText = innerCss;
   inner.textContent = cfg.defaultText || '';
