@@ -849,6 +849,7 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
         <option value="table">테이블 오더</option>
         <option value="blog">웹 블로그</option>
         <option value="cardnews">카드 뉴스</option>
+        <option value="content">콘텐츠</option>
         <option value="reels">릴스</option>
       </select>
     </div>
@@ -1541,6 +1542,92 @@ const SPECS = {
           //   3줄 sub: imgH=966, 2줄: 1026, 1줄: 1086
           img:  { top:0, left:0, w:1080, h:966, editable:true, autoSize:true, gapToText:70, subDrivesMainPos:true, mainSubGap:30 }
         }]
+      }
+    }
+  },
+  content: {
+    label: '콘텐츠',
+    // 일반 배너용 — 1:1 (1080×1080) / 4:3 (1200×900)
+    //   카드 뉴스 표지(E1) / 내지 카피 하단(E4) 두 패턴을 두 사이즈에 맞춰 재배치.
+    //   카피가 잘리지 않도록 fs/위치/패딩 모두 캔버스 크기에 맞춰 조정.
+    slots: {
+      // 1:1 표지 — 1080×1080, 카드뉴스 표지 패턴 (pill + 메인 카피 + 검정 scrim)
+      'G1': {
+        label: '1:1 표지',
+        bgFixed: null, noPointColor: true, isLarge: true,
+        pillSub: true,
+        bgPresets: ['#FFFFFF', '#F4F1EA', '#F6F8F9', '#FFEFF2', '#E8F4FF', '#EFFCE7', '#FFF8D7', '#1A1A1A'],
+        versions: [
+          { id: 'full', label: '배경 이미지', uploadLabel: '배경 이미지', w: 1080, h: 1080,
+            lockTextColor: true,
+            img:  { top:0, left:0, w:1080, h:1080, bgFull:true, editable:true },
+            // 패딩: 좌우 70 / 상단 651 (pill) / sub-main gap 30 / 하단 100. 메인 90px 130% -4%
+            sub:  { top:651, left:70, fs:41, color:'#FFFFFF' },
+            main: { top:746, left:70, right:70, fs:90, lines:2, lh:'130%', ls:'-0.04em', paddingBottom:100, color:'#FFFFFF' },
+            fade: { strong:1080, faded:620, rgb:'0,0,0', maxAlpha:0.55 } },
+          { id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1080, h: 1080,
+            // 이미지 h:581 — 하단(581) ~ sub 시작(651) 간격 70px
+            img:  { top:0, left:0, w:1080, h:581, cover:true, editable:true },
+            sub:  { top:651, left:70, fs:41, color:'#1A1A1A' },
+            main: { top:746, left:70, right:70, fs:90, lines:2, lh:'130%', ls:'-0.04em', paddingBottom:100, color:'#1A1A1A' } }
+        ]
+      },
+      // 1:1 내지 (카피 하단) — 이미지 위 + 메인 카피 아래 (E4 패턴, 1:1 사이즈)
+      'G2': {
+        label: '1:1 내지 (카피 하단)',
+        bgFixed: null, pointColor: true, noSub: true, isLarge: true,
+        multiSlide: true, showMainPad: true,
+        bgPresets: ['#FFFFFF', '#F4F1EA', '#FDEDEF', '#E8F4FF', '#FFF8D7', '#F4F0FF', '#EFFCE7'],
+        versions: [
+          { id: 'full', label: '배경 이미지', uploadLabel: '배경 이미지', w: 1080, h: 1080,
+            lockTextColor: true,
+            img:  { top:0, left:0, w:1080, h:1080, bgFull:true, editable:true },
+            main: { bottom:80, left:70, right:70, fs:48, lines:3, lh:'150%', center:true, color:'#FFFFFF' },
+            fade: { strong:1080, faded:680, rgb:'0,0,0', maxAlpha:0.55 } },
+          { id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1080, h: 1080,
+            main: { bottom:80, left:70, right:70, fs:48, lines:3, lh:'150%', center:true, color:'#1A1A1A' },
+            // 이미지 — top 0, 풀폭. autoSize로 카피 줄 수에 따라 동적 (3줄 기준 h=714)
+            img:  { top:0, left:0, w:1080, h:714, editable:true, autoSize:true, gapToText:70 } }
+        ]
+      },
+      // 4:3 표지 — 1200×900, 카드뉴스 표지 패턴 (pill + 메인 카피 + 검정 scrim)
+      'G3': {
+        label: '4:3 표지',
+        bgFixed: null, noPointColor: true, isLarge: true,
+        pillSub: true,
+        bgPresets: ['#FFFFFF', '#F4F1EA', '#F6F8F9', '#FFEFF2', '#E8F4FF', '#EFFCE7', '#FFF8D7', '#1A1A1A'],
+        versions: [
+          { id: 'full', label: '배경 이미지', uploadLabel: '배경 이미지', w: 1200, h: 900,
+            lockTextColor: true,
+            img:  { top:0, left:0, w:1200, h:900, bgFull:true, editable:true },
+            // 패딩: 좌우 70 / 상단 491 (pill) / sub-main gap 30 / 하단 80. 메인 90px 130% -4%
+            sub:  { top:491, left:70, fs:41, color:'#FFFFFF' },
+            main: { top:586, left:70, right:70, fs:90, lines:2, lh:'130%', ls:'-0.04em', paddingBottom:80, color:'#FFFFFF' },
+            fade: { strong:900, faded:460, rgb:'0,0,0', maxAlpha:0.55 } },
+          { id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1200, h: 900,
+            // 이미지 h:421 — 하단(421) ~ sub 시작(491) 간격 70px
+            img:  { top:0, left:0, w:1200, h:421, cover:true, editable:true },
+            sub:  { top:491, left:70, fs:41, color:'#1A1A1A' },
+            main: { top:586, left:70, right:70, fs:90, lines:2, lh:'130%', ls:'-0.04em', paddingBottom:80, color:'#1A1A1A' } }
+        ]
+      },
+      // 4:3 내지 (카피 하단) — 이미지 위 + 메인 카피 아래 (E4 패턴, 4:3 사이즈)
+      'G4': {
+        label: '4:3 내지 (카피 하단)',
+        bgFixed: null, pointColor: true, noSub: true, isLarge: true,
+        multiSlide: true, showMainPad: true,
+        bgPresets: ['#FFFFFF', '#F4F1EA', '#FDEDEF', '#E8F4FF', '#FFF8D7', '#F4F0FF', '#EFFCE7'],
+        versions: [
+          { id: 'full', label: '배경 이미지', uploadLabel: '배경 이미지', w: 1200, h: 900,
+            lockTextColor: true,
+            img:  { top:0, left:0, w:1200, h:900, bgFull:true, editable:true },
+            main: { bottom:70, left:70, right:70, fs:48, lines:3, lh:'150%', center:true, color:'#FFFFFF' },
+            fade: { strong:900, faded:500, rgb:'0,0,0', maxAlpha:0.55 } },
+          { id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1200, h: 900,
+            main: { bottom:70, left:70, right:70, fs:48, lines:3, lh:'150%', center:true, color:'#1A1A1A' },
+            // 이미지 — top 0, 풀폭. autoSize로 카피 줄 수에 따라 동적 (3줄 기준 h=544)
+            img:  { top:0, left:0, w:1200, h:544, editable:true, autoSize:true, gapToText:70 } }
+        ]
       }
     }
   },
