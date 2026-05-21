@@ -534,6 +534,11 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
   border-color: var(--ink); color: var(--ink);
   background: #fff;
 }
+.editable-btn-row {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin-top: 10px;
+}
+.editable-btn-row .editable-reset-btn { margin-top: 0; }
 
 /* ===== §13e Claude JSON 붙여넣기 패널 (카드 뉴스 전용) ===== */
 .json-import {
@@ -2926,18 +2931,39 @@ function renderPreviews() {
       outer.appendChild(buildBanner(v, spec));
     }
     section.appendChild(outer);
-    // editable 이미지: 위치/크기 초기화 버튼 (이미지가 업로드된 경우에만)
+    // editable 이미지: 위치 정렬 · 초기화 버튼 (이미지가 업로드된 경우에만)
     const isVerEditable = spec.imageEditable || (v.img && v.img.editable);
     if (isVerEditable && currentImages[v.id]) {
-      const resetBtn = document.createElement('button');
-      resetBtn.type = 'button';
-      resetBtn.className = 'editable-reset-btn';
-      resetBtn.textContent = '↺ 위치 · 크기 초기화';
-      resetBtn.onclick = () => {
+      const btnRow = document.createElement('div');
+      btnRow.className = 'editable-btn-row';
+      const makeBtn = (text, handler) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'editable-reset-btn';
+        b.textContent = text;
+        b.onclick = handler;
+        return b;
+      };
+      // 좌우 가운데 정렬 — state.x = 0 (scale 유지)
+      btnRow.appendChild(makeBtn('↔ 좌우 가운데', () => {
+        const t = currentImageTransforms[v.id] || { scale:1, x:0, y:0 };
+        t.x = 0;
+        currentImageTransforms[v.id] = t;
+        renderPreviews();
+      }));
+      // 상하 가운데 정렬 — state.y = 0 (scale 유지)
+      btnRow.appendChild(makeBtn('↕ 상하 가운데', () => {
+        const t = currentImageTransforms[v.id] || { scale:1, x:0, y:0 };
+        t.y = 0;
+        currentImageTransforms[v.id] = t;
+        renderPreviews();
+      }));
+      // 위치/크기 전체 초기화
+      btnRow.appendChild(makeBtn('↺ 위치 · 크기 초기화', () => {
         currentImageTransforms[v.id] = { scale: 1, x: 0, y: 0 };
         renderPreviews();
-      };
-      section.appendChild(resetBtn);
+      }));
+      section.appendChild(btnRow);
     }
     // 오버레이 컬러 픽커 — v.fade 또는 v.dim이 있는 버전에서 배경 이미지에 맞춰 색 선택
     if (v.fade || v.dim) {
