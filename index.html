@@ -1900,37 +1900,37 @@ const SPECS = {
           // 리스트 2~5 — 상품 카드 (1:1)
           { id: '2', label: '리스트 2', uploadLabel: '리스트 2 (800×800)', w: 800, h: 800,
             template: 'productCard',
-            imageFrame: 10,  // 캔버스 가장자리에 10px 흰 프레임 (이미지 주변)
-            // 이미지: bgFull로 전체 캔버스 차지, forceKnockout으로 흰 배경 자동 누끼
+            // 이미지: bgFull, forceKnockout (흰 배경 자동 누끼)
             img: { top:0, left:0, w:800, h:800, bgFull:true, editable:true, forceKnockout:true },
-            // 좌상단 뱃지: 캔버스 모서리에 패딩 없이 붙임, BR 코너만 radius 16
-            badgeTL:{ top:0, left:0, fs:60, fw:800, color:'#FFFFFF', defaultText:'~63%',
-                      pillStyle:{ bg:'#2D7DFC', radius:'0 0 16px 0', padding:'24px 36px' } },
-            // 우하단 뱃지: 쿠폰 모양 (좌·우 가운데 둥근 노치), 크기 2배 (fs 32→64, padding 2x)
-            badgeBR:{ bottom:60, right:50, fs:64, fw:700, color:'#FFFFFF', defaultText:'+ 65,000원',
-                      pillStyle:{ bg:'#3D2D8C', shape:'ticket', padding:'36px 72px' } } },
+            // 하단 슬랜트 바: 좌측(splitLeft) 320×130 + 우측(splitRight) 540×130, 사선 경계 정렬
+            //   왼쪽 사다리꼴: 상단 0~320, 하단 0~260 (오른쪽 사선)
+            //   오른쪽 사다리꼴: 상단 320~800, 하단 260~800 (좌측 사선이 왼쪽 사다리꼴과 맞물림)
+            badgeTL:{ bottom:0, left:0, fs:60, fw:800, color:'#FFFFFF', defaultText:'~63%',
+                      pillStyle:{ bg:'#2D7DFC', shape:'splitLeft', width:320, height:130, padding:'0 30px 0 0' } },
+            badgeBR:{ bottom:0, right:0, fs:60, fw:700, color:'#FFFFFF', defaultText:'-65,000원',
+                      pillStyle:{ bg:'#3D2D8C', shape:'splitRight', width:540, height:130, padding:'0 0 0 30px' } } },
           { id: '3', label: '리스트 3', uploadLabel: '리스트 3 (800×800)', w: 800, h: 800,
             template: 'productCard',
-            imageFrame: 10,  // 캔버스 가장자리에 10px 흰 프레임 (이미지 주변)
-            // 이미지: bgFull로 전체 캔버스 차지, forceKnockout으로 흰 배경 자동 누끼
+            // 이미지: bgFull, forceKnockout (흰 배경 자동 누끼)
             img: { top:0, left:0, w:800, h:800, bgFull:true, editable:true, forceKnockout:true },
-            // 좌상단 뱃지: 캔버스 모서리에 패딩 없이 붙임, BR 코너만 radius 16
-            badgeTL:{ top:0, left:0, fs:60, fw:800, color:'#FFFFFF', defaultText:'~63%',
-                      pillStyle:{ bg:'#2D7DFC', radius:'0 0 16px 0', padding:'24px 36px' } },
-            // 우하단 뱃지: 쿠폰 모양 (좌·우 가운데 둥근 노치), 크기 2배 (fs 32→64, padding 2x)
-            badgeBR:{ bottom:60, right:50, fs:64, fw:700, color:'#FFFFFF', defaultText:'+ 65,000원',
-                      pillStyle:{ bg:'#3D2D8C', shape:'ticket', padding:'36px 72px' } } },
+            // 하단 슬랜트 바: 좌측(splitLeft) 320×130 + 우측(splitRight) 540×130, 사선 경계 정렬
+            //   왼쪽 사다리꼴: 상단 0~320, 하단 0~260 (오른쪽 사선)
+            //   오른쪽 사다리꼴: 상단 320~800, 하단 260~800 (좌측 사선이 왼쪽 사다리꼴과 맞물림)
+            badgeTL:{ bottom:0, left:0, fs:60, fw:800, color:'#FFFFFF', defaultText:'~63%',
+                      pillStyle:{ bg:'#2D7DFC', shape:'splitLeft', width:320, height:130, padding:'0 30px 0 0' } },
+            badgeBR:{ bottom:0, right:0, fs:60, fw:700, color:'#FFFFFF', defaultText:'-65,000원',
+                      pillStyle:{ bg:'#3D2D8C', shape:'splitRight', width:540, height:130, padding:'0 0 0 30px' } } },
           { id: '4', label: '리스트 4', uploadLabel: '리스트 4 (800×800)', w: 800, h: 800,
             template: 'productCard',
-            imageFrame: 10,  // 캔버스 가장자리에 10px 흰 프레임 (이미지 주변)
-            // 이미지: bgFull로 전체 캔버스 차지, forceKnockout으로 흰 배경 자동 누끼
+            // 이미지: bgFull, forceKnockout (흰 배경 자동 누끼)
             img: { top:0, left:0, w:800, h:800, bgFull:true, editable:true, forceKnockout:true },
-            // 좌상단 뱃지: 캔버스 모서리에 패딩 없이 붙임, BR 코너만 radius 16
-            badgeTL:{ top:0, left:0, fs:60, fw:800, color:'#FFFFFF', defaultText:'~63%',
-                      pillStyle:{ bg:'#2D7DFC', radius:'0 0 16px 0', padding:'24px 36px' } },
-            // 우하단 뱃지: 쿠폰 모양 (좌·우 가운데 둥근 노치), 크기 2배 (fs 32→64, padding 2x)
-            badgeBR:{ bottom:60, right:50, fs:64, fw:700, color:'#FFFFFF', defaultText:'+ 65,000원',
-                      pillStyle:{ bg:'#3D2D8C', shape:'ticket', padding:'36px 72px' } } },
+            // 하단 슬랜트 바: 좌측(splitLeft) 320×130 + 우측(splitRight) 540×130, 사선 경계 정렬
+            //   왼쪽 사다리꼴: 상단 0~320, 하단 0~260 (오른쪽 사선)
+            //   오른쪽 사다리꼴: 상단 320~800, 하단 260~800 (좌측 사선이 왼쪽 사다리꼴과 맞물림)
+            badgeTL:{ bottom:0, left:0, fs:60, fw:800, color:'#FFFFFF', defaultText:'~63%',
+                      pillStyle:{ bg:'#2D7DFC', shape:'splitLeft', width:320, height:130, padding:'0 30px 0 0' } },
+            badgeBR:{ bottom:0, right:0, fs:60, fw:700, color:'#FFFFFF', defaultText:'-65,000원',
+                      pillStyle:{ bg:'#3D2D8C', shape:'splitRight', width:540, height:130, padding:'0 0 0 30px' } } },
           { id: '5', label: '리스트 5', uploadLabel: '리스트 5 (800×800)', w: 800, h: 800,
             template: 'productCard',
             img: { hcenter:true, vcenter:true, w:560, h:560, editable:true },
@@ -3882,15 +3882,33 @@ function buildTemplateTextEl(cfg) {
   if (cfg.textShadow) innerCss += `text-shadow:${cfg.textShadow};`;
   if (cfg.pillStyle) {
     const ps = cfg.pillStyle;
-    // radius: 숫자(전체) 또는 CSS 문자열('0 0 16px 0' 같은 코너별 값)
-    const radiusVal = (typeof ps.radius === 'string')
-      ? ps.radius
-      : `${ps.radius !== undefined ? ps.radius : 10}px`;
-    innerCss += `background:${ps.bg || '#1A1A1A'};border-radius:${radiusVal};padding:${ps.padding || '12px 22px'};`;
-    // shape:'ticket' — 좌·우 가운데 둥근 노치 잘라낸 쿠폰 모양 (radius 무시)
-    //   각 노치에 5개 중간점을 두어 곡선 근사 (단일 꼭지점 V 대신 둥근 반원형 효과)
-    if (ps.shape === 'ticket') {
-      innerCss += `clip-path:polygon(0 0, 100% 0, 100% 30%, 96% 36%, 92% 43%, 90% 50%, 92% 57%, 96% 64%, 100% 70%, 100% 100%, 0 100%, 0 70%, 4% 64%, 8% 57%, 10% 50%, 8% 43%, 4% 36%, 0 30%);border-radius:0;`;
+    // shape:'splitLeft' / 'splitRight' — 고정 사이즈 슬랜트 바 (K3 리스트 2~5 하단 뱃지)
+    //   inline-block 대신 flex로 텍스트 정렬, clip-path로 사다리꼴 모양
+    if (ps.shape === 'splitLeft' || ps.shape === 'splitRight') {
+      // inline-block → flex로 교체
+      innerCss = innerCss.replace('display:inline-block;', 'display:flex;align-items:center;justify-content:center;');
+      if (ps.width) innerCss += `width:${ps.width}px;`;
+      if (ps.height) innerCss += `height:${ps.height}px;`;
+      innerCss += `background:${ps.bg || '#1A1A1A'};`;
+      if (ps.padding) innerCss += `padding:${ps.padding};`;
+      // splitLeft: 우측이 살짝 안쪽으로 사선 (오른쪽 위에서 왼쪽 아래로) — 좌측 사다리꼴
+      // splitRight: 좌측이 살짝 바깥으로 사선 (위쪽이 더 안쪽) — 우측 사다리꼴, 좌측 사선이 splitLeft 우측과 정렬
+      if (ps.shape === 'splitLeft') {
+        innerCss += `clip-path:polygon(0 0, 100% 0, 81.25% 100%, 0 100%);`;
+      } else {
+        innerCss += `clip-path:polygon(11.11% 0, 100% 0, 100% 100%, 0 100%);`;
+      }
+    } else {
+      // 일반 pill (radius / ticket / 기본 둥근)
+      // radius: 숫자(전체) 또는 CSS 문자열('0 0 16px 0' 같은 코너별 값)
+      const radiusVal = (typeof ps.radius === 'string')
+        ? ps.radius
+        : `${ps.radius !== undefined ? ps.radius : 10}px`;
+      innerCss += `background:${ps.bg || '#1A1A1A'};border-radius:${radiusVal};padding:${ps.padding || '12px 22px'};`;
+      // shape:'ticket' — 좌·우 가운데 둥근 노치 잘라낸 쿠폰 모양
+      if (ps.shape === 'ticket') {
+        innerCss += `clip-path:polygon(0 0, 100% 0, 100% 30%, 96% 36%, 92% 43%, 90% 50%, 92% 57%, 96% 64%, 100% 70%, 100% 100%, 0 100%, 0 70%, 4% 64%, 8% 57%, 10% 50%, 8% 43%, 4% 36%, 0 30%);border-radius:0;`;
+      }
     }
   }
   inner.style.cssText = innerCss;
