@@ -237,6 +237,7 @@ button { font-family: inherit; }
 .tab-btn:hover { color: var(--ink); }
 .tab-btn.active { color: var(--ink); }
 .tab-btn.active::after { background: var(--ink); }
+.tab-btn.hidden { display: none; }
 .tab-content { display: none; padding: 28px; }
 .tab-content.active {
   display: flex; flex-direction: column;
@@ -2435,10 +2436,13 @@ function onSlotChange() {
   updateNanoRatio();
   updateTextColorUI();
   renderPreviews();
-  // 텍스트 입력이 전혀 없는 슬롯(아이콘/실사 전용)은 이미지 탭이 주 작업 공간 → 자동 전환
+  // 텍스트 입력이 전혀 없는 슬롯(아이콘/실사 전용/템플릿 기반)은 이미지 탭이 주 작업 공간
+  //   카피 탭 자체를 숨겨서 한 탭만 노출 (배경색·텍스트 등은 per-version 컨트롤에 있음)
   const sample = slotSpec.versions[0];
   const isTextless = slotSpec.iconOnly || slotSpec.imageEditable
     || (sample && !sample.main && (!sample.sub || slotSpec.noSub) && !slotSpec.hasButton);
+  const tabBtnCopy = document.getElementById('tab-btn-copy');
+  if (tabBtnCopy) tabBtnCopy.classList.toggle('hidden', isTextless);
   switchTab(isTextless ? 'image' : 'copy');
 }
 // ================================================
