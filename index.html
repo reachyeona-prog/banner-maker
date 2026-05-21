@@ -540,6 +540,58 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
 }
 .editable-btn-row .editable-reset-btn { margin-top: 0; }
 
+/* ===== 친구톡 K3 템플릿 — per-version 텍스트/배경 컨트롤 ===== */
+.template-text-ctrl {
+  margin-top: 10px; padding: 10px 12px;
+  display: flex; flex-direction: column; gap: 6px;
+  background: var(--bg-elev); border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.template-text-row {
+  display: flex; align-items: center; gap: 8px;
+}
+.template-text-row label {
+  flex: 0 0 76px;
+  font-family: var(--font-mono); font-size: 10px; font-weight: 500;
+  color: var(--text-muted); letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.template-text-row input {
+  flex: 1; height: 28px; padding: 0 8px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 4px; font-family: var(--font);
+  font-size: 12px; color: var(--text-primary); outline: none;
+}
+.template-text-row input:focus { border-color: var(--ink); }
+.template-bg-ctrl {
+  margin-top: 8px; padding: 8px 12px;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  background: var(--bg-elev); border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.template-bg-label {
+  font-family: var(--font-mono); font-size: 10px; font-weight: 500;
+  color: var(--text-muted); letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.template-bg-ctrl input[type="color"] {
+  width: 36px; height: 28px; padding: 0; margin: 0;
+  border: 1px solid var(--border); border-radius: 4px;
+  background: transparent; cursor: pointer;
+  -webkit-appearance: none; appearance: none;
+}
+.template-bg-ctrl input[type="color"]:disabled { opacity: 0.3; cursor: not-allowed; }
+.template-bg-ctrl input[type="color"]::-webkit-color-swatch-wrapper { padding: 2px; }
+.template-bg-ctrl input[type="color"]::-webkit-color-swatch { border: none; border-radius: 3px; }
+.tpl-bg-grad-btn {
+  height: 28px; padding: 0 10px;
+  background: var(--card); color: var(--text-primary);
+  border: 1px solid var(--border); border-radius: 4px;
+  font-family: var(--font); font-size: 11px; font-weight: 600;
+  cursor: pointer; transition: all var(--t-base) var(--ease);
+}
+.tpl-bg-grad-btn:hover { border-color: var(--ink); color: var(--ink); }
+
 /* ===== 캐러셀 (친구톡 K4) — 1:1 카드를 가로 행으로 펼쳐서 스크롤 ===== */
 .carousel-row {
   display: flex; flex-wrap: nowrap; gap: 16px;
@@ -1796,10 +1848,12 @@ const SPECS = {
         bgFixed: null, noPointColor: true, noSub: true, isLarge: true,
         bgPresets: ['#FFFFFF', '#F4F1EA', '#FDEDEF', '#E8F4FF'],
         versions: [
-          // 리스트 1 — VS 비교 헤더 (2:1)
-          { id: '1', label: '리스트 1', uploadLabel: '리스트 1 헤더 (800×400)', w: 800, h: 400,
+          // 리스트 1 — VS 비교 헤더 (2:1), 사선으로 절반 슬라이스 + 좌/우 각각 이미지
+          { id: '1', label: '리스트 1', w: 800, h: 400,
             template: 'vsCompare',
-            img: { top:0, left:0, w:800, h:400, bgFull:true, editable:true },
+            // 사선 슬라이스: 좌측 = (0,0)→(450,0)→(350,400)→(0,400), 우측 = (450,0)→(800,0)→(800,400)→(350,400)
+            leftImage:  { id:'1_L', uploadLabel:'리스트 1 좌측 이미지', clipPath:'polygon(0 0, 450px 0, 350px 100%, 0 100%)' },
+            rightImage: { id:'1_R', uploadLabel:'리스트 1 우측 이미지', clipPath:'polygon(450px 0, 800px 0, 800px 100%, 350px 100%)' },
             leftSub:  { top:60,    left:50,  fs:24, color:'#FFFFFF', fw:500, defaultText:'네이버 판매 1위' },
             leftMain: { bottom:50, left:50,  fs:30, color:'#FFFFFF', fw:700, defaultText:'무선 단말기',
                         pillStyle:{ bg:'#2D7DFC', radius:10, padding:'14px 28px' } },
@@ -2033,6 +2087,24 @@ let currentFadeOverrides = {};   // v.fade가 있는 버전에서 슬라이더�
 let currentOverlayColors = {};   // v.dim/v.fade 색을 컬러 픽커로 덮어쓴 값 (HEX) { [v.id]: '#RRGGBB' }
 // carouselExtras[slotKey] = { [baseId]: extraCount } — 슬롯의 베이스별 추가된 카드 개수
 let carouselExtras = {};
+// 친구톡 K3 템플릿 — per-version 텍스트/배경 커스터마이즈
+//   templateTexts[v.id] = { [fieldKey]: text } — defaultText 덮어쓰기
+//   currentVersionBg[v.id] = { color1, color2 (선택, 그라데이션이면 사용) }
+let templateTexts = {};
+let currentVersionBg = {};
+function getTemplateText(vId, key, fallback) {
+  return (templateTexts[vId] && templateTexts[vId][key] !== undefined)
+    ? templateTexts[vId][key]
+    : (fallback || '');
+}
+function getVersionBg(v) {
+  const cfg = currentVersionBg[v.id];
+  if (!cfg) return getBgFor(v);
+  if (cfg.color2 && cfg.color2 !== cfg.color1) {
+    return `linear-gradient(180deg, ${cfg.color1}, ${cfg.color2})`;
+  }
+  return cfg.color1 || getBgFor(v);
+}
 // carouselExpand 스펙을 표준화된 groups 배열로 정규화
 //   - 단일 그룹: { baseId, maxTotal }
 //   - 멀티 그룹: { groups: [{ baseId, maxTotal }, ...] }
@@ -2283,6 +2355,8 @@ function onSlotChange() {
   currentFadeOverrides = {};
   currentOverlayColors = {};
   carouselExtras = {};
+  templateTexts = {};
+  currentVersionBg = {};
   currentTextColorMode = 'auto';
   currentShowButton = true;
   currentMainLines = 3;
@@ -2897,25 +2971,37 @@ function renderImageUploads() {
   const baseVersions = spec.versions.filter(v => !v.id.endsWith('-alt'));
   const versionsToRender = spec.sharedImage ? [baseVersions[0]] : baseVersions;
   const showVersionLabel = !spec.sharedImage && baseVersions.length > 1;
-  versionsToRender.forEach(v => {
+  // 친구톡 vsCompare 템플릿은 한 버전이 leftImage + rightImage 두 이미지를 가짐 — 각자 별도 업로드 존
+  const createUploadItem = (uploadId, labelText, sizeText) => {
     const item = document.createElement('div');
     item.className = 'upload-item';
-    const verEditable = spec.imageEditable || (v.img && v.img.editable);
-    const sizeText = verEditable ? '사진 원본 그대로 사용 · 미리보기에서 드래그 / 휠로 조절'
-      : (v.img ? '클릭 또는 드래그' : 'PNG · JPG · 클릭 또는 드래그');
     item.innerHTML = `
-      ${showVersionLabel ? `<div class="upload-version-label">${v.uploadLabel || (v.label + ' 이미지')}</div>` : ''}
-      <div class="upload-area" id="upload-area-${v.id}">
-        <input type="file" accept="image/*" onchange="onImageUpload(event, '${v.id}')">
-        <img class="upload-preview-thumb" id="upload-thumb-${v.id}" alt="">
-        <div id="upload-placeholder-${v.id}">
+      ${labelText ? `<div class="upload-version-label">${labelText}</div>` : ''}
+      <div class="upload-area" id="upload-area-${uploadId}">
+        <input type="file" accept="image/*" onchange="onImageUpload(event, '${uploadId}')">
+        <img class="upload-preview-thumb" id="upload-thumb-${uploadId}" alt="">
+        <div id="upload-placeholder-${uploadId}">
           <div class="upload-text">업로드</div>
           <div class="upload-sub">${sizeText}</div>
         </div>
       </div>`;
     wrap.appendChild(item);
-    // 드래그 앤 드롭 바인딩
-    bindDropZone(item.querySelector('.upload-area'), v.id);
+    bindDropZone(item.querySelector('.upload-area'), uploadId);
+  };
+  versionsToRender.forEach(v => {
+    if (v.template === 'vsCompare') {
+      // 두 개의 별도 업로드 존 (leftImage / rightImage)
+      [v.leftImage, v.rightImage].forEach(imgSpec => {
+        if (!imgSpec) return;
+        createUploadItem(imgSpec.id, imgSpec.uploadLabel, '사진 원본 그대로 사용 · 미리보기에서 드래그/휠로 조절');
+      });
+      return;
+    }
+    const verEditable = spec.imageEditable || (v.img && v.img.editable);
+    const sizeText = verEditable ? '사진 원본 그대로 사용 · 미리보기에서 드래그 / 휠로 조절'
+      : (v.img ? '클릭 또는 드래그' : 'PNG · JPG · 클릭 또는 드래그');
+    const label = showVersionLabel ? (v.uploadLabel || (v.label + ' 이미지')) : '';
+    createUploadItem(v.id, label, sizeText);
   });
 }
 function bindDropZone(zone, versionId) {
@@ -3274,6 +3360,72 @@ function renderPreviews() {
         renderPreviews();
       }));
       section.appendChild(btnRow);
+    }
+    // 친구톡 K3 템플릿 — per-version 텍스트 인풋 + (productCard) bg 컬러/그라데이션 픽커
+    if (v.template === 'vsCompare' || v.template === 'productCard') {
+      const fieldDefs = v.template === 'vsCompare'
+        ? [
+            { key:'leftSub',  label:'좌측 상단' },
+            { key:'leftMain', label:'좌측 pill' },
+            { key:'rightSub', label:'우측 상단' },
+            { key:'rightMain',label:'우측 pill' }
+          ]
+        : [
+            { key:'badgeTL', label:'좌상단 뱃지' },
+            { key:'badgeBR', label:'우하단 뱃지' }
+          ];
+      const textPanel = document.createElement('div');
+      textPanel.className = 'template-text-ctrl';
+      fieldDefs.forEach(({ key, label }) => {
+        if (!v[key]) return;
+        const cur = getTemplateText(v.id, key, v[key].defaultText);
+        const row = document.createElement('div');
+        row.className = 'template-text-row';
+        row.innerHTML = `<label>${label}</label><input type="text" maxlength="40" value="${cur.replace(/"/g, '&quot;')}">`;
+        const inp = row.querySelector('input');
+        inp.addEventListener('input', () => {
+          if (!templateTexts[v.id]) templateTexts[v.id] = {};
+          templateTexts[v.id][key] = inp.value;
+          // 라이브 갱신 — 해당 banner의 텍스트 노드만 교체 (전체 re-render 피함)
+          renderPreviews();
+        });
+        textPanel.appendChild(row);
+      });
+      section.appendChild(textPanel);
+      // productCard 전용: 배경 컬러/그라데이션 픽커
+      if (v.template === 'productCard') {
+        const bgCfg = currentVersionBg[v.id] || { color1: '#FFFFFF', color2: null };
+        const bgPanel = document.createElement('div');
+        bgPanel.className = 'template-bg-ctrl';
+        const grad2 = bgCfg.color2 || bgCfg.color1;
+        bgPanel.innerHTML = `
+          <span class="template-bg-label">배경</span>
+          <input type="color" class="tpl-bg-c1" value="${bgCfg.color1}">
+          <input type="color" class="tpl-bg-c2" value="${grad2}" ${bgCfg.color2 ? '' : 'disabled'}>
+          <button type="button" class="tpl-bg-grad-btn">${bgCfg.color2 ? '× 그라데이션 끄기' : '+ 그라데이션'}</button>
+        `;
+        const c1 = bgPanel.querySelector('.tpl-bg-c1');
+        const c2 = bgPanel.querySelector('.tpl-bg-c2');
+        const gbtn = bgPanel.querySelector('.tpl-bg-grad-btn');
+        const updateBg = (next) => {
+          currentVersionBg[v.id] = next;
+          renderPreviews();
+        };
+        c1.addEventListener('input', () => {
+          const cur = currentVersionBg[v.id] || { color1: '#FFFFFF', color2: null };
+          updateBg({ ...cur, color1: c1.value });
+        });
+        c2.addEventListener('input', () => {
+          const cur = currentVersionBg[v.id] || { color1: c1.value, color2: null };
+          updateBg({ ...cur, color2: c2.value });
+        });
+        gbtn.addEventListener('click', () => {
+          const cur = currentVersionBg[v.id] || { color1: c1.value, color2: null };
+          if (cur.color2) updateBg({ ...cur, color2: null });
+          else            updateBg({ ...cur, color2: c1.value });
+        });
+        section.appendChild(bgPanel);
+      }
     }
     // 오버레이 컬러 픽커 — v.fade 또는 v.dim이 있는 버전에서 배경 이미지에 맞춰 색 선택
     if (v.fade || v.dim) {
@@ -3694,14 +3846,50 @@ function renderTemplateImage(banner, v) {
   }
   banner.appendChild(iw);
 }
+// vsCompare 각 클립된 이미지 영역 렌더 (leftImage / rightImage)
+function renderClippedImage(banner, v, imgSpec) {
+  const imgURL = currentImages[imgSpec.id];
+  const imgSize = currentImageSizes[imgSpec.id];
+  const bg = document.createElement('div');
+  bg.style.cssText = `position:absolute;top:0;left:0;width:${v.w}px;height:${v.h}px;overflow:hidden;z-index:0;clip-path:${imgSpec.clipPath};cursor:grab;user-select:none;`;
+  if (imgURL && imgSize) {
+    const srcRatio = imgSize.w / imgSize.h;
+    const dstRatio = v.w / v.h;
+    let fitW, fitH;
+    if (srcRatio > dstRatio) { fitH = v.h; fitW = v.h * srcRatio; }
+    else                     { fitW = v.w; fitH = v.w / srcRatio; }
+    const offsetX = (fitW - v.w) / 2;
+    const offsetY = (fitH - v.h) / 2;
+    const img = document.createElement('img');
+    img.src = imgURL;
+    img.draggable = false;
+    const state = currentImageTransforms[imgSpec.id] || (currentImageTransforms[imgSpec.id] = { scale:1, x:0, y:0 });
+    img.style.cssText = `width:${fitW}px;height:${fitH}px;display:block;margin-left:${-offsetX}px;margin-top:${-offsetY}px;max-width:none;transform-origin:center center;transform:translate(${state.x}px,${state.y}px) scale(${state.scale});pointer-events:none;`;
+    bg.appendChild(img);
+    attachEditableImageHandlers(bg, { id: imgSpec.id });
+  } else {
+    const ph = document.createElement('div');
+    ph.style.cssText = `position:absolute;top:0;left:0;width:100%;height:100%;background:#E8EBEF;display:flex;align-items:center;justify-content:center;color:#9A9A9A;font-size:18px;font-weight:600;text-align:center;padding:20px;`;
+    ph.textContent = imgSpec.uploadLabel || '이미지 업로드';
+    bg.appendChild(ph);
+  }
+  banner.appendChild(bg);
+}
 function buildVsCompareBanner(v, spec) {
   const banner = document.createElement('div');
   banner.className = 'banner-wrap';
   banner.id = 'banner-' + v.id;
-  banner.style.cssText = `width:${v.w}px;height:${v.h}px;background:${(v.img && v.img.bgFull) ? 'transparent' : getBgFor(v)};`;
-  renderTemplateImage(banner, v);
+  banner.style.cssText = `width:${v.w}px;height:${v.h}px;background:transparent;`;
+  // 두 개의 사선 클립 이미지 (좌/우)
+  if (v.leftImage) renderClippedImage(banner, v, v.leftImage);
+  if (v.rightImage) renderClippedImage(banner, v, v.rightImage);
+  // 슬라이스 경계선 (사선) — 좌우 이미지 사이 시각적 구분 (선택적, 흰색 얇은 선)
+  // 디폴트로 끔. 필요 시 v.sliceLine: true로 활성화.
+  // 텍스트 오버레이 — templateTexts에서 덮어쓴 값 우선
   ['leftSub', 'leftMain', 'rightSub', 'rightMain'].forEach(key => {
-    if (v[key]) banner.appendChild(buildTemplateTextEl(v[key]));
+    if (!v[key]) return;
+    const cfg = { ...v[key], defaultText: getTemplateText(v.id, key, v[key].defaultText) };
+    banner.appendChild(buildTemplateTextEl(cfg));
   });
   return banner;
 }
@@ -3709,10 +3897,13 @@ function buildProductCardBanner(v, spec) {
   const banner = document.createElement('div');
   banner.className = 'banner-wrap';
   banner.id = 'banner-' + v.id;
-  banner.style.cssText = `width:${v.w}px;height:${v.h}px;background:${getBgFor(v)};`;
+  // 배경: per-version bg(단색/그라데이션) override → 슬롯 default bg
+  banner.style.cssText = `width:${v.w}px;height:${v.h}px;background:${getVersionBg(v)};`;
   renderTemplateImage(banner, v);
   ['badgeTL', 'badgeBR'].forEach(key => {
-    if (v[key]) banner.appendChild(buildTemplateTextEl(v[key]));
+    if (!v[key]) return;
+    const cfg = { ...v[key], defaultText: getTemplateText(v.id, key, v[key].defaultText) };
+    banner.appendChild(buildTemplateTextEl(cfg));
   });
   return banner;
 }
