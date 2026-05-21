@@ -1788,27 +1788,53 @@ const SPECS = {
             img:  { top:0, left:0, w:800, h:600, bgFull:true, editable:true } }
         ]
       },
-      // 와이드 리스트 — 헤더 2:1 1장 + 1:1 리스트 4장
+      // 와이드 리스트 — 리스트 1 헤더(VS 비교 템플릿) + 리스트 2~ (상품 카드 템플릿)
+      //   리스트 1 (800×400): bgFull 이미지 + 좌/우 두 영역에 sub(상단 텍스트) + main(하단 pill)
+      //   리스트 2~ (800×800): 중앙 이미지 + 좌상단 뱃지(할인%) + 우하단 뱃지(추가 금액)
       'K3': {
         label: '와이드 리스트',
-        bgFixed: null, pointColor: true, noSub: true, isLarge: true,
+        bgFixed: null, noPointColor: true, noSub: true, isLarge: true,
         bgPresets: ['#FFFFFF', '#F4F1EA', '#FDEDEF', '#E8F4FF'],
         versions: [
-          { id: 'head', label: '헤더 2:1', uploadLabel: '헤더 (800×400)', w: 800, h: 400,
-            main: { bottom:30, left:40, right:40, fs:26, lines:2, lh:'140%', center:true, color:'#1A1A1A' },
-            img:  { top:0, left:0, w:800, h:400, bgFull:true, editable:true } },
-          { id: 'item1', label: '리스트 1', uploadLabel: '리스트 1 (800×800)', w: 800, h: 800,
-            main: { bottom:50, left:40, right:40, fs:32, lines:2, lh:'140%', center:true, color:'#1A1A1A' },
-            img:  { top:0, left:0, w:800, h:800, bgFull:true, editable:true } },
-          { id: 'item2', label: '리스트 2', uploadLabel: '리스트 2 (800×800)', w: 800, h: 800,
-            main: { bottom:50, left:40, right:40, fs:32, lines:2, lh:'140%', center:true, color:'#1A1A1A' },
-            img:  { top:0, left:0, w:800, h:800, bgFull:true, editable:true } },
-          { id: 'item3', label: '리스트 3', uploadLabel: '리스트 3 (800×800)', w: 800, h: 800,
-            main: { bottom:50, left:40, right:40, fs:32, lines:2, lh:'140%', center:true, color:'#1A1A1A' },
-            img:  { top:0, left:0, w:800, h:800, bgFull:true, editable:true } },
-          { id: 'item4', label: '리스트 4', uploadLabel: '리스트 4 (800×800)', w: 800, h: 800,
-            main: { bottom:50, left:40, right:40, fs:32, lines:2, lh:'140%', center:true, color:'#1A1A1A' },
-            img:  { top:0, left:0, w:800, h:800, bgFull:true, editable:true } }
+          // 리스트 1 — VS 비교 헤더 (2:1)
+          { id: '1', label: '리스트 1', uploadLabel: '리스트 1 헤더 (800×400)', w: 800, h: 400,
+            template: 'vsCompare',
+            img: { top:0, left:0, w:800, h:400, bgFull:true, editable:true },
+            leftSub:  { top:60,    left:50,  fs:24, color:'#FFFFFF', fw:500, defaultText:'네이버 판매 1위' },
+            leftMain: { bottom:50, left:50,  fs:30, color:'#FFFFFF', fw:700, defaultText:'무선 단말기',
+                        pillStyle:{ bg:'#2D7DFC', radius:10, padding:'14px 28px' } },
+            rightSub: { top:60,    right:50, fs:24, color:'#FFFFFF', fw:500, defaultText:'평점 4.9 · 만족도 1위' },
+            rightMain:{ bottom:50, right:50, fs:30, color:'#FFFFFF', fw:700, defaultText:'유·무선 단말기',
+                        pillStyle:{ bg:'#2D7DFC', radius:10, padding:'14px 28px' } } },
+          // 리스트 2~5 — 상품 카드 (1:1)
+          { id: '2', label: '리스트 2', uploadLabel: '리스트 2 (800×800)', w: 800, h: 800,
+            template: 'productCard',
+            img: { hcenter:true, vcenter:true, w:560, h:560, editable:true },
+            badgeTL:{ top:50, left:50, fs:60, fw:800, color:'#FFFFFF', defaultText:'~63%',
+                      pillStyle:{ bg:'#2D7DFC', radius:26, padding:'16px 32px' } },
+            badgeBR:{ bottom:60, right:50, fs:32, fw:700, color:'#FFFFFF', defaultText:'+ 65,000원',
+                      pillStyle:{ bg:'#3D2D8C', radius:18, padding:'14px 24px' } } },
+          { id: '3', label: '리스트 3', uploadLabel: '리스트 3 (800×800)', w: 800, h: 800,
+            template: 'productCard',
+            img: { hcenter:true, vcenter:true, w:560, h:560, editable:true },
+            badgeTL:{ top:50, left:50, fs:60, fw:800, color:'#FFFFFF', defaultText:'~63%',
+                      pillStyle:{ bg:'#2D7DFC', radius:26, padding:'16px 32px' } },
+            badgeBR:{ bottom:60, right:50, fs:32, fw:700, color:'#FFFFFF', defaultText:'+ 65,000원',
+                      pillStyle:{ bg:'#3D2D8C', radius:18, padding:'14px 24px' } } },
+          { id: '4', label: '리스트 4', uploadLabel: '리스트 4 (800×800)', w: 800, h: 800,
+            template: 'productCard',
+            img: { hcenter:true, vcenter:true, w:560, h:560, editable:true },
+            badgeTL:{ top:50, left:50, fs:60, fw:800, color:'#FFFFFF', defaultText:'~63%',
+                      pillStyle:{ bg:'#2D7DFC', radius:26, padding:'16px 32px' } },
+            badgeBR:{ bottom:60, right:50, fs:32, fw:700, color:'#FFFFFF', defaultText:'+ 65,000원',
+                      pillStyle:{ bg:'#3D2D8C', radius:18, padding:'14px 24px' } } },
+          { id: '5', label: '리스트 5', uploadLabel: '리스트 5 (800×800)', w: 800, h: 800,
+            template: 'productCard',
+            img: { hcenter:true, vcenter:true, w:560, h:560, editable:true },
+            badgeTL:{ top:50, left:50, fs:60, fw:800, color:'#FFFFFF', defaultText:'~63%',
+                      pillStyle:{ bg:'#2D7DFC', radius:26, padding:'16px 32px' } },
+            badgeBR:{ bottom:60, right:50, fs:32, fw:700, color:'#FFFFFF', defaultText:'+ 65,000원',
+                      pillStyle:{ bg:'#3D2D8C', radius:18, padding:'14px 24px' } } }
         ]
       },
       // 캐러셀 커머스 — 2:1 헤더 + 1:1 카드(1~6 동적 추가) + 4:3 푸터
@@ -3578,7 +3604,122 @@ function buildFadeGradientCSS(v) {
   const stop1 = opaqueAtTop ? `rgba(${rgb},0)` : `rgba(${rgb},${maxA})`;
   return `linear-gradient(to bottom, ${stop0} 0%, ${stop0} ${lowPct}%, ${stop1} ${highPct}%, ${stop1} 100%)`;
 }
+// 친구톡 K3 템플릿 — vsCompare (헤더) / productCard (리스트 카드)
+//   각 텍스트 요소는 spec에 defaultText로 정의 (현재는 입력 커스터마이즈 X — 추후 확장 가능)
+function buildTemplateTextEl(cfg) {
+  const el = document.createElement('div');
+  let css = `position:absolute;font-family:var(--font);font-weight:${cfg.fw || 600};font-size:${cfg.fs}px;color:${cfg.color || '#FFFFFF'};line-height:1;z-index:3;letter-spacing:-0.02em;white-space:nowrap;`;
+  if (cfg.top !== undefined) css += `top:${cfg.top}px;`;
+  if (cfg.bottom !== undefined) css += `bottom:${cfg.bottom}px;`;
+  if (cfg.left !== undefined) css += `left:${cfg.left}px;`;
+  if (cfg.right !== undefined) css += `right:${cfg.right}px;`;
+  if (cfg.pillStyle) {
+    const ps = cfg.pillStyle;
+    css += `display:inline-block;background:${ps.bg || '#1A1A1A'};border-radius:${ps.radius !== undefined ? ps.radius : 10}px;padding:${ps.padding || '12px 22px'};`;
+  }
+  el.style.cssText = css;
+  el.textContent = cfg.defaultText || '';
+  return el;
+}
+// 편집 가능한 이미지 렌더 (bgFull or centered) — buildBanner의 로직 일부 재사용
+function renderTemplateImage(banner, v) {
+  if (!v.img) return;
+  const imgURL = currentImages[v.id];
+  const imgSize = currentImageSizes[v.id];
+  const editable = !!v.img.editable;
+  // bgFull
+  if (v.img.bgFull) {
+    if (imgURL && imgSize) {
+      const bg = document.createElement('div');
+      bg.style.cssText = `position:absolute;top:0;left:0;width:${v.w}px;height:${v.h}px;overflow:hidden;z-index:0;${editable ? 'cursor:grab;user-select:none;' : ''}`;
+      const srcRatio = imgSize.w / imgSize.h;
+      const dstRatio = v.w / v.h;
+      let fitW, fitH;
+      if (srcRatio > dstRatio) { fitH = v.h; fitW = v.h * srcRatio; }
+      else                     { fitW = v.w; fitH = v.w / srcRatio; }
+      const offsetX = (fitW - v.w) / 2;
+      const offsetY = (fitH - v.h) / 2;
+      const img = document.createElement('img');
+      img.src = imgURL;
+      img.draggable = false;
+      let imgCSS = `width:${fitW}px;height:${fitH}px;display:block;margin-left:${-offsetX}px;margin-top:${-offsetY}px;max-width:none;`;
+      if (editable) {
+        const state = currentImageTransforms[v.id] || (currentImageTransforms[v.id] = { scale:1, x:0, y:0 });
+        imgCSS += `transform-origin:center center;transform:translate(${state.x}px,${state.y}px) scale(${state.scale});pointer-events:none;`;
+      }
+      img.style.cssText = imgCSS;
+      bg.appendChild(img);
+      banner.appendChild(bg);
+      if (editable) attachEditableImageHandlers(bg, v);
+    } else if (editable) {
+      const ph = document.createElement('div');
+      ph.style.cssText = `position:absolute;top:0;left:0;width:${v.w}px;height:${v.h}px;background:#F2F2F2;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#9A9A9A;font-size:28px;font-weight:600;gap:10px;z-index:0;`;
+      ph.innerHTML = `<div>배경 이미지를 업로드하세요</div><div style="font-size:18px;font-weight:400;color:#B0B0B0;">업로드 후 드래그/휠로 조절</div>`;
+      banner.appendChild(ph);
+    }
+    return;
+  }
+  // 중앙 정렬 이미지 (productCard)
+  const iw = document.createElement('div');
+  iw.className = 'b-img' + (v.img.cover ? ' cover' : '');
+  let css = `width:${v.img.w}px;height:${v.img.h}px;`;
+  if (v.img.vcenter) css += `top:${Math.round((v.h - v.img.h) / 2)}px;`;
+  if (v.img.hcenter) css += `left:${Math.round((v.w - v.img.w) / 2)}px;`;
+  if (editable && imgURL) css += `cursor:grab;user-select:none;`;
+  iw.style.cssText = css;
+  if (imgURL && imgSize) {
+    const srcRatio = imgSize.w / imgSize.h;
+    const dstRatio = v.img.w / v.img.h;
+    let fitW, fitH;
+    if (srcRatio > dstRatio) { fitW = v.img.w; fitH = v.img.w / srcRatio; }
+    else                     { fitH = v.img.h; fitW = v.img.h * srcRatio; }
+    const img = document.createElement('img');
+    img.src = imgURL;
+    img.draggable = false;
+    const offsetX = (fitW - v.img.w) / 2;
+    const offsetY = (fitH - v.img.h) / 2;
+    let imgCSS = `width:${fitW}px;height:${fitH}px;display:block;margin-left:${-offsetX}px;margin-top:${-offsetY}px;flex-shrink:0;max-width:none;`;
+    if (editable) {
+      const state = currentImageTransforms[v.id] || (currentImageTransforms[v.id] = { scale:1, x:0, y:0 });
+      imgCSS += `transform-origin:center center;transform:translate(${state.x}px,${state.y}px) scale(${state.scale});pointer-events:none;`;
+    }
+    img.style.cssText = imgCSS;
+    iw.appendChild(img);
+    if (editable) attachEditableImageHandlers(iw, v);
+  } else {
+    const ph = document.createElement('div');
+    ph.className = 'ph';
+    ph.innerHTML = `<span>이미지</span><span style="font-size:0.7em;color:#9A9A9A;">${v.img.w}×${v.img.h}</span>`;
+    iw.appendChild(ph);
+  }
+  banner.appendChild(iw);
+}
+function buildVsCompareBanner(v, spec) {
+  const banner = document.createElement('div');
+  banner.className = 'banner-wrap';
+  banner.id = 'banner-' + v.id;
+  banner.style.cssText = `width:${v.w}px;height:${v.h}px;background:${(v.img && v.img.bgFull) ? 'transparent' : getBgFor(v)};`;
+  renderTemplateImage(banner, v);
+  ['leftSub', 'leftMain', 'rightSub', 'rightMain'].forEach(key => {
+    if (v[key]) banner.appendChild(buildTemplateTextEl(v[key]));
+  });
+  return banner;
+}
+function buildProductCardBanner(v, spec) {
+  const banner = document.createElement('div');
+  banner.className = 'banner-wrap';
+  banner.id = 'banner-' + v.id;
+  banner.style.cssText = `width:${v.w}px;height:${v.h}px;background:${getBgFor(v)};`;
+  renderTemplateImage(banner, v);
+  ['badgeTL', 'badgeBR'].forEach(key => {
+    if (v[key]) banner.appendChild(buildTemplateTextEl(v[key]));
+  });
+  return banner;
+}
 function buildBanner(v, spec) {
+  // 친구톡 K3 템플릿 분기
+  if (v.template === 'vsCompare') return buildVsCompareBanner(v, spec);
+  if (v.template === 'productCard') return buildProductCardBanner(v, spec);
   const banner = document.createElement('div');
   banner.className = 'banner-wrap';
   banner.id = 'banner-' + v.id;
