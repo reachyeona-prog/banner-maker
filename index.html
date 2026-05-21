@@ -540,6 +540,36 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
 }
 .editable-btn-row .editable-reset-btn { margin-top: 0; }
 
+/* ===== 캐러셀 (친구톡 K4) — 1:1 카드를 가로 행으로 펼쳐서 스크롤 ===== */
+.carousel-row {
+  display: flex; flex-wrap: nowrap; gap: 16px;
+  overflow-x: auto; padding: 4px 0 8px;
+  scroll-behavior: smooth;
+}
+.carousel-row .preview-section { flex: 0 0 auto; }
+.carousel-row::-webkit-scrollbar { height: 6px; }
+.carousel-row::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+.carousel-ctrl {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin: 6px 0 14px; padding: 10px 12px;
+  background: var(--bg-elev); border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.carousel-ctrl-label {
+  font-family: var(--font-mono); font-size: 11px; font-weight: 500;
+  color: var(--text-muted); letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.carousel-ctrl-btn {
+  height: 28px; padding: 0 12px;
+  background: var(--card); color: var(--text-primary);
+  border: 1px solid var(--border); border-radius: 6px;
+  font-family: var(--font); font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: all var(--t-base) var(--ease);
+}
+.carousel-ctrl-btn:hover { border-color: var(--ink); color: var(--ink); }
+.carousel-ctrl-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
 /* ===== §13e Claude JSON 붙여넣기 패널 (카드 뉴스 전용) ===== */
 .json-import {
   margin-bottom: 10px; padding: 12px 14px;
@@ -855,6 +885,7 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
         <option value="blog">웹 블로그</option>
         <option value="cardnews">카드 뉴스</option>
         <option value="content">콘텐츠</option>
+        <option value="friendtalk">친구톡</option>
         <option value="reels">릴스</option>
       </select>
     </div>
@@ -1726,6 +1757,82 @@ const SPECS = {
       }
     }
   },
+  friendtalk: {
+    label: '친구톡',
+    // KakaoTalk 친구톡 광고 유형. 800px 기준 3종 비율 (2:1 800×400 / 1:1 800×800 / 4:3 800×600)
+    slots: {
+      // 기본형 — 3비율 동시 노출 (비교용)
+      'K1': {
+        label: '기본형',
+        bgFixed: null, pointColor: true, noSub: true, isLarge: true,
+        bgPresets: ['#FFFFFF', '#F4F1EA', '#FDEDEF', '#E8F4FF', '#FFF8D7'],
+        versions: [
+          { id: '21', label: '2:1', uploadLabel: '2:1 (800×400)', w: 800, h: 400,
+            main: { bottom:30, left:40, right:40, fs:26, lines:2, lh:'140%', center:true, color:'#1A1A1A' },
+            img:  { top:0, left:0, w:800, h:400, bgFull:true, editable:true } },
+          { id: '11', label: '1:1', uploadLabel: '1:1 (800×800)', w: 800, h: 800,
+            main: { bottom:50, left:40, right:40, fs:32, lines:2, lh:'140%', center:true, color:'#1A1A1A' },
+            img:  { top:0, left:0, w:800, h:800, bgFull:true, editable:true } },
+          { id: '43', label: '4:3', uploadLabel: '4:3 (800×600)', w: 800, h: 600,
+            main: { bottom:40, left:40, right:40, fs:30, lines:2, lh:'140%', center:true, color:'#1A1A1A' },
+            img:  { top:0, left:0, w:800, h:600, bgFull:true, editable:true } }
+        ]
+      },
+      // 와이드 이미지 — 1비율 (800×600 4:3)
+      'K2': {
+        label: '와이드 이미지',
+        bgFixed: null, noPointColor: true, isLarge: true, noSub: true,
+        bgPresets: ['#FFFFFF', '#F4F1EA'],
+        versions: [
+          { id: '43', label: '4:3', uploadLabel: '4:3 (800×600)', w: 800, h: 600,
+            img:  { top:0, left:0, w:800, h:600, bgFull:true, editable:true } }
+        ]
+      },
+      // 와이드 리스트 — 헤더 2:1 1장 + 1:1 리스트 4장
+      'K3': {
+        label: '와이드 리스트',
+        bgFixed: null, pointColor: true, noSub: true, isLarge: true,
+        bgPresets: ['#FFFFFF', '#F4F1EA', '#FDEDEF', '#E8F4FF'],
+        versions: [
+          { id: 'head', label: '헤더 2:1', uploadLabel: '헤더 (800×400)', w: 800, h: 400,
+            main: { bottom:30, left:40, right:40, fs:26, lines:2, lh:'140%', center:true, color:'#1A1A1A' },
+            img:  { top:0, left:0, w:800, h:400, bgFull:true, editable:true } },
+          { id: 'item1', label: '리스트 1', uploadLabel: '리스트 1 (800×800)', w: 800, h: 800,
+            main: { bottom:50, left:40, right:40, fs:32, lines:2, lh:'140%', center:true, color:'#1A1A1A' },
+            img:  { top:0, left:0, w:800, h:800, bgFull:true, editable:true } },
+          { id: 'item2', label: '리스트 2', uploadLabel: '리스트 2 (800×800)', w: 800, h: 800,
+            main: { bottom:50, left:40, right:40, fs:32, lines:2, lh:'140%', center:true, color:'#1A1A1A' },
+            img:  { top:0, left:0, w:800, h:800, bgFull:true, editable:true } },
+          { id: 'item3', label: '리스트 3', uploadLabel: '리스트 3 (800×800)', w: 800, h: 800,
+            main: { bottom:50, left:40, right:40, fs:32, lines:2, lh:'140%', center:true, color:'#1A1A1A' },
+            img:  { top:0, left:0, w:800, h:800, bgFull:true, editable:true } },
+          { id: 'item4', label: '리스트 4', uploadLabel: '리스트 4 (800×800)', w: 800, h: 800,
+            main: { bottom:50, left:40, right:40, fs:32, lines:2, lh:'140%', center:true, color:'#1A1A1A' },
+            img:  { top:0, left:0, w:800, h:800, bgFull:true, editable:true } }
+        ]
+      },
+      // 캐러셀 커머스 — 2:1 헤더 + 1:1 카드(1~6 동적 추가) + 4:3 푸터
+      //   carouselExpand: 1:1 카드 (id '11')를 베이스로 최대 maxTotal:6 까지 동적 +/- 버튼으로 추가/제거
+      //   가로 layout(carousel-row CSS)로 1:1 카드들이 가로 스크롤로 펼쳐짐
+      'K4': {
+        label: '캐러셀 커머스',
+        bgFixed: null, pointColor: true, noSub: true, isLarge: true,
+        bgPresets: ['#FFFFFF', '#F4F1EA', '#FDEDEF', '#E8F4FF'],
+        carouselExpand: { baseId: '11', maxTotal: 6 },
+        versions: [
+          { id: '21', label: '2:1 헤더', uploadLabel: '헤더 (800×400)', w: 800, h: 400,
+            main: { bottom:30, left:40, right:40, fs:26, lines:2, lh:'140%', center:true, color:'#1A1A1A' },
+            img:  { top:0, left:0, w:800, h:400, bgFull:true, editable:true } },
+          { id: '11', label: '카드 1', uploadLabel: '카드 1 (800×800)', w: 800, h: 800,
+            main: { bottom:50, left:40, right:40, fs:32, lines:2, lh:'140%', center:true, color:'#1A1A1A' },
+            img:  { top:0, left:0, w:800, h:800, bgFull:true, editable:true } },
+          { id: '43', label: '4:3 푸터', uploadLabel: '푸터 (800×600)', w: 800, h: 600,
+            main: { bottom:40, left:40, right:40, fs:30, lines:2, lh:'140%', center:true, color:'#1A1A1A' },
+            img:  { top:0, left:0, w:800, h:600, bgFull:true, editable:true } }
+        ]
+      }
+    }
+  },
   reels: {
     label: '릴스',
     // 인스타그램 릴스 9:16 (1080×1920) 기준. downloadScale 미지정 → 기본 3배수.
@@ -1846,6 +1953,31 @@ let knockoutEnabled = true;  // 흰 배경 자동 누끼 — 사용자 토글
 let currentImageTransforms = {}; // imageEditable 슬롯에서 사용자 조작 상태 { [v.id]: { scale, x, y } }
 let currentFadeOverrides = {};   // v.fade가 있는 버전에서 슬라이더로 조정한 fade 깊이 (px) { [v.id]: depth }
 let currentOverlayColors = {};   // v.dim/v.fade 색을 컬러 픽커로 덮어쓴 값 (HEX) { [v.id]: '#RRGGBB' }
+let carouselExtras = {};         // carouselExpand 슬롯에서 추가된 베이스 카드 개수 { [slotKey]: 0~maxTotal-1 }
+// carouselExpand 슬롯의 effective versions 생성: 베이스 1개 + extras N개 동적 클론
+function expandCarouselVersions(spec, slotKey) {
+  if (!spec.carouselExpand) return spec.versions;
+  const { baseId } = spec.carouselExpand;
+  const extras = carouselExtras[slotKey] || 0;
+  const baseIdx = spec.versions.findIndex(v => v.id === baseId);
+  if (baseIdx < 0 || extras === 0) return spec.versions;
+  const baseVer = spec.versions[baseIdx];
+  const expanded = [];
+  for (let i = 0; i < spec.versions.length; i++) {
+    expanded.push(spec.versions[i]);
+    if (i === baseIdx) {
+      for (let j = 1; j <= extras; j++) {
+        expanded.push({
+          ...baseVer,
+          id: `${baseVer.id}-${j + 1}`,
+          label: `카드 ${j + 1}`,
+          uploadLabel: `카드 ${j + 1} (${baseVer.w}×${baseVer.h})`,
+        });
+      }
+    }
+  }
+  return expanded;
+}
 // multiSlide 슬롯의 슬라이드 상태 — 슬롯 전환/탭 전환 시 globals를 swap-in/out
 //   slideStates[slotKey] = [ { images, imageSizes, imageRaw, transforms, fadeOverrides, inputs, mainLines } ]
 //   activeSlideIdx[slotKey] = 현재 편집 중인 슬라이드 인덱스
@@ -2063,6 +2195,7 @@ function onSlotChange() {
   currentImageTransforms = {};
   currentFadeOverrides = {};
   currentOverlayColors = {};
+  carouselExtras = {};
   currentTextColorMode = 'auto';
   currentShowButton = true;
   currentMainLines = 3;
@@ -3142,15 +3275,66 @@ function renderPreviews() {
     groupB.forEach(v => container.appendChild(makeSection(v)));
     container.appendChild(buildDownloadButton(`버전 B 다운로드 (${groupB.length}개)`, groupB));
   } else {
-    spec.versions.forEach(v => container.appendChild(makeSection(v)));
+    // carouselExpand 슬롯: 베이스 카드(예: 1:1) 옆으로 추가된 N장이 가로 row로 묶임
+    const effectiveVersions = expandCarouselVersions(spec, currentSlot);
+    if (spec.carouselExpand) {
+      const baseId = spec.carouselExpand.baseId;
+      const maxTotal = spec.carouselExpand.maxTotal;
+      let carouselWrap = null;
+      effectiveVersions.forEach(v => {
+        // 캐러셀 베이스 또는 그 변형(id 'baseId' / 'baseId-2' / 'baseId-3' ...)이면 그룹
+        const isCarouselItem = (v.id === baseId) || v.id.startsWith(baseId + '-');
+        if (isCarouselItem) {
+          if (!carouselWrap) {
+            carouselWrap = document.createElement('div');
+            carouselWrap.className = 'carousel-row';
+            container.appendChild(carouselWrap);
+          }
+          carouselWrap.appendChild(makeSection(v));
+        } else {
+          carouselWrap = null;  // 다른 비율 만나면 그룹 종료
+          container.appendChild(makeSection(v));
+        }
+      });
+      // 캐러셀 추가/제거 컨트롤
+      const ctrl = document.createElement('div');
+      ctrl.className = 'carousel-ctrl';
+      const extras = carouselExtras[currentSlot] || 0;
+      const totalCards = 1 + extras;
+      ctrl.innerHTML = `<span class="carousel-ctrl-label">캐러셀 카드 ${totalCards} / ${maxTotal}</span>`;
+      const addBtn = document.createElement('button');
+      addBtn.type = 'button';
+      addBtn.className = 'carousel-ctrl-btn';
+      addBtn.textContent = '+ 카드 추가';
+      addBtn.disabled = totalCards >= maxTotal;
+      addBtn.onclick = () => {
+        carouselExtras[currentSlot] = (carouselExtras[currentSlot] || 0) + 1;
+        renderPreviews();
+      };
+      ctrl.appendChild(addBtn);
+      if (extras > 0) {
+        const rmBtn = document.createElement('button');
+        rmBtn.type = 'button';
+        rmBtn.className = 'carousel-ctrl-btn';
+        rmBtn.textContent = '− 카드 제거';
+        rmBtn.onclick = () => {
+          carouselExtras[currentSlot] = Math.max(0, (carouselExtras[currentSlot] || 0) - 1);
+          renderPreviews();
+        };
+        ctrl.appendChild(rmBtn);
+      }
+      container.appendChild(ctrl);
+    } else {
+      effectiveVersions.forEach(v => container.appendChild(makeSection(v)));
+    }
     let labelText;
     if (spec.iconOnly) labelText = '아이콘 JPG 다운로드';
-    else if (spec.versions.length > 1) labelText = `3배수 JPG ${spec.versions.length}개 다운로드`;
+    else if (effectiveVersions.length > 1) labelText = `3배수 JPG ${effectiveVersions.length}개 다운로드`;
     else {
       const ext = spec.isPNG ? 'PNG' : 'JPG';
-      labelText = `${spec.versions[0].label} ${ext} 다운로드`;
+      labelText = `${effectiveVersions[0].label} ${ext} 다운로드`;
     }
-    dlArea.appendChild(buildDownloadButton(labelText, spec.versions));
+    dlArea.appendChild(buildDownloadButton(labelText, effectiveVersions));
   }
   // 가이드 모드 적용
   if (guideOn) {
