@@ -1395,6 +1395,24 @@ const SPECS = {
             main: { left:128, right:24, fs:19, lines:2, lh:'150%', vcenter:true, color:'#000000' },
             img:  { left:24, w:80, h:80, vcenter:true } }
         ]
+      },
+      // 상품 설정 배너 — 셀러 상품 등록 화면. MO 3배수, PC 2배수
+      'A5': {
+        label: '상품 설정 배너',
+        bgFixed: null,
+        pointColor: true,
+        abMirror: 'horizontal',
+        dualImage: true,
+        versions: [
+          { id: 'mo', label: 'MO', w: 724, h: 100,
+            main: { top:20, left:140, right:30, fs:25, lines:1, lh:'130%', color:'#000000' },
+            sub:  { bottom:20, left:140, right:30, fs:18, lh:'130%', color:'#000000' },
+            img:  { left:30, w:100, h:80, vcenter:true } },
+          { id: 'pc', label: 'PC', w: 578, h: 80,
+            main: { top:14, left:120, right:24, fs:22, lines:1, lh:'130%', color:'#000000' },
+            sub:  { bottom:14, left:120, right:24, fs:16, lh:'130%', color:'#000000' },
+            img:  { left:24, w:80, h:60, vcenter:true } }
+        ]
       }
     }
   },
@@ -1524,6 +1542,22 @@ const SPECS = {
           main: { top:140, fs:28, lines:2, lh:'140%', center:true },
           img:  { top:249, left:41, w:311, h:480 },
           crop: { top:90, left:41, w:311, h:670 } }]
+      },
+      // 비대면 카드사 가맹점 가입 — 카드 가맹점 가입 완료 화면 배너. 안드 328, iOS 343 (높이는 동일 130)
+      'B11': {
+        label: '비대면 카드사 가맹점',
+        bgFixed: null, pointColor: true,
+        dualImage: true,
+        versions: [
+          { id: 'aos', label: 'AOS', w: 328, h: 130,
+            main: { top:24, left:24, right:120, fs:18, lines:1, lh:'130%' },
+            sub:  { bottom:24, left:24, right:120, fs:14, lh:'130%', color:'#000000' },
+            img:  { right:20, w:90, h:90, vcenter:true } },
+          { id: 'ios', label: 'iOS', w: 343, h: 130,
+            main: { top:24, left:24, right:120, fs:18, lines:1, lh:'130%' },
+            sub:  { bottom:24, left:24, right:120, fs:14, lh:'130%', color:'#000000' },
+            img:  { right:20, w:90, h:90, vcenter:true } }
+        ]
       }
     }
   },
