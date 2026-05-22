@@ -3044,8 +3044,10 @@ function renderImageUploads() {
   const wrap = document.getElementById('upload-area-wrap');
   wrap.innerHTML = '';
   // 실사/editable 전용 슬롯은 항상 원본 사용 → 누끼 토글 노출 안 함. 모든 버전이 editable인 경우도 동일.
-  const allEditable = spec.imageEditable
-    || (spec.versions.length > 0 && spec.versions.every(v => v.img && v.img.editable));
+  // 단, forceKnockout 버전이 하나라도 있으면 누끼가 강제되므로 토글을 노출해 OFF로 끌 수 있게.
+  const hasForceKnockout = spec.versions.some(v => v.img && v.img.forceKnockout);
+  const allEditable = !hasForceKnockout && (spec.imageEditable
+    || (spec.versions.length > 0 && spec.versions.every(v => v.img && v.img.editable)));
   if (!allEditable) {
     const toggle = document.createElement('div');
     toggle.className = 'field';
@@ -3166,9 +3168,10 @@ function applyKnockoutForVersion(versionId, done) {
     // 실사/editable 이미지는 토글과 무관하게 항상 원본 (사진 보존). 그 외는 토글 따라 처리.
     const ver = spec.versions.find(x => x.id === baseVersionId);
     const isEditable = spec.imageEditable || (ver && ver.img && ver.img.editable);
-    // forceKnockout 플래그가 있으면 editable과 무관하게 항상 누끼 적용 (예: K3 productCard)
+    // forceKnockout 플래그는 "editable이어도 누끼 후보로 취급" 정도의 의미.
+    // 글로벌 토글(knockoutEnabled)은 항상 존중 — 흰 부품이 있는 상품 사진을 위해 사용자가 OFF 할 수 있음.
     const forceKnockout = !!(ver && ver.img && ver.img.forceKnockout);
-    const shouldKnockout = forceKnockout || (!isEditable && knockoutEnabled);
+    const shouldKnockout = knockoutEnabled && (forceKnockout || !isEditable);
     let dataURL;
     if (!shouldKnockout) {
       dataURL = raw;
