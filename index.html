@@ -3409,6 +3409,13 @@ function renderPreviews() {
   // 이전 렌더의 editable 이미지 핸들러 모두 정리 후 한 렌더 사이클용 controller 새로 생성
   if (editableImageAbort) editableImageAbort.abort();
   editableImageAbort = new AbortController();
+  // 템플릿 텍스트 입력에 포커스가 있었다면 ID + 커서 위치 스냅샷 — 재렌더 후 복원해 "튕김" 방지
+  const ae = document.activeElement;
+  const focusSnap = (ae && ae.dataset && ae.dataset.tplInput) ? {
+    id: ae.id,
+    selStart: ae.selectionStart,
+    selEnd: ae.selectionEnd,
+  } : null;
   const spec = SPECS[currentProduct].slots[currentSlot];
   const container = document.getElementById('preview-sections');
   container.innerHTML = '';
@@ -3534,7 +3541,9 @@ function renderPreviews() {
         row.className = 'template-text-row';
         // sub 카피(leftSub/rightSub)는 W/B 컬러 토글도 같이 노출
         const showColorToggle = (key === 'leftSub' || key === 'rightSub');
-        let inner = `<label>${label}</label><input type="text" maxlength="40" value="${cur.replace(/"/g, '&quot;')}">`;
+        // 안정 ID — renderPreviews 재실행 후에도 같은 input 식별 가능 (포커스 보존용)
+        const tplInputId = `tpl-${v.id}-${key}`;
+        let inner = `<label>${label}</label><input id="${tplInputId}" data-tpl-input="1" type="text" maxlength="40" value="${cur.replace(/"/g, '&quot;')}">`;
         if (showColorToggle) {
           const curColor = (templateTextColor[v.id] && templateTextColor[v.id][key])
             || v[key].color || '#FFFFFF';
@@ -3817,6 +3826,14 @@ function renderPreviews() {
   // 가이드 모드 적용
   if (guideOn) {
     document.querySelectorAll('.banner-wrap').forEach(b => b.classList.add('show-guide'));
+  }
+  // 템플릿 텍스트 입력 포커스 복원 (재렌더 후 같은 ID로 재생성된 input에 커서/선택 복원)
+  if (focusSnap) {
+    const el = document.getElementById(focusSnap.id);
+    if (el && typeof el.focus === 'function') {
+      el.focus();
+      try { el.setSelectionRange(focusSnap.selStart, focusSnap.selEnd); } catch (e) {}
+    }
   }
 }
 function buildDownloadButton(labelText, versions) {
