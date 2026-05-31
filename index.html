@@ -3436,6 +3436,11 @@ function copyNanoPrompt() {
     toast('클립보드 복사 실패. 텍스트를 직접 선택해 복사해 주세요.', { danger: true });
   });
 }
+// 다운로드 추출 배수 — 슬롯에 명시값이 있으면 우선, 없으면 셀러는 2배수 / 그 외는 3배수
+function getDownloadScale(spec) {
+  if (spec.downloadScale) return spec.downloadScale;
+  return currentProduct === 'seller' ? 2 : 3;
+}
 function buildFilename(v, spec) {
   const productName = SPECS[currentProduct].label.replace(/ /g, '');
   const slotName = spec.label.replace(/ /g, '');
@@ -3479,7 +3484,7 @@ function renderPreviews() {
     lbl.className = 'field-label';
     // abMirror 슬롯은 그룹 헤더(버전 A/B)가 별도로 있으므로 라벨에서 ' A'/' B' 제거
     const displayLabel = spec.abMirror ? v.label.replace(/ [AB]$/, '') : v.label;
-    const dScale = spec.downloadScale || 3;
+    const dScale = getDownloadScale(spec);
     const scaleTxt = Number.isInteger(dScale) ? `${dScale}배수 추출` : `${dScale.toFixed(2)}배 추출`;
     lbl.textContent = `${displayLabel} — ${v.w.toLocaleString()} × ${v.h.toLocaleString()}px (${scaleTxt}: ${Math.round(v.w*dScale).toLocaleString()} × ${Math.round(v.h*dScale).toLocaleString()}px)`;
     section.appendChild(lbl);
@@ -4859,7 +4864,7 @@ function downloadIconOnly(v, spec) {
   return new Promise((resolve, reject) => {
     const imgURL = currentImages[v.id];
     if (!imgURL) { reject(new Error('NO_IMAGE')); return; }
-    const scale = spec.downloadScale || 3;
+    const scale = getDownloadScale(spec);
     const c = document.createElement('canvas');
     c.width = Math.round(v.img.w * scale); c.height = Math.round(v.img.h * scale);
     const ctx = c.getContext('2d');
@@ -4905,7 +4910,7 @@ async function downloadVersions(btn, versions) {
       const scaler = (spec.isLarge && el.parentElement && el.parentElement.style.transform) ? el.parentElement : null;
       const prevTransform = scaler ? scaler.style.transform : null;
       if (scaler) scaler.style.transform = 'none';
-      const dlScale = spec.downloadScale || 3;
+      const dlScale = getDownloadScale(spec);
       let canvas;
       try {
         canvas = await html2canvas(el, {
