@@ -446,14 +446,14 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
   position: absolute;
   font-family: var(--font); font-weight: 700;
   line-height: 130%; letter-spacing: -0.5px;
-  color: #111111; text-align: left; white-space: pre-line;
+  color: #1A1A1A; text-align: left; white-space: pre-line;
 }
 .banner-wrap .b-main.center { text-align: center; line-height: 150%; }
 .banner-wrap .b-sub {
   position: absolute;
   font-family: var(--font); font-weight: 500;
   line-height: 130%; letter-spacing: -0.5px;
-  color: #000000; text-align: left; white-space: pre-line;
+  color: #1A1A1A; text-align: left; white-space: pre-line;
 }
 .banner-wrap .b-sub.center { text-align: center; }
 .banner-wrap .b-img { position: absolute; overflow: hidden; }
@@ -1654,6 +1654,17 @@ const SPECS = {
     label: '카드 뉴스',
     // 인스타그램 카드 뉴스 4:5 (1080×1350) 기준. downloadScale 미지정 → 기본 3배수 추출.
     // 다만 IG 업로드 시 1080 원본을 그대로 쓰는 경우가 많아 isLarge로 0.4× 프리뷰만 적용.
+    //
+    // ┌─ 카드뉴스 디자인 규격 토큰 (전 슬롯 공통, 1배수) ───────────────────────────┐
+    // │ 좌우 여백 70 · 상/하 여백 100 · 이미지↔텍스트 70 · 서브↔메인 30           │
+    // │ 메인 자간 -0.025em (표지만 -0.04em — 큰 디스플레이라 더 타이트)            │
+    // │ 행간: 헤드라인 130~140% / 본문 150%                                       │
+    // │ 메인 타입 스케일(역할별):                                                  │
+    // │   헤드 L = 90 (표지 E1) · 72 (E6 1줄 헤드)                                 │
+    // │   헤드 M = 56 (E2·E4 카피 3줄)                                            │
+    // │   헤드 S = 46 (E5 박스 카피 — 박스 폭이 좁아 한 단계 작게)                 │
+    // │   서브/본문 = 41 (E1 pill) · 40 (E6 본문)                                 │
+    // └──────────────────────────────────────────────────────────────────────────┘
     slots: {
       // 표지: 상단 hero 이미지 + pill 태그(서브) + 2줄 메인 카피
       //   full — 배경 전체 cover + 옅은 검정 scrim + 흰 카피 (위에 노출)
@@ -1664,21 +1675,23 @@ const SPECS = {
         hasSpeechBubble: true,  // 흰 말풍선(블랙 텍스트) — 위치/크기/폰트 사용자 조절
         hasSourceNote: true,    // 우측 하단 고정 출처/AI 표기 (30px Pretendard, 슬라이드별 텍스트)
         pillSub: true,   // 동그란 pill — 투명 채움 + 컬러 테두리 2px (가이드라인)
+        subFillOption: true,  // 서브 카피 pill: 테두리 버전 / 배경 채움 버전 택1 + 글자색(흰/검) 선택
         bgPresets: ['#FFFFFF', '#F4F1EA', '#F6F8F9', '#FFEFF2', '#E8F4FF', '#EFFCE7', '#FFF8D7', '#1A1A1A'],
         versions: [
           { id: 'full', label: '배경 이미지', uploadLabel: '배경 이미지', w: 1080, h: 1440,
             lockTextColor: true,
             img:  { top:0, left:0, w:1080, h:1440, bgFull:true, editable:true },
-            // 가이드라인: 좌우 95 / 상단 950 (pill 시작) / sub-main gap 30 / 메인 90px 130% -4% / 하단 패딩 160
-            sub:  { top:950, left:95, fs:41, color:'#FFFFFF' },
-            main: { top:1046, left:95, right:95, fs:90, lines:2, lh:'130%', ls:'-0.04em', paddingBottom:160, color:'#FFFFFF' },
+            // 가이드라인: 좌우 70 (전 슬롯 통일) / 상단 1010 (pill 시작) / sub-main gap 30 / 메인 90px 130% -4% / 하단 100 (전 슬롯 통일)
+            //   상단 블록을 60px 내려 하단 여백 160→100 통일. sub 1010 + pill 65 + gap 30 + main 234(2줄 fs90 130%) + 하단 100 = 1439 ≈ 1440
+            sub:  { top:1010, left:70, fs:41, color:'#FFFFFF' },
+            main: { top:1106, left:70, right:70, fs:90, lines:2, lh:'130%', ls:'-0.04em', paddingBottom:100, color:'#FFFFFF' },
             // 그라데이션: strong 이미지 하단 고정. 기본 dim 범위 y:920~1440 (텍스트 영역 커버) → 슬라이더 0 = no dim.
             fade: { strong:1440, faded:920, rgb:'0,0,0', maxAlpha:0.55 } },
           { id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1080, h: 1440,
-            // 이미지 h:880 — 하단(880) ~ sub 시작(950) 간격 70px
-            img:  { top:0, left:0, w:1080, h:880, cover:true, editable:true },
-            sub:  { top:950, left:95, fs:41, color:'#1A1A1A' },
-            main: { top:1046, left:95, right:95, fs:90, lines:2, lh:'130%', ls:'-0.04em', paddingBottom:160, color:'#1A1A1A' } }
+            // 이미지 h:940 — 하단(940) ~ sub 시작(1010) 간격 70px (이미지 60px 확대로 70 간격 유지)
+            img:  { top:0, left:0, w:1080, h:940, cover:true, editable:true },
+            sub:  { top:1010, left:70, fs:41, color:'#1A1A1A' },
+            main: { top:1106, left:70, right:70, fs:90, lines:2, lh:'130%', ls:'-0.04em', paddingBottom:100, color:'#1A1A1A' } }
         ]
       },
       // 내지 (카피 상단) — 메인 카피(2~3줄 자동 감지) 위 + 인포그래픽/이미지 아래
@@ -1691,12 +1704,12 @@ const SPECS = {
         versions: [
           { id: 'full', label: '배경 이미지', uploadLabel: '배경 이미지', w: 1080, h: 1440,
             lockTextColor: true,
-            main: { top:100, left:70, right:70, fs:56, lines:3, lh:'150%', center:true, color:'#FFFFFF' },
+            main: { top:100, left:70, right:70, fs:56, lines:3, lh:'140%', ls:'-0.025em', center:true, color:'#FFFFFF' },
             img:  { top:0, left:0, w:1080, h:1440, bgFull:true, editable:true },
             // 캔버스 전 영역 선형 그라데이션 — 상단 dim → 하단 클리어. 기본 dim 컬러 블랙.
             fade: { strong:0, faded:1440, rgb:'0,0,0', maxAlpha:0.55 } },
           { id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1080, h: 1440,
-            main: { top:100, left:70, right:70, fs:56, lines:3, lh:'150%', center:true, color:'#1A1A1A' },
+            main: { top:100, left:70, right:70, fs:56, lines:3, lh:'140%', ls:'-0.025em', center:true, color:'#1A1A1A' },
             // 이미지 — 캔버스 하단 풀폭 (left 0, bottom 0, w 1080). top·height는 autoSize로 카피 줄 수에 따라 동적
             //   gapToText:70 = 메인 끝~이미지 시작 간격 (3줄 기준 imgTop=422, h=1018)
             img:  { bottom:0, left:0, w:1080, h:1018, editable:true, autoSize:true, gapToText:70 } }
@@ -1704,7 +1717,7 @@ const SPECS = {
       },
       // 내지 (카피 하단) — 이미지 위 + 메인 카피(2~3줄 자동 감지) 아래
       //   공통 패딩: 좌우 70 / 상단 100 / 하단 100
-      //   E2와 동일 폰트 (fs:56 / lh:150% / 자간 default) — 상하 위치만 다름
+      //   E2와 동일 폰트 (fs:56 / lh:140% / 자간 -0.025em) — 상하 위치만 다름
       'E4': {
         label: '내지 (카피 하단)',
         bgFixed: null, pointColor: true, noSub: true, isLarge: true, hasSourceNote: true,
@@ -1714,13 +1727,13 @@ const SPECS = {
           { id: 'full', label: '배경 이미지', uploadLabel: '배경 이미지', w: 1080, h: 1440,
             lockTextColor: true,
             img:  { top:0, left:0, w:1080, h:1440, bgFull:true, editable:true },
-            main: { bottom:100, left:70, right:70, fs:56, lines:3, lh:'150%', center:true, color:'#FFFFFF' },
+            main: { bottom:100, left:70, right:70, fs:56, lines:3, lh:'140%', ls:'-0.025em', center:true, color:'#FFFFFF' },
             // 그라데이션: strong(불투명) 이미지 하단 고정. 기본은 바닥쪽 짧은 dim(400px) → 슬라이더로 위로 확장.
             //   - faded:1040 → 기본 dim 범위 y:1040~1440 (카피 영역 + 약간의 buffer)
             //   - 슬라이더 max = strong = 1440 → 풀스팬까지 확장 가능
             fade: { strong:1440, faded:1040, rgb:'0,0,0', maxAlpha:0.55 } },
           { id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1080, h: 1440,
-            main: { bottom:100, left:70, right:70, fs:56, lines:3, lh:'150%', center:true, color:'#1A1A1A' },
+            main: { bottom:100, left:70, right:70, fs:56, lines:3, lh:'140%', ls:'-0.025em', center:true, color:'#1A1A1A' },
             // 이미지 — 캔버스 상단 풀폭 (top 0, left 0, w 1080). height는 autoSize로 카피 줄 수에 따라 동적
             //   gapToText:70 = 이미지 하단~메인 시작 간격 (3줄 기준 h=1018, 2줄 h=1102)
             img:  { top:0, left:0, w:1080, h:1018, editable:true, autoSize:true, gapToText:70 } }
@@ -1755,7 +1768,7 @@ const SPECS = {
           id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1080, h: 1440,
           sub:  { bottom:100, left:70, right:70, fs:40, lines:3, lh:'150%', center:true, color:'#1A1A1A' },
           // main.bottom은 subDrivesMainPos가 동적 산출 (3줄 sub 기준 310)
-          main: { bottom:310, left:70, right:70, fs:72, lines:1, lh:'130%', center:true, color:'#1A1A1A' },
+          main: { bottom:310, left:70, right:70, fs:72, lines:1, lh:'130%', ls:'-0.025em', center:true, color:'#1A1A1A' },
           // 이미지: 상단 풀폭. autoSize + subDrivesMainPos → sub 줄 수에 맞춰 height 자동 조정
           //   3줄 sub: imgH=966, 2줄: 1026, 1줄: 1086
           img:  { top:0, left:0, w:1080, h:966, editable:true, autoSize:true, gapToText:70, subDrivesMainPos:true, mainSubGap:30 }
@@ -2320,6 +2333,41 @@ function setSpeechBubbleDirection(dir) {
   preserveInputsAcross(renderInputs);
   renderPreviews();
 }
+// 서브 카피 pill 채움 (카드뉴스 표지 E1, spec.subFillOption) — 테두리 버전 / 배경 채움 버전 택1.
+//   fill=false: 기존 투명 채움 + 컬러 테두리 (resolveTextColor 자동 색)
+//   fill=true : 선택한 배경색(bg) 채움 + 글자색(흰/검) 선택
+let currentSubPill = { fill: false, bg: '#FF4F1F', textColor: '#FFFFFF' };
+function setSubPillFill(on) {
+  const spec = SPECS[currentProduct].slots[currentSlot];
+  if (!spec || !spec.subFillOption) return;
+  currentSubPill.fill = on;
+  preserveInputsAcross(renderInputs);
+  renderPreviews();
+}
+function setSubPillBg(hex) {
+  // 라이브(커스텀 피커 드래그) — 미리보기만 갱신. 입력 패널은 재렌더 안 함(OS 다이얼로그 유지).
+  const spec = SPECS[currentProduct].slots[currentSlot];
+  if (!spec || !spec.subFillOption) return;
+  currentSubPill.bg = hex;
+  renderPreviews();
+}
+function selectSubPillBg(hex) {
+  // 디스크리트(스와치 클릭 / 커스텀 확정) — 입력 패널도 재렌더해 active 스와치 갱신.
+  const spec = SPECS[currentProduct].slots[currentSlot];
+  if (!spec || !spec.subFillOption) return;
+  currentSubPill.bg = hex;
+  preserveInputsAcross(renderInputs);
+  renderPreviews();
+}
+// 서브 카피 pill 배경색 프리셋 — 코랄/잉크/블루/그린/핑크/퍼플/오렌지/화이트
+const SUB_PILL_BG_PRESETS = ['#FF4F1F', '#1A1A1A', '#008CFF', '#05CC7A', '#F96EAE', '#A164F9', '#F39C12', '#FFFFFF'];
+function setSubPillTextColor(hex) {
+  const spec = SPECS[currentProduct].slots[currentSlot];
+  if (!spec || !spec.subFillOption) return;
+  currentSubPill.textColor = hex;
+  preserveInputsAcross(renderInputs);
+  renderPreviews();
+}
 // 출처/AI 표기 (카드뉴스) — 우측 하단 고정 위치, 30px, Pretendard 고정. 슬라이드별 텍스트.
 //   { enabled, text }. multiSlide 슬롯은 slideState에 swap-in/out (freshSlideState/snapshot/apply).
 //   드래그/리사이즈 없음 · 일반 텍스트 DOM이라 html2canvas가 그대로 캡처 (말풍선과 달리 post-process 불필요).
@@ -2618,6 +2666,7 @@ function captureSlotState(product, slot) {
     showButton: currentShowButton,
     mainLines: currentMainLines,
     sourceNote: { ...currentSourceNote },
+    subPill: { ...currentSubPill },
     images: { ...currentImages },          // data URL 문자열 — 얕은 복사(메모리 절약)
     imageRaw: { ...currentImageRaw },
     imageSizes: _cloneState(currentImageSizes),
@@ -2644,6 +2693,7 @@ function restoreSlotGlobals(product, slot) {
   currentShowButton = mem.showButton;
   currentMainLines = mem.mainLines;
   currentSourceNote = { ...mem.sourceNote };
+  currentSubPill = { ...(mem.subPill || { fill: false, bg: '#FF4F1F', textColor: '#FFFFFF' }) };
   currentImages = { ...mem.images };
   currentImageRaw = { ...mem.imageRaw };
   currentImageSizes = _cloneState(mem.imageSizes);
@@ -2807,6 +2857,7 @@ function onSlotChange() {
   currentShowButton = true;
   currentMainLines = 3;
   currentSourceNote = { enabled: false, text: '' };
+  currentSubPill = { fill: false, bg: '#FF4F1F', textColor: '#FFFFFF' };
   // 미리보기에 붙어있던 이전 슬롯의 마우스 핸들러 정리
   if (editableImageAbort) { editableImageAbort.abort(); editableImageAbort = null; }
   // perVersionBg 슬롯이면 버전별 기본 배경 초기화
@@ -3357,6 +3408,45 @@ function renderInputs() {
       ? '사진을 업로드한 뒤 미리보기에서 <strong>드래그로 위치</strong>, <strong>휠로 크기</strong>를 조절하세요.'
       : '이미지만 업로드하면 됩니다.';
     area.innerHTML = `<div style="font-size:12px;color:#AAAAAA;padding:4px 0;line-height:1.6;">${msg}</div>`;
+  }
+  // 서브 카피 pill 채움 (카드뉴스 표지 E1) — 테두리 / 배경 채움 택1 + 배경색 + 글자색(흰/검)
+  if (spec.subFillOption && v.sub && !spec.noSub) {
+    const sp = currentSubPill;
+    const spField = document.createElement('div');
+    spField.className = 'field';
+    spField.innerHTML = `
+      <div class="field-label" style="display:flex;align-items:center;gap:10px;">
+        서브 카피 박스
+        <div class="text-color-segments" style="margin-left:auto;">
+          <div class="text-color-segment ${!sp.fill ? 'active' : ''}" onclick="setSubPillFill(false)">테두리</div>
+          <div class="text-color-segment ${sp.fill ? 'active' : ''}" onclick="setSubPillFill(true)">배경 채움</div>
+        </div>
+      </div>
+      <div id="sub-pill-fill-wrap" style="display:${sp.fill ? 'block' : 'none'};">
+        <div class="template-text-row" style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;">
+          <label style="flex:0 0 56px;margin-top:4px;font-family:var(--font-mono);font-size:10px;color:var(--text-muted);letter-spacing:0.05em;text-transform:uppercase;">배경색</label>
+          <div style="flex:1;display:flex;flex-wrap:wrap;gap:6px;">
+            ${SUB_PILL_BG_PRESETS.map(c =>
+              `<div class="preset-swatch ${sp.bg.toUpperCase() === c.toUpperCase() ? 'active' : ''}" style="background:${c}" title="${c}" onclick="selectSubPillBg('${c}')"></div>`
+            ).join('')}
+            <div class="preset-swatch custom-picker ${!SUB_PILL_BG_PRESETS.some(c => c.toUpperCase() === sp.bg.toUpperCase()) ? 'active' : ''}" title="직접 선택 (${sp.bg.toUpperCase()})" onclick="document.getElementById('f-sub-pill-bg').click()"></div>
+            <input type="color" id="f-sub-pill-bg" value="${sp.bg}">
+          </div>
+        </div>
+        <div class="template-text-row" style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+          <label style="flex:0 0 56px;font-family:var(--font-mono);font-size:10px;color:var(--text-muted);letter-spacing:0.05em;text-transform:uppercase;">글자색</label>
+          <div class="text-color-segments" style="flex:1;">
+            <div class="text-color-segment ${sp.textColor === '#FFFFFF' ? 'active' : ''}" onclick="setSubPillTextColor('#FFFFFF')">화이트</div>
+            <div class="text-color-segment ${sp.textColor === '#1A1A1A' ? 'active' : ''}" onclick="setSubPillTextColor('#1A1A1A')">블랙</div>
+          </div>
+        </div>
+      </div>`;
+    area.appendChild(spField);
+    const bgIn = spField.querySelector('#f-sub-pill-bg');
+    if (bgIn) {
+      bgIn.addEventListener('input', () => setSubPillBg(bgIn.value));   // 드래그 중 라이브 미리보기
+      bgIn.addEventListener('change', () => selectSubPillBg(bgIn.value)); // 확정 시 active 스와치 갱신
+    }
   }
   // 말풍선 (카드뉴스 표지 E1) — 추가 토글 + 스타일 3종 + 폰트 + 텍스트
   //   크기/폰트 크기 고정 (458×231 · 38px). 미리보기에서 드래그로 위치만 이동.
@@ -5174,7 +5264,12 @@ function buildBanner(v, spec) {
     //   pillSubBoxed : 투명 채움 + 컬러 테두리 2px + 사각 박스 (radius 4) — 카드뉴스/릴스 표지 가이드라인
     //   기본(pillSub만): 투명 채움 + 컬러 테두리 + pill (radius 100) — C1 대기 화면
     if (spec.pillSub) {
-      if (spec.pillSubFilled) {
+      if (spec.subFillOption && currentSubPill.fill) {
+        // 배경 채움 버전 — 선택 배경색 + 흰/검 글자색. pill radius 100 유지.
+        //   inline-flex 수직 중앙정렬로 한글 글리프 광학 보정 + 테두리 버전과 동일 높이(65px) 고정.
+        //   좌우 padding 28 (테두리 버전 24 + 사라진 border 2px 보정 ≈ 동일 폭감).
+        css += `display:inline-flex;align-items:center;justify-content:center;height:65px;box-sizing:border-box;background:${currentSubPill.bg};color:${currentSubPill.textColor};border:none;border-radius:100px;padding:0 28px;line-height:1;`;
+      } else if (spec.pillSubFilled) {
         css += `display:inline-block;background:#1A1A1A;color:#FFFFFF;border-radius:100px;padding:22px 32px;line-height:1;`;
       } else if (spec.pillSubBoxed) {
         css += `display:inline-block;background:transparent;color:${subTextColor};border:2px solid ${subTextColor};border-radius:4px;padding:18px 28px;line-height:1;`;
