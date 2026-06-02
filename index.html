@@ -202,6 +202,10 @@ button { font-family: inherit; }
   background: var(--text-muted); transition: background var(--t-base);
 }
 .guide-toggle.active .guide-dot { background: var(--accent); }
+/* 임시저장 — 가이드 토글과 같은 결, 단 폭은 내용에 맞춤(고정 84px 해제) + 가운데 정렬 */
+.draft-controls { display: flex; gap: 6px; }
+.draft-btn { width: auto; padding: 0 12px; justify-content: center; }
+.draft-btn:active { background: var(--ink); color: #fff; border-color: var(--ink); }
 
 /* ===== §5 레이아웃 ===== */
 .main-layout { display: flex; gap: 32px; align-items: flex-start; }
@@ -1015,6 +1019,13 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
         <span class="guide-label-text" id="guide-label">ON</span>
       </button>
     </div>
+    <div class="selector-group">
+      <span class="selector-label">임시저장</span>
+      <div class="draft-controls">
+        <button type="button" class="guide-toggle draft-btn" id="draft-save-btn" onclick="saveDraft()" title="현재 작업을 이 브라우저에 저장">저장</button>
+        <button type="button" class="guide-toggle draft-btn" id="draft-load-btn" onclick="loadDraft()" title="저장한 작업 불러오기">불러오기</button>
+      </div>
+    </div>
   </div>
 </header>
 <!-- 메인 레이아웃 -->
@@ -1289,29 +1300,34 @@ function applyCardNewsJSON() {
     productSel.value = 'cardnews';
     onProductChange();
   }
-  // 2) 내지 slideStates 미리 세팅 (해당 slot으로 전환했을 때 onSlotChange가 자동 픽업)
-  //    data.interiorSlot 또는 첫 interior의 type으로 분배. 기본 E2.
-  const interiorSlot = data.interiorSlot
-    || (data.interiors && data.interiors[0] && data.interiors[0].type)
-    || 'E2';
-  const interiorSlotValid = ['E2', 'E4', 'E5', 'E6'].includes(interiorSlot);
-  const targetSlot = interiorSlotValid ? interiorSlot : 'E2';
+  // 2) 내지 slideStates 세팅 — 같은 카피를 모든 내지 스타일(E2·E4·E5·E6)에 일괄 채운다.
+  //    사용자는 슬롯(유형) 드롭다운에서 원하는 스타일을 골라 쓰면 됨.
+  //    (이미 같은 슬롯을 직접 편집했다면 import가 덮어쓰니 주의)
+  const INTERIOR_SLOTS = ['E2', 'E4', 'E5', 'E6'];
   const interiorCount = (data.interiors && Array.isArray(data.interiors)) ? data.interiors.length : 0;
   // 모든 내지 슬롯이 lines:3 max → mainLines 3 통일 (자동 감지로 실제 렌더는 2/3 적응)
   const interiorLines = 3;
+  // 슬롯마다 입력 필드 구조가 달라 카피를 알맞게 매핑한다.
+  //   E2·E4·E5 : 메인 카피 블록 → main1/main2/main3 (서로 호환)
+  //   E6        : 헤드 1줄 + 본문 → main(헤드)=main1, 본문(sub1~3)=main2/main3/sub
+  const interiorInputsFor = (slot, it) => {
+    if (slot === 'E6') {
+      const body = [it.main2, it.main3, it.sub].filter(x => x && String(x).trim());
+      return { main: (it.main1 || ''), sub1: body[0] || '', sub2: body[1] || '', sub3: body[2] || '' };
+    }
+    return { main1: (it.main1 || ''), main2: (it.main2 || ''), main3: (it.main3 || ''), sub: (it.sub || '') };
+  };
   if (interiorCount > 0) {
-    slideStates[targetSlot] = data.interiors.map(it => ({
-      images: {}, imageSizes: {}, imageRaw: {},
-      transforms: {}, fadeOverrides: {},
-      inputs: {
-        main1: (it.main1 || ''),
-        main2: (it.main2 || ''),
-        main3: (it.main3 || ''),
-        sub: (it.sub || ''),  // E5 박스 카피의 라벨 (예: "Step 1")
-      },
-      mainLines: interiorLines,
-    }));
-    activeSlideIdx[targetSlot] = 0;
+    INTERIOR_SLOTS.forEach(sl => {
+      slideStates[sl] = data.interiors.map(it => ({
+        images: {}, imageSizes: {}, imageRaw: {},
+        transforms: {}, fadeOverrides: {},
+        inputs: interiorInputsFor(sl, it),
+        mainLines: interiorLines,
+        sourceNote: { enabled: false, text: '' },
+      }));
+      activeSlideIdx[sl] = 0;
+    });
   }
   // 3) 표지(E1)로 와서 cover 카피 입력 (사용자가 가장 먼저 보는 화면)
   if (data.cover) {
@@ -1328,8 +1344,8 @@ function applyCardNewsJSON() {
     renderPreviews();
   }
   hint.className = 'json-import-hint is-success';
-  hint.textContent = `완료 — 표지 + ${SPECS.cardnews.slots[targetSlot].label} ${interiorCount}장`;
-  toast(`카피가 채워졌어요 (${SPECS.cardnews.slots[targetSlot].label} ${interiorCount}장).`);
+  hint.textContent = `완료 — 표지 + 내지 ${interiorCount}장 (모든 스타일에 채움, 유형에서 선택)`;
+  toast(`카피가 채워졌어요 — 내지 ${interiorCount}장이 모든 스타일에 적용됐어요. 유형 드롭다운에서 골라 쓰세요.`, { duration: 4000 });
 }
 // ================================================
 //  배너 스펙 데이터
@@ -2264,14 +2280,14 @@ function setSpeechBubbleEnabled(on) {
   const spec = SPECS[currentProduct].slots[currentSlot];
   if (!spec || !spec.hasSpeechBubble) return;
   spec.versions.forEach(v => { getSpeechBubble(v).enabled = on; });
-  renderInputs();
+  preserveInputsAcross(renderInputs);
   renderPreviews();
 }
 function setSpeechBubbleStyle(style) {
   const spec = SPECS[currentProduct].slots[currentSlot];
   if (!spec || !spec.hasSpeechBubble) return;
   spec.versions.forEach(v => { getSpeechBubble(v).style = style; });
-  renderInputs();
+  preserveInputsAcross(renderInputs);
   renderPreviews();
 }
 function setSpeechBubbleFont(fontId) {
@@ -2284,7 +2300,7 @@ function setSpeechBubbleDirection(dir) {
   const spec = SPECS[currentProduct].slots[currentSlot];
   if (!spec || !spec.hasSpeechBubble) return;
   spec.versions.forEach(v => { getSpeechBubble(v).direction = dir; });
-  renderInputs();
+  preserveInputsAcross(renderInputs);
   renderPreviews();
 }
 // 출처/AI 표기 (카드뉴스) — 우측 하단 고정 위치, 30px, Pretendard 고정. 슬라이드별 텍스트.
@@ -2297,7 +2313,7 @@ function setSourceNoteEnabled(on) {
   const spec = SPECS[currentProduct].slots[currentSlot];
   if (!spec || !spec.hasSourceNote) return;
   currentSourceNote.enabled = on;
-  renderInputs();
+  preserveInputsAcross(renderInputs);
   renderPreviews();
 }
 // carouselExtras[slotKey] = { [baseId]: extraCount } — 슬롯의 베이스별 추가된 카드 개수
@@ -2408,7 +2424,7 @@ function setMainLines(n) {
   const s3 = document.getElementById('lines-seg-3');
   if (s2) s2.classList.toggle('active', n === 2);
   if (s3) s3.classList.toggle('active', n === 3);
-  renderInputs();
+  preserveInputsAcross(renderInputs);
   renderPreviews();
 }
 let currentSlot = 'A1';
@@ -2417,6 +2433,7 @@ let currentSlot = 'A1';
 // ================================================
 window.onload = () => {
   onProductChange();
+  updateDraftUI();   // 임시본 있으면 불러오기 버튼 tooltip에 마지막 저장 시각 표시
   // Gulim 폰트 사전 로드 — 말풍선 첫 다운로드 시 html2canvas가 font fallback으로 떨어지는 것 방지
   if (document.fonts && document.fonts.load) {
     document.fonts.load('16px GulimLocal').catch(() => {});
@@ -2562,6 +2579,177 @@ function renderSlideTabs() {
   wrap.innerHTML = html;
   wrap.classList.remove('hidden');
 }
+// ================================================
+//  슬롯별 작업 임시 보존 (현재 세션 메모리 — 새로고침 시 초기화)
+//   non-multiSlide 슬롯은 슬롯을 떠나면 onSlotChange가 입력/설정을 모두 초기화한다.
+//   (예: 카드뉴스 표지 E1 → 내지 E2 갔다가 다시 E1 오면 표지 카피가 날아감)
+//   떠나기 직전 상태를 slotMemory에 저장해두고, 다시 돌아오면 복원해 이어서 작업하게 한다.
+//   multiSlide 슬롯(E2/E4…)은 slideStates가 이미 보존하므로 여기서는 제외.
+// ================================================
+let slotMemory = {};
+let lastRenderedSlot = null;   // { product, slot } — 현재 DOM에 그려져 있는 슬롯
+const _cloneState = x => JSON.parse(JSON.stringify(x || {}));
+function captureSlotState(product, slot) {
+  const spec = SPECS[product] && SPECS[product].slots[slot];
+  if (!spec || spec.multiSlide) return;   // multiSlide는 slideStates가 담당
+  const inputs = {};
+  document.querySelectorAll('#fields-area [id^="f-"]').forEach(el => { inputs[el.id] = el.value; });
+  slotMemory[product + ':' + slot] = {
+    inputs,
+    bg: currentBg,
+    textColorMode: currentTextColorMode,
+    showButton: currentShowButton,
+    mainLines: currentMainLines,
+    sourceNote: { ...currentSourceNote },
+    images: { ...currentImages },          // data URL 문자열 — 얕은 복사(메모리 절약)
+    imageRaw: { ...currentImageRaw },
+    imageSizes: _cloneState(currentImageSizes),
+    transforms: _cloneState(currentImageTransforms),
+    dualActive: { ...currentDualActive },
+    fadeOverrides: _cloneState(currentFadeOverrides),
+    overlayColors: _cloneState(currentOverlayColors),
+    speechBubbles: _cloneState(currentSpeechBubbles),
+    carouselExtras: _cloneState(carouselExtras),
+    templateTexts: _cloneState(templateTexts),
+    versionBg: _cloneState(currentVersionBg),
+    pillBg: _cloneState(templatePillBg),
+    textColor: _cloneState(templateTextColor),
+    bgPerVersion: { ...currentBgPerVersion },
+  };
+}
+function restoreSlotGlobals(product, slot) {
+  const spec = SPECS[product] && SPECS[product].slots[slot];
+  if (!spec || spec.multiSlide) return false;
+  const mem = slotMemory[product + ':' + slot];
+  if (!mem) return false;
+  currentBg = mem.bg;
+  currentTextColorMode = mem.textColorMode;
+  currentShowButton = mem.showButton;
+  currentMainLines = mem.mainLines;
+  currentSourceNote = { ...mem.sourceNote };
+  currentImages = { ...mem.images };
+  currentImageRaw = { ...mem.imageRaw };
+  currentImageSizes = _cloneState(mem.imageSizes);
+  currentImageTransforms = _cloneState(mem.transforms);
+  currentDualActive = { ...mem.dualActive };
+  currentFadeOverrides = _cloneState(mem.fadeOverrides);
+  currentOverlayColors = _cloneState(mem.overlayColors);
+  currentSpeechBubbles = _cloneState(mem.speechBubbles);
+  carouselExtras = _cloneState(mem.carouselExtras);
+  templateTexts = _cloneState(mem.templateTexts);
+  currentVersionBg = _cloneState(mem.versionBg);
+  templatePillBg = _cloneState(mem.pillBg);
+  templateTextColor = _cloneState(mem.textColor);
+  currentBgPerVersion = { ...mem.bgPerVersion };
+  return true;
+}
+function restoreSlotInputsAndThumbs(product, slot) {
+  const mem = slotMemory[product + ':' + slot];
+  if (!mem) return;
+  Object.entries(mem.inputs || {}).forEach(([id, val]) => {
+    const el = document.getElementById(id);
+    if (el) { el.value = val; if (el.tagName === 'INPUT') updateCharCount(el); }
+  });
+  // 업로드 썸네일 복원 (renderImageUploads는 currentImages 데이터를 자동으로 그리지 않음)
+  const spec = SPECS[product].slots[slot];
+  spec.versions.forEach(v => {
+    if (v.id.endsWith('-alt')) return;
+    if (!mem.images[v.id]) return;
+    const thumb = document.getElementById('upload-thumb-' + v.id);
+    const ph = document.getElementById('upload-placeholder-' + v.id);
+    const area = document.getElementById('upload-area-' + v.id);
+    if (thumb) { thumb.src = mem.images[v.id]; thumb.style.display = 'block'; }
+    if (ph) ph.style.display = 'none';
+    if (area) area.classList.add('has-image');
+  });
+}
+// 토글류(말풍선/출처/줄 수)가 renderInputs로 입력 영역을 다시 그릴 때 입력 카피가 날아가지 않게
+// 보존. 재렌더 전 값을 저장했다가, 재렌더 후 비어 있는 칸만 이전 값으로 되돌린다.
+//   (renderInputs가 이미 채운 칸 — 예: 출처 텍스트 — 은 덮어쓰지 않음)
+function preserveInputsAcross(reRender) {
+  const saved = {};
+  document.querySelectorAll('#fields-area [id^="f-"]').forEach(el => { saved[el.id] = el.value; });
+  reRender();
+  Object.entries(saved).forEach(([id, val]) => {
+    if (val === '') return;
+    const el = document.getElementById(id);
+    if (el && el.value === '') { el.value = val; if (el.tagName === 'INPUT') updateCharCount(el); }
+  });
+}
+// ================================================
+//  임시 저장 / 불러오기 (localStorage — 새로고침·브라우저 종료 후에도 유지)
+//   현재 작업 전체(모든 슬롯의 카피·설정·이미지 + 슬라이드)를 하나의 임시본으로 보관.
+//   base64 이미지가 커서 용량 초과 시 이미지는 빼고 텍스트·설정만 저장.
+// ================================================
+const DRAFT_KEY = 'bm_draft_v1';
+function collectDraft(includeImages) {
+  // 편집 중인 슬롯의 라이브 상태를 메모리(slideStates/slotMemory)에 먼저 반영
+  snapshotActiveSlide();
+  if (lastRenderedSlot) captureSlotState(lastRenderedSlot.product, lastRenderedSlot.slot);
+  const draft = {
+    v: 1,
+    savedAt: Date.now(),
+    product: currentProduct,
+    slot: currentSlot,
+    slotMemory: _cloneState(slotMemory),
+    slideStates: _cloneState(slideStates),
+    activeSlideIdx: _cloneState(activeSlideIdx),
+  };
+  if (!includeImages) {
+    Object.values(draft.slotMemory).forEach(m => { m.images = {}; m.imageRaw = {}; m.imageSizes = {}; m.transforms = {}; });
+    Object.values(draft.slideStates).forEach(arr => (arr || []).forEach(s => { s.images = {}; s.imageRaw = {}; s.imageSizes = {}; s.transforms = {}; }));
+  }
+  return draft;
+}
+function saveDraft() {
+  let saved = false;
+  try {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(collectDraft(true)));
+    saved = true;
+    toast('임시 저장했어요 (이 브라우저에 보관).');
+  } catch (e) {
+    // 용량 초과 추정 — 이미지 빼고 재시도
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(collectDraft(false)));
+      saved = true;
+      toast('이미지는 용량이 커서 빼고, 텍스트·설정만 저장했어요.', { duration: 4000 });
+    } catch (e2) {
+      toast('임시 저장 실패 — 저장 공간이 부족해요.', { danger: true });
+    }
+  }
+  if (saved) updateDraftUI();
+}
+function loadDraft() {
+  const raw = localStorage.getItem(DRAFT_KEY);
+  if (!raw) { toast('저장된 임시본이 없어요.', { danger: true }); return; }
+  let draft;
+  try { draft = JSON.parse(raw); } catch (e) { toast('임시본을 읽지 못했어요.', { danger: true }); return; }
+  slotMemory = draft.slotMemory || {};
+  slideStates = draft.slideStates || {};
+  activeSlideIdx = draft.activeSlideIdx || {};
+  lastRenderedSlot = null;   // 복원 직전 현재 DOM을 캡처해 덮어쓰지 않도록
+  const pSel = document.getElementById('sel-product');
+  if (draft.product && SPECS[draft.product] && pSel) pSel.value = draft.product;
+  onProductChange();         // 슬롯 드롭다운 채우고 onSlotChange까지 (첫 슬롯 렌더)
+  const sSel = document.getElementById('sel-slot');
+  if (draft.slot && sSel && SPECS[currentProduct].slots[draft.slot]) {
+    sSel.value = draft.slot;
+    onSlotChange();          // 저장돼 있던 작업 슬롯으로 이동 + 복원
+  }
+  toast('임시본을 불러왔어요.');
+}
+function updateDraftUI() {
+  const loadBtn = document.getElementById('draft-load-btn');
+  if (!loadBtn) return;
+  const raw = localStorage.getItem(DRAFT_KEY);
+  if (!raw) { loadBtn.title = '저장된 임시본 없음'; return; }
+  let ts = '';
+  try {
+    const d = JSON.parse(raw);
+    if (d.savedAt) ts = new Date(d.savedAt).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  } catch (e) {}
+  loadBtn.title = ts ? ('마지막 저장: ' + ts) : '저장한 작업 불러오기';
+}
 function onProductChange() {
   currentProduct = document.getElementById('sel-product').value;
   const slots = SPECS[currentProduct].slots;
@@ -2582,6 +2770,8 @@ function onProductChange() {
 function onSlotChange() {
   // 이전 슬롯이 multiSlide면 활성 슬라이드 상태 저장 (다시 돌아왔을 때 복원하기 위해)
   snapshotActiveSlide();
+  // 이전 슬롯이 non-multiSlide면 입력/설정을 slotMemory에 저장 (세션 내 자동 복원)
+  if (lastRenderedSlot) captureSlotState(lastRenderedSlot.product, lastRenderedSlot.slot);
   currentSlot = document.getElementById('sel-slot').value;
   currentImages = {};
   currentImageSizes = {};
@@ -2622,11 +2812,16 @@ function onSlotChange() {
   if (slotSpec.multiSlide) {
     ensureMultiSlideInit();
     applySlideToCurrent(activeSlideIdx[currentSlot] || 0);
+  } else {
+    // non-multiSlide: 이 슬롯을 떠났다 돌아온 거면 저장해둔 설정(배경/색/이미지 등) 복원.
+    //   bgPresets/perVersionBg 기본값보다 우선하도록 그 뒤에 실행.
+    restoreSlotGlobals(currentProduct, currentSlot);
   }
   renderImageUploads();
   renderInputs();
   // multiSlide면 globals → DOM 채워주기 (입력값/썸네일 복원)
   if (slotSpec.multiSlide) populateDOMFromActiveSlide();
+  else restoreSlotInputsAndThumbs(currentProduct, currentSlot);   // non-multiSlide 카피/썸네일 복원
   renderSlideTabs();
   updateBgUI();
   updatePointColorUI();
@@ -2641,6 +2836,8 @@ function onSlotChange() {
   const tabBtnCopy = document.getElementById('tab-btn-copy');
   if (tabBtnCopy) tabBtnCopy.classList.toggle('hidden', isTextless);
   switchTab(isTextless ? 'image' : 'copy');
+  // 지금 그려진 슬롯 기록 — 다음 슬롯 전환 때 이 슬롯 상태를 slotMemory에 저장한다.
+  lastRenderedSlot = { product: currentProduct, slot: currentSlot };
 }
 // ================================================
 //  배경색 UI
