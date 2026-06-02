@@ -1657,8 +1657,7 @@ const SPECS = {
     //
     // ┌─ 카드뉴스 디자인 규격 토큰 (전 슬롯 공통, 1배수) ───────────────────────────┐
     // │ 좌우 여백 70 · 상/하 여백 100 · 이미지↔텍스트 70 · 서브↔메인 30           │
-    // │ 메인 자간 -0.025em (표지만 -0.04em — 큰 디스플레이라 더 타이트)            │
-    // │ 행간: 헤드라인 130~140% / 본문 150%                                       │
+    // │ 행간 130% · 자간 -0.5px (전 영역 통일 — 메인/서브 동일)                   │
     // │ 메인 타입 스케일(역할별):                                                  │
     // │   헤드 L = 90 (표지 E1) · 72 (E6 1줄 헤드)                                 │
     // │   헤드 M = 56 (E2·E4 카피 3줄)                                            │
@@ -1681,17 +1680,17 @@ const SPECS = {
           { id: 'full', label: '배경 이미지', uploadLabel: '배경 이미지', w: 1080, h: 1440,
             lockTextColor: true,
             img:  { top:0, left:0, w:1080, h:1440, bgFull:true, editable:true },
-            // 가이드라인: 좌우 70 (전 슬롯 통일) / 상단 1010 (pill 시작) / sub-main gap 30 / 메인 90px 130% -4% / 하단 100 (전 슬롯 통일)
-            //   상단 블록을 60px 내려 하단 여백 160→100 통일. sub 1010 + pill 65 + gap 30 + main 234(2줄 fs90 130%) + 하단 100 = 1439 ≈ 1440
-            sub:  { top:1010, left:70, fs:41, color:'#FFFFFF' },
-            main: { top:1106, left:70, right:70, fs:90, lines:2, lh:'130%', ls:'-0.04em', paddingBottom:100, color:'#FFFFFF' },
+            // 가이드라인: 좌우 70 (전 슬롯 통일) / 상단 1011 (pill 시작) / sub-main gap 30 / 메인 90px 130% -0.5px / 하단 100 (전 슬롯 통일)
+            //   상단 블록을 내려 하단 여백 160→100 통일. sub 1011 + pill 65 + gap 30 + main 234(2줄 fs90 130%) + 하단 100 = 1440
+            sub:  { top:1011, left:70, fs:41, color:'#FFFFFF' },
+            main: { top:1106, left:70, right:70, fs:90, lines:2, lh:'130%', paddingBottom:100, color:'#FFFFFF' },
             // 그라데이션: strong 이미지 하단 고정. 기본 dim 범위 y:920~1440 (텍스트 영역 커버) → 슬라이더 0 = no dim.
             fade: { strong:1440, faded:920, rgb:'0,0,0', maxAlpha:0.55 } },
           { id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1080, h: 1440,
-            // 이미지 h:940 — 하단(940) ~ sub 시작(1010) 간격 70px (이미지 60px 확대로 70 간격 유지)
-            img:  { top:0, left:0, w:1080, h:940, cover:true, editable:true },
-            sub:  { top:1010, left:70, fs:41, color:'#1A1A1A' },
-            main: { top:1106, left:70, right:70, fs:90, lines:2, lh:'130%', ls:'-0.04em', paddingBottom:100, color:'#1A1A1A' } }
+            // 이미지 h:941 — 하단(941) ~ sub 시작(1011) 간격 70px (이미지↔텍스트 70 간격 유지)
+            img:  { top:0, left:0, w:1080, h:941, cover:true, editable:true },
+            sub:  { top:1011, left:70, fs:41, color:'#1A1A1A' },
+            main: { top:1106, left:70, right:70, fs:90, lines:2, lh:'130%', paddingBottom:100, color:'#1A1A1A' } }
         ]
       },
       // 내지 (카피 상단) — 메인 카피(2~3줄 자동 감지) 위 + 인포그래픽/이미지 아래
@@ -1704,12 +1703,12 @@ const SPECS = {
         versions: [
           { id: 'full', label: '배경 이미지', uploadLabel: '배경 이미지', w: 1080, h: 1440,
             lockTextColor: true,
-            main: { top:100, left:70, right:70, fs:56, lines:3, lh:'140%', ls:'-0.025em', center:true, color:'#FFFFFF' },
+            main: { top:100, left:70, right:70, fs:56, lines:3, lh:'130%', center:true, color:'#FFFFFF' },
             img:  { top:0, left:0, w:1080, h:1440, bgFull:true, editable:true },
             // 캔버스 전 영역 선형 그라데이션 — 상단 dim → 하단 클리어. 기본 dim 컬러 블랙.
             fade: { strong:0, faded:1440, rgb:'0,0,0', maxAlpha:0.55 } },
           { id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1080, h: 1440,
-            main: { top:100, left:70, right:70, fs:56, lines:3, lh:'140%', ls:'-0.025em', center:true, color:'#1A1A1A' },
+            main: { top:100, left:70, right:70, fs:56, lines:3, lh:'130%', center:true, color:'#1A1A1A' },
             // 이미지 — 캔버스 하단 풀폭 (left 0, bottom 0, w 1080). top·height는 autoSize로 카피 줄 수에 따라 동적
             //   gapToText:70 = 메인 끝~이미지 시작 간격 (3줄 기준 imgTop=422, h=1018)
             img:  { bottom:0, left:0, w:1080, h:1018, editable:true, autoSize:true, gapToText:70 } }
@@ -1717,7 +1716,7 @@ const SPECS = {
       },
       // 내지 (카피 하단) — 이미지 위 + 메인 카피(2~3줄 자동 감지) 아래
       //   공통 패딩: 좌우 70 / 상단 100 / 하단 100
-      //   E2와 동일 폰트 (fs:56 / lh:140% / 자간 -0.025em) — 상하 위치만 다름
+      //   E2와 동일 폰트 (fs:56 / lh:130% / 자간 -0.5px) — 상하 위치만 다름
       'E4': {
         label: '내지 (카피 하단)',
         bgFixed: null, pointColor: true, noSub: true, isLarge: true, hasSourceNote: true,
@@ -1727,13 +1726,13 @@ const SPECS = {
           { id: 'full', label: '배경 이미지', uploadLabel: '배경 이미지', w: 1080, h: 1440,
             lockTextColor: true,
             img:  { top:0, left:0, w:1080, h:1440, bgFull:true, editable:true },
-            main: { bottom:100, left:70, right:70, fs:56, lines:3, lh:'140%', ls:'-0.025em', center:true, color:'#FFFFFF' },
+            main: { bottom:100, left:70, right:70, fs:56, lines:3, lh:'130%', center:true, color:'#FFFFFF' },
             // 그라데이션: strong(불투명) 이미지 하단 고정. 기본은 바닥쪽 짧은 dim(400px) → 슬라이더로 위로 확장.
             //   - faded:1040 → 기본 dim 범위 y:1040~1440 (카피 영역 + 약간의 buffer)
             //   - 슬라이더 max = strong = 1440 → 풀스팬까지 확장 가능
             fade: { strong:1440, faded:1040, rgb:'0,0,0', maxAlpha:0.55 } },
           { id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1080, h: 1440,
-            main: { bottom:100, left:70, right:70, fs:56, lines:3, lh:'140%', ls:'-0.025em', center:true, color:'#1A1A1A' },
+            main: { bottom:100, left:70, right:70, fs:56, lines:3, lh:'130%', center:true, color:'#1A1A1A' },
             // 이미지 — 캔버스 상단 풀폭 (top 0, left 0, w 1080). height는 autoSize로 카피 줄 수에 따라 동적
             //   gapToText:70 = 이미지 하단~메인 시작 간격 (3줄 기준 h=1018, 2줄 h=1102)
             img:  { top:0, left:0, w:1080, h:1018, editable:true, autoSize:true, gapToText:70 } }
@@ -1753,7 +1752,7 @@ const SPECS = {
           // 공통 패딩: 좌우 70 / 하단 100. autoHeight — 박스 높이 = main 줄 수에 따라 자동.
           // innerPadding 20 — 박스 안쪽 상/하 균일 패딩
           copyBox: { left:70, right:70, paddingBottom:100, innerPadding:20, autoHeight:true, bg:'#FFFFFF', radius:0, border:'2px solid #1A1A1A' },
-          main: { left:120, right:120, fs:46, lines:3, lh:'150%', center:true, color:'#1A1A1A' }
+          main: { left:120, right:120, fs:46, lines:3, lh:'130%', center:true, color:'#1A1A1A' }
         }]
       },
       // 내지 (서브 카피) — 이미지(상단 풀폭) + 메인 카피(1줄, 헤드) + 서브 카피(2~3줄, 본문)
@@ -1766,12 +1765,12 @@ const SPECS = {
         bgPresets: ['#FFFFFF', '#F4F1EA', '#FDEDEF', '#E8F4FF', '#FFF8D7', '#F4F0FF', '#EFFCE7'],
         versions: [{
           id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1080, h: 1440,
-          sub:  { bottom:100, left:70, right:70, fs:40, lines:3, lh:'150%', center:true, color:'#1A1A1A' },
-          // main.bottom은 subDrivesMainPos가 동적 산출 (3줄 sub 기준 310)
-          main: { bottom:310, left:70, right:70, fs:72, lines:1, lh:'130%', ls:'-0.025em', center:true, color:'#1A1A1A' },
+          sub:  { bottom:100, left:70, right:70, fs:40, lines:3, lh:'130%', center:true, color:'#1A1A1A' },
+          // main.bottom은 subDrivesMainPos가 동적 산출 (3줄 sub·lh130% 기준 286)
+          main: { bottom:286, left:70, right:70, fs:72, lines:1, lh:'130%', center:true, color:'#1A1A1A' },
           // 이미지: 상단 풀폭. autoSize + subDrivesMainPos → sub 줄 수에 맞춰 height 자동 조정
-          //   3줄 sub: imgH=966, 2줄: 1026, 1줄: 1086
-          img:  { top:0, left:0, w:1080, h:966, editable:true, autoSize:true, gapToText:70, subDrivesMainPos:true, mainSubGap:30 }
+          //   3줄 sub: imgH=990, 2줄: 1042, 1줄: 1094 (lh130% 기준)
+          img:  { top:0, left:0, w:1080, h:990, editable:true, autoSize:true, gapToText:70, subDrivesMainPos:true, mainSubGap:30 }
         }]
       },
       // 마지막장 (브랜딩 막지) — 흰 배경 + 가운데 페이히어 로고 + 태그라인. 입력 없는 고정 카드.
@@ -5442,7 +5441,9 @@ function buildBanner(v, spec) {
   const padL = pads.left.filter(v => v > 0).length ? Math.min(...pads.left.filter(v => v > 0)) : 0;
   const padR = pads.right.filter(v => v > 0).length ? Math.min(...pads.right.filter(v => v > 0)) : 0;
   const padGuideFs = spec.isLarge ? 22 : 9; // isLarge는 0.4배 축소 미리보기 → 22px이 ~9px처럼 보임
-  if (padT > 0) { addPadGuide(banner, 'h', 0, padT, v.w, padT, padGuideFs); }
+  // 표지(E1, subFillOption)는 상단을 히어로 이미지가 채워 '상단 패딩' 개념이 없음 → sub/main 절대 top이
+  //   잡히는 큰 상단 밴드는 오해를 부르므로 숨김 (좌우·하단·서브↔메인 간격 가이드는 그대로 노출)
+  if (padT > 0 && !spec.subFillOption) { addPadGuide(banner, 'h', 0, padT, v.w, padT, padGuideFs); }
   if (padB > 0) { addPadGuide(banner, 'h-bot', v.h - padB, padB, v.w, padB, padGuideFs); }
   if (padL > 0) { addPadGuide(banner, 'v', 0, padL, padL, padL, padGuideFs); }
   // 우측 패딩: 이미지가 우측에 풀높이로 깔리면(C1 right 등) 패딩 영역이 이미지를 포함해
@@ -5543,6 +5544,15 @@ function buildBanner(v, spec) {
         }
       }
     }
+  }
+  // 서브(pill)↔메인 간격 가이드 (표지 E1 — pill이 메인 카피 위, 고정 높이 65px)
+  //   pill 높이 = fs41(line-height:1) + 패딩/테두리 = 65 (테두리·배경 채움 동일)
+  if (spec.subFillOption && v.sub && v.main
+      && v.sub.top !== undefined && v.main.top !== undefined) {
+    const PILL_H = 65;
+    const subBot = v.sub.top + PILL_H;
+    const gap = v.main.top - subBot;
+    if (gap > 0) addPadGuide(banner, 'h-mid', subBot, gap, v.w, gap, padGuideFs);
   }
   return banner;
 }
