@@ -1674,22 +1674,23 @@ const SPECS = {
         hasSpeechBubble: true,  // 흰 말풍선(블랙 텍스트) — 위치/크기/폰트 사용자 조절
         hasSourceNote: true,    // 우측 하단 고정 출처/AI 표기 (30px Pretendard, 슬라이드별 텍스트)
         pillSub: true,   // 동그란 pill — 투명 채움 + 컬러 테두리 2px (가이드라인)
+        pillCover: true, // 히어로+pill 표지 — 상단 패딩 밴드 숨김 + 서브↔메인 간격 가이드 (G1/G3 공통)
         subFillOption: true,  // 서브 카피 pill: 테두리 버전 / 배경 채움 버전 택1 + 글자색(흰/검) 선택
         bgPresets: ['#FFFFFF', '#F4F1EA', '#F6F8F9', '#FFEFF2', '#E8F4FF', '#EFFCE7', '#FFF8D7', '#1A1A1A'],
         versions: [
           { id: 'full', label: '배경 이미지', uploadLabel: '배경 이미지', w: 1080, h: 1440,
             lockTextColor: true,
             img:  { top:0, left:0, w:1080, h:1440, bgFull:true, editable:true },
-            // 가이드라인: 좌우 70 (전 슬롯 통일) / 상단 1011 (pill 시작) / sub-main gap 30 / 메인 90px 130% -0.5px / 하단 100 (전 슬롯 통일)
-            //   상단 블록을 내려 하단 여백 160→100 통일. sub 1011 + pill 65 + gap 30 + main 234(2줄 fs90 130%) + 하단 100 = 1440
-            sub:  { top:1011, left:70, fs:41, color:'#FFFFFF' },
+            // 가이드라인: 좌우 70 (전 슬롯 통일) / 상단 1012 (pill 시작) / sub-main gap 30 / 메인 90px 130% -0.5px / 하단 100 (전 슬롯 통일)
+            //   서브 40(짝수) → pill 높이 64. sub 1012 + pill 64 + gap 30 + main 234(2줄 fs90 130%) + 하단 100 = 1440
+            sub:  { top:1012, left:70, fs:40, color:'#FFFFFF' },
             main: { top:1106, left:70, right:70, fs:90, lines:2, lh:'130%', paddingBottom:100, color:'#FFFFFF' },
             // 그라데이션: strong 이미지 하단 고정. 기본 dim 범위 y:920~1440 (텍스트 영역 커버) → 슬라이더 0 = no dim.
             fade: { strong:1440, faded:920, rgb:'0,0,0', maxAlpha:0.55 } },
           { id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1080, h: 1440,
-            // 이미지 h:941 — 하단(941) ~ sub 시작(1011) 간격 70px (이미지↔텍스트 70 간격 유지)
-            img:  { top:0, left:0, w:1080, h:941, cover:true, editable:true },
-            sub:  { top:1011, left:70, fs:41, color:'#1A1A1A' },
+            // 이미지 h:942 — 하단(942) ~ sub 시작(1012) 간격 70px (이미지↔텍스트 70 간격 유지)
+            img:  { top:0, left:0, w:1080, h:942, cover:true, editable:true },
+            sub:  { top:1012, left:70, fs:40, color:'#1A1A1A' },
             main: { top:1106, left:70, right:70, fs:90, lines:2, lh:'130%', paddingBottom:100, color:'#1A1A1A' } }
         ]
       },
@@ -1750,8 +1751,8 @@ const SPECS = {
           lockTextColor: true, noDefaultOverlay: true,
           img:  { top:0, left:0, w:1080, h:1440, bgFull:true, editable:true },
           // 공통 패딩: 좌우 70 / 하단 100. autoHeight — 박스 높이 = main 줄 수에 따라 자동.
-          // innerPadding 20 — 박스 안쪽 상/하 균일 패딩
-          copyBox: { left:70, right:70, paddingBottom:100, innerPadding:20, autoHeight:true, bg:'#FFFFFF', radius:0, border:'2px solid #1A1A1A' },
+          // innerPadding 36 — 박스 안쪽 상/하 패딩 (좌우 인셋 50과 균형: 박스70→텍스트120)
+          copyBox: { left:70, right:70, paddingBottom:100, innerPadding:36, autoHeight:true, bg:'#FFFFFF', radius:0, border:'2px solid #1A1A1A' },
           main: { left:120, right:120, fs:46, lines:3, lh:'130%', center:true, color:'#1A1A1A' }
         }]
       },
@@ -1787,26 +1788,29 @@ const SPECS = {
   content11: {
     label: '콘텐츠 1:1',
     // 1:1 (1080×1080) 콘텐츠 — 카드뉴스 표지(E1) / 내지 변형(E2/E4/E5/E6)들을 1:1 사이즈로 재배치
+    //   규격: 좌우 70 · 하단 80 · 행간 130% · 자간 -0.5px (전 슬롯 통일)
+    //   메인 스케일 헤드 90(표지)·56(G7)·48(카루셀)·42(박스) / 서브 40(표지)·32(G7)
     slots: {
       // 표지 — 1080×1080, 카드뉴스 표지 패턴 (pill + 메인 카피 + 검정 scrim)
       'G1': {
         label: '표지',
         bgFixed: null, noPointColor: true, isLarge: true,
-        pillSub: true,
+        pillSub: true, pillCover: true,  // 히어로+pill 표지 — 상단 패딩 밴드 숨김 + 서브↔메인 간격 가이드
         bgPresets: ['#FFFFFF', '#F4F1EA', '#F6F8F9', '#FFEFF2', '#E8F4FF', '#EFFCE7', '#FFF8D7', '#1A1A1A'],
         versions: [
           { id: 'full', label: '배경 이미지', uploadLabel: '배경 이미지', w: 1080, h: 1080,
             lockTextColor: true,
             img:  { top:0, left:0, w:1080, h:1080, bgFull:true, editable:true },
-            // 패딩: 좌우 70 / 상단 651 (pill) / sub-main gap 30 / 하단 100. 메인 90px 130% -4%
-            sub:  { top:651, left:70, fs:41, color:'#FFFFFF' },
-            main: { top:746, left:70, right:70, fs:90, lines:2, lh:'130%', ls:'-0.04em', paddingBottom:100, color:'#FFFFFF' },
+            // 패딩: 좌우 70 / 상단 672 (pill) / sub-main gap 30 / 하단 80(섹션 통일). 메인 90px 130% -0.5px
+            //   서브 40 → pill 64. 672 + 64 + gap 30 + main 234(2줄 fs90 130%) + 하단 80 = 1080
+            sub:  { top:672, left:70, fs:40, color:'#FFFFFF' },
+            main: { top:766, left:70, right:70, fs:90, lines:2, lh:'130%', paddingBottom:80, color:'#FFFFFF' },
             fade: { strong:1080, faded:620, rgb:'0,0,0', maxAlpha:0.55 } },
           { id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1080, h: 1080,
-            // 이미지 h:581 — 하단(581) ~ sub 시작(651) 간격 70px
-            img:  { top:0, left:0, w:1080, h:581, cover:true, editable:true },
-            sub:  { top:651, left:70, fs:41, color:'#1A1A1A' },
-            main: { top:746, left:70, right:70, fs:90, lines:2, lh:'130%', ls:'-0.04em', paddingBottom:100, color:'#1A1A1A' } }
+            // 이미지 h:602 — 하단(602) ~ sub 시작(672) 간격 70px
+            img:  { top:0, left:0, w:1080, h:602, cover:true, editable:true },
+            sub:  { top:672, left:70, fs:40, color:'#1A1A1A' },
+            main: { top:766, left:70, right:70, fs:90, lines:2, lh:'130%', paddingBottom:80, color:'#1A1A1A' } }
         ]
       },
       // 내지 (카피 하단) — 이미지 위 + 메인 카피 아래 (E4 패턴)
@@ -1819,10 +1823,10 @@ const SPECS = {
           { id: 'full', label: '배경 이미지', uploadLabel: '배경 이미지', w: 1080, h: 1080,
             lockTextColor: true,
             img:  { top:0, left:0, w:1080, h:1080, bgFull:true, editable:true },
-            main: { bottom:80, left:70, right:70, fs:48, lines:3, lh:'150%', center:true, color:'#FFFFFF' },
+            main: { bottom:80, left:70, right:70, fs:48, lines:3, lh:'130%', center:true, color:'#FFFFFF' },
             fade: { strong:1080, faded:680, rgb:'0,0,0', maxAlpha:0.55 } },
           { id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1080, h: 1080,
-            main: { bottom:80, left:70, right:70, fs:48, lines:3, lh:'150%', center:true, color:'#1A1A1A' },
+            main: { bottom:80, left:70, right:70, fs:48, lines:3, lh:'130%', center:true, color:'#1A1A1A' },
             // 이미지 — top 0, 풀폭. autoSize로 카피 줄 수에 따라 동적 (3줄 기준 h=714)
             img:  { top:0, left:0, w:1080, h:714, editable:true, autoSize:true, gapToText:70 } }
         ]
@@ -1836,11 +1840,11 @@ const SPECS = {
         versions: [
           { id: 'full', label: '배경 이미지', uploadLabel: '배경 이미지', w: 1080, h: 1080,
             lockTextColor: true,
-            main: { top:80, left:70, right:70, fs:48, lines:3, lh:'150%', center:true, color:'#FFFFFF' },
+            main: { top:80, left:70, right:70, fs:48, lines:3, lh:'130%', center:true, color:'#FFFFFF' },
             img:  { top:0, left:0, w:1080, h:1080, bgFull:true, editable:true },
             fade: { strong:0, faded:1080, rgb:'0,0,0', maxAlpha:0.55 } },
           { id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1080, h: 1080,
-            main: { top:80, left:70, right:70, fs:48, lines:3, lh:'150%', center:true, color:'#1A1A1A' },
+            main: { top:80, left:70, right:70, fs:48, lines:3, lh:'130%', center:true, color:'#1A1A1A' },
             // 이미지 — bottom 0 풀폭. autoSize (3줄 기준 imgTop=366, h=714)
             img:  { bottom:0, left:0, w:1080, h:714, editable:true, autoSize:true, gapToText:70 } }
         ]
@@ -1855,8 +1859,8 @@ const SPECS = {
           id: 'full', label: 'IG', uploadLabel: '배경 이미지', w: 1080, h: 1080,
           lockTextColor: true, noDefaultOverlay: true,
           img:  { top:0, left:0, w:1080, h:1080, bgFull:true, editable:true },
-          copyBox: { left:70, right:70, paddingBottom:80, innerPadding:20, autoHeight:true, bg:'#FFFFFF', radius:0, border:'2px solid #1A1A1A' },
-          main: { left:120, right:120, fs:42, lines:3, lh:'150%', center:true, color:'#1A1A1A' }
+          copyBox: { left:70, right:70, paddingBottom:80, innerPadding:36, autoHeight:true, bg:'#FFFFFF', radius:0, border:'2px solid #1A1A1A' },
+          main: { left:120, right:120, fs:42, lines:3, lh:'130%', center:true, color:'#1A1A1A' }
         }]
       },
       // 내지 (서브 카피) — 이미지 + 헤드(1줄) + 본문(2~3줄). subDrivesMainPos로 main+image 동적 (E6 패턴)
@@ -1867,8 +1871,9 @@ const SPECS = {
         bgPresets: ['#FFFFFF', '#F4F1EA', '#FDEDEF', '#E8F4FF', '#FFF8D7', '#F4F0FF', '#EFFCE7'],
         versions: [{
           id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1080, h: 1080,
-          sub:  { bottom:80, left:70, right:70, fs:32, lines:3, lh:'150%', center:true, color:'#1A1A1A' },
-          main: { bottom:254, left:70, right:70, fs:56, lines:1, lh:'130%', center:true, color:'#1A1A1A' },
+          sub:  { bottom:80, left:70, right:70, fs:32, lines:3, lh:'130%', center:true, color:'#1A1A1A' },
+          // main.bottom은 subDrivesMainPos가 동적 산출 (3줄 sub·lh130%·하단80 기준 235)
+          main: { bottom:235, left:70, right:70, fs:56, lines:1, lh:'130%', center:true, color:'#1A1A1A' },
           img:  { top:0, left:0, w:1080, h:683, editable:true, autoSize:true, gapToText:70, subDrivesMainPos:true, mainSubGap:30 }
         }]
       },
@@ -1877,24 +1882,29 @@ const SPECS = {
   content43: {
     label: '콘텐츠 4:3',
     // 4:3 (1200×900) 콘텐츠 — 카드뉴스 표지(E1) / 내지 변형(E2/E4/E5/E6)들을 4:3 사이즈로 재배치
+    //   규격: 좌우 70 · 하단 70 · 행간 130% · 자간 -0.5px (전 슬롯 통일)
+    //   메인 스케일 헤드 90(표지)·48(카루셀)·42(G10)·40(박스) / 서브 40(표지)·28(G10)
     slots: {
       // 표지 — 1200×900, 카드뉴스 표지 패턴 (pill + 메인 카피 + 검정 scrim)
       'G3': {
         label: '표지',
         bgFixed: null, noPointColor: true, isLarge: true,
-        pillSub: true,
+        pillSub: true, pillCover: true,  // 히어로+pill 표지 — 상단 패딩 밴드 숨김 + 서브↔메인 간격 가이드
         bgPresets: ['#FFFFFF', '#F4F1EA', '#F6F8F9', '#FFEFF2', '#E8F4FF', '#EFFCE7', '#FFF8D7', '#1A1A1A'],
         versions: [
           { id: 'full', label: '배경 이미지', uploadLabel: '배경 이미지', w: 1200, h: 900,
             lockTextColor: true,
             img:  { top:0, left:0, w:1200, h:900, bgFull:true, editable:true },
-            sub:  { top:491, left:70, fs:41, color:'#FFFFFF' },
-            main: { top:586, left:70, right:70, fs:90, lines:2, lh:'130%', ls:'-0.04em', paddingBottom:80, color:'#FFFFFF' },
+            // 좌우 70 / 상단 502 (pill) / sub-main gap 30 / 하단 70(섹션 통일). 메인 90px 130% -0.5px
+            //   서브 40 → pill 64. 502 + 64 + gap 30 + main 234 + 하단 70 = 900
+            sub:  { top:502, left:70, fs:40, color:'#FFFFFF' },
+            main: { top:596, left:70, right:70, fs:90, lines:2, lh:'130%', paddingBottom:70, color:'#FFFFFF' },
             fade: { strong:900, faded:460, rgb:'0,0,0', maxAlpha:0.55 } },
           { id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1200, h: 900,
-            img:  { top:0, left:0, w:1200, h:421, cover:true, editable:true },
-            sub:  { top:491, left:70, fs:41, color:'#1A1A1A' },
-            main: { top:586, left:70, right:70, fs:90, lines:2, lh:'130%', ls:'-0.04em', paddingBottom:80, color:'#1A1A1A' } }
+            // 이미지 h:432 — 하단(432) ~ sub 시작(502) 간격 70px
+            img:  { top:0, left:0, w:1200, h:432, cover:true, editable:true },
+            sub:  { top:502, left:70, fs:40, color:'#1A1A1A' },
+            main: { top:596, left:70, right:70, fs:90, lines:2, lh:'130%', paddingBottom:70, color:'#1A1A1A' } }
         ]
       },
       // 내지 (카피 상단)
@@ -1906,11 +1916,11 @@ const SPECS = {
         versions: [
           { id: 'full', label: '배경 이미지', uploadLabel: '배경 이미지', w: 1200, h: 900,
             lockTextColor: true,
-            main: { top:70, left:70, right:70, fs:48, lines:3, lh:'150%', center:true, color:'#FFFFFF' },
+            main: { top:70, left:70, right:70, fs:48, lines:3, lh:'130%', center:true, color:'#FFFFFF' },
             img:  { top:0, left:0, w:1200, h:900, bgFull:true, editable:true },
             fade: { strong:0, faded:900, rgb:'0,0,0', maxAlpha:0.55 } },
           { id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1200, h: 900,
-            main: { top:70, left:70, right:70, fs:48, lines:3, lh:'150%', center:true, color:'#1A1A1A' },
+            main: { top:70, left:70, right:70, fs:48, lines:3, lh:'130%', center:true, color:'#1A1A1A' },
             img:  { bottom:0, left:0, w:1200, h:544, editable:true, autoSize:true, gapToText:70 } }
         ]
       },
@@ -1924,10 +1934,10 @@ const SPECS = {
           { id: 'full', label: '배경 이미지', uploadLabel: '배경 이미지', w: 1200, h: 900,
             lockTextColor: true,
             img:  { top:0, left:0, w:1200, h:900, bgFull:true, editable:true },
-            main: { bottom:70, left:70, right:70, fs:48, lines:3, lh:'150%', center:true, color:'#FFFFFF' },
+            main: { bottom:70, left:70, right:70, fs:48, lines:3, lh:'130%', center:true, color:'#FFFFFF' },
             fade: { strong:900, faded:500, rgb:'0,0,0', maxAlpha:0.55 } },
           { id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1200, h: 900,
-            main: { bottom:70, left:70, right:70, fs:48, lines:3, lh:'150%', center:true, color:'#1A1A1A' },
+            main: { bottom:70, left:70, right:70, fs:48, lines:3, lh:'130%', center:true, color:'#1A1A1A' },
             img:  { top:0, left:0, w:1200, h:544, editable:true, autoSize:true, gapToText:70 } }
         ]
       },
@@ -1941,8 +1951,8 @@ const SPECS = {
           id: 'full', label: 'IG', uploadLabel: '배경 이미지', w: 1200, h: 900,
           lockTextColor: true, noDefaultOverlay: true,
           img:  { top:0, left:0, w:1200, h:900, bgFull:true, editable:true },
-          copyBox: { left:70, right:70, paddingBottom:60, innerPadding:20, autoHeight:true, bg:'#FFFFFF', radius:0, border:'2px solid #1A1A1A' },
-          main: { left:120, right:120, fs:40, lines:3, lh:'150%', center:true, color:'#1A1A1A' }
+          copyBox: { left:70, right:70, paddingBottom:70, innerPadding:36, autoHeight:true, bg:'#FFFFFF', radius:0, border:'2px solid #1A1A1A' },
+          main: { left:120, right:120, fs:40, lines:3, lh:'130%', center:true, color:'#1A1A1A' }
         }]
       },
       // 내지 (서브 카피)
@@ -1953,8 +1963,9 @@ const SPECS = {
         bgPresets: ['#FFFFFF', '#F4F1EA', '#FDEDEF', '#E8F4FF', '#FFF8D7', '#F4F0FF', '#EFFCE7'],
         versions: [{
           id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1200, h: 900,
-          sub:  { bottom:60, left:70, right:70, fs:28, lines:3, lh:'150%', center:true, color:'#1A1A1A' },
-          main: { bottom:216, left:70, right:70, fs:42, lines:1, lh:'130%', center:true, color:'#1A1A1A' },
+          sub:  { bottom:70, left:70, right:70, fs:28, lines:3, lh:'130%', center:true, color:'#1A1A1A' },
+          // main.bottom은 subDrivesMainPos가 동적 산출 (3줄 sub·lh130%·하단70 기준 209)
+          main: { bottom:209, left:70, right:70, fs:42, lines:1, lh:'130%', center:true, color:'#1A1A1A' },
           img:  { top:0, left:0, w:1200, h:559, editable:true, autoSize:true, gapToText:70, subDrivesMainPos:true, mainSubGap:30 }
         }]
       }
@@ -5265,16 +5276,16 @@ function buildBanner(v, spec) {
     if (spec.pillSub) {
       if (spec.subFillOption && currentSubPill.fill) {
         // 배경 채움 버전 — 선택 배경색 + 흰/검 글자색. pill radius 100 유지.
-        //   inline-flex 수직 중앙정렬로 한글 글리프 광학 보정 + 테두리 버전과 동일 높이(65px) 고정.
+        //   inline-flex 수직 중앙정렬로 한글 글리프 광학 보정 + 테두리 버전과 동일 높이(64px) 고정.
         //   좌우 padding 28 (테두리 버전 24 + 사라진 border 2px 보정 ≈ 동일 폭감).
-        css += `display:inline-flex;align-items:center;justify-content:center;height:65px;box-sizing:border-box;background:${currentSubPill.bg};color:${currentSubPill.textColor};border:none;border-radius:100px;padding:0 28px;line-height:1;`;
+        css += `display:inline-flex;align-items:center;justify-content:center;height:64px;box-sizing:border-box;background:${currentSubPill.bg};color:${currentSubPill.textColor};border:none;border-radius:100px;padding:0 28px;line-height:1;`;
       } else if (spec.pillSubFilled) {
         css += `display:inline-block;background:#1A1A1A;color:#FFFFFF;border-radius:100px;padding:22px 32px;line-height:1;`;
       } else if (spec.pillSubBoxed) {
         css += `display:inline-block;background:transparent;color:${subTextColor};border:2px solid ${subTextColor};border-radius:4px;padding:18px 28px;line-height:1;`;
       } else {
-        // pill 세로 padding 10 → pill 높이 65 (= 41 fs + 20 padding + 4 border)
-        // sub top 950 + pill 65 + gap 30 + main 234 (2줄 fs90 lh130%) + 하단 160 = 1439 ≈ 1440 ✓
+        // pill 세로 padding 10 → pill 높이 64 (= 40 fs + 20 padding + 4 border)
+        // sub top 1012 + pill 64 + gap 30 + main 234 (2줄 fs90 lh130%) + 하단 100 = 1440 ✓
         css += `display:inline-block;background:transparent;color:${subTextColor};border:2px solid ${subTextColor};border-radius:100px;padding:10px 24px;line-height:1;`;
       }
     }
@@ -5441,9 +5452,9 @@ function buildBanner(v, spec) {
   const padL = pads.left.filter(v => v > 0).length ? Math.min(...pads.left.filter(v => v > 0)) : 0;
   const padR = pads.right.filter(v => v > 0).length ? Math.min(...pads.right.filter(v => v > 0)) : 0;
   const padGuideFs = spec.isLarge ? 22 : 9; // isLarge는 0.4배 축소 미리보기 → 22px이 ~9px처럼 보임
-  // 표지(E1, subFillOption)는 상단을 히어로 이미지가 채워 '상단 패딩' 개념이 없음 → sub/main 절대 top이
+  // 표지(pillCover: E1/G1/G3)는 상단을 히어로 이미지가 채워 '상단 패딩' 개념이 없음 → sub/main 절대 top이
   //   잡히는 큰 상단 밴드는 오해를 부르므로 숨김 (좌우·하단·서브↔메인 간격 가이드는 그대로 노출)
-  if (padT > 0 && !spec.subFillOption) { addPadGuide(banner, 'h', 0, padT, v.w, padT, padGuideFs); }
+  if (padT > 0 && !spec.pillCover) { addPadGuide(banner, 'h', 0, padT, v.w, padT, padGuideFs); }
   if (padB > 0) { addPadGuide(banner, 'h-bot', v.h - padB, padB, v.w, padB, padGuideFs); }
   if (padL > 0) { addPadGuide(banner, 'v', 0, padL, padL, padL, padGuideFs); }
   // 우측 패딩: 이미지가 우측에 풀높이로 깔리면(C1 right 등) 패딩 영역이 이미지를 포함해
@@ -5545,11 +5556,11 @@ function buildBanner(v, spec) {
       }
     }
   }
-  // 서브(pill)↔메인 간격 가이드 (표지 E1 — pill이 메인 카피 위, 고정 높이 65px)
-  //   pill 높이 = fs41(line-height:1) + 패딩/테두리 = 65 (테두리·배경 채움 동일)
-  if (spec.subFillOption && v.sub && v.main
+  // 서브(pill)↔메인 간격 가이드 (표지 E1/G1/G3 — pill이 메인 카피 위, 고정 높이 64px)
+  //   pill 높이 = fs40(line-height:1) + 패딩20 + 테두리4 = 64 (테두리·배경 채움 동일)
+  if (spec.pillCover && v.sub && v.main
       && v.sub.top !== undefined && v.main.top !== undefined) {
-    const PILL_H = 65;
+    const PILL_H = 64;
     const subBot = v.sub.top + PILL_H;
     const gap = v.main.top - subBot;
     if (gap > 0) addPadGuide(banner, 'h-mid', subBot, gap, v.w, gap, padGuideFs);
