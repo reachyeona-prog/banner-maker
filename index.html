@@ -1307,22 +1307,30 @@ function applyCardNewsJSON() {
   const interiorCount = (data.interiors && Array.isArray(data.interiors)) ? data.interiors.length : 0;
   // 모든 내지 슬롯이 lines:3 max → mainLines 3 통일 (자동 감지로 실제 렌더는 2/3 적응)
   const interiorLines = 3;
-  // 슬롯마다 입력 필드 구조가 달라 카피를 알맞게 매핑한다.
-  //   E2·E4·E5 : 메인 카피 블록 → main1/main2/main3 (서로 호환)
-  //   E6        : 헤드 1줄 + 본문 → main(헤드)=main1, 본문(sub1~3)=main2/main3/sub
-  const interiorInputsFor = (slot, it) => {
-    if (slot === 'E6') {
-      const body = [it.main2, it.main3, it.sub].filter(x => x && String(x).trim());
-      return { main: (it.main1 || ''), sub1: body[0] || '', sub2: body[1] || '', sub3: body[2] || '' };
-    }
-    return { main1: (it.main1 || ''), main2: (it.main2 || ''), main3: (it.main3 || ''), sub: (it.sub || '') };
+  // interiors 한 항목을 슬롯들의 입력 필드로 매핑.
+  //   슬롯마다 필드 구조가 달라(예: E2·E4·E5는 메인 블록 main1~3 / E6은 헤드 main + 본문 sub1~3),
+  //   변형들을 모두 담아둔다. populateDOMFromActiveSlide가 실제 존재하는 필드만 가져가므로 충돌 없음.
+  //   본문은 sub1/sub2/sub3 우선, 없으면 main2/main3을 본문으로 (멀티라인 main 스키마와도 호환).
+  const interiorInputsFor = (it) => {
+    const subLines = [it.sub1, it.sub2, it.sub3].map(x => x || '');
+    const hasSub = subLines.some(x => String(x).trim());
+    const body = hasSub ? subLines : [it.main2 || '', it.main3 || '', ''];
+    return {
+      // 메인 카피 블록 (E2·E4·E5)
+      main1: (it.main1 || ''), main2: (it.main2 || ''), main3: (it.main3 || ''),
+      // 헤드 1줄 + 본문 3줄 (E6)
+      main: (it.main1 || ''),
+      sub1: body[0], sub2: body[1], sub3: body[2],
+      // 단일 sub(레거시 / E5 라벨)
+      sub: (it.sub || subLines[0] || ''),
+    };
   };
   if (interiorCount > 0) {
     INTERIOR_SLOTS.forEach(sl => {
       slideStates[sl] = data.interiors.map(it => ({
         images: {}, imageSizes: {}, imageRaw: {},
         transforms: {}, fadeOverrides: {},
-        inputs: interiorInputsFor(sl, it),
+        inputs: interiorInputsFor(it),
         mainLines: interiorLines,
         sourceNote: { enabled: false, text: '' },
       }));
