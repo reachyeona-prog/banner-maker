@@ -1760,6 +1760,15 @@ const SPECS = {
           //   3줄 sub: imgH=966, 2줄: 1026, 1줄: 1086
           img:  { top:0, left:0, w:1080, h:966, editable:true, autoSize:true, gapToText:70, subDrivesMainPos:true, mainSubGap:30 }
         }]
+      },
+      // 마지막장 (브랜딩 막지) — 흰 배경 + 가운데 페이히어 로고 + 태그라인. 입력 없는 고정 카드.
+      'E7': {
+        label: '마지막장 (브랜딩)',
+        bgFixed: '#FFFFFF', noPointColor: true, isLarge: true,
+        brandingCard: true,
+        versions: [
+          { id: 'box', label: '브랜딩 막지', w: 1080, h: 1440 }
+        ]
       }
     }
   },
@@ -2839,10 +2848,13 @@ function onSlotChange() {
   // 텍스트 입력이 전혀 없는 슬롯(아이콘/실사 전용/템플릿 기반)은 이미지 탭이 주 작업 공간
   //   카피 탭 자체를 숨겨서 한 탭만 노출 (배경색·텍스트 등은 per-version 컨트롤에 있음)
   const sample = slotSpec.versions[0];
-  const isTextless = slotSpec.iconOnly || slotSpec.imageEditable
-    || (sample && !sample.main && (!sample.sub || slotSpec.noSub) && !slotSpec.hasButton);
+  // 브랜딩 막지는 입력/이미지 둘 다 없음 → 카피 탭(안내문)만 노출, 이미지 탭 숨김
+  const isTextless = !slotSpec.brandingCard && (slotSpec.iconOnly || slotSpec.imageEditable
+    || (sample && !sample.main && (!sample.sub || slotSpec.noSub) && !slotSpec.hasButton));
   const tabBtnCopy = document.getElementById('tab-btn-copy');
+  const tabBtnImage = document.getElementById('tab-btn-image');
   if (tabBtnCopy) tabBtnCopy.classList.toggle('hidden', isTextless);
+  if (tabBtnImage) tabBtnImage.classList.toggle('hidden', !!slotSpec.brandingCard);
   switchTab(isTextless ? 'image' : 'copy');
   // 지금 그려진 슬롯 기록 — 다음 슬롯 전환 때 이 슬롯 상태를 slotMemory에 저장한다.
   lastRenderedSlot = { product: currentProduct, slot: currentSlot };
@@ -3256,6 +3268,11 @@ function renderInputs() {
     area.innerHTML = '<div style="font-size:12px;color:#AAAAAA;padding:4px 0;">이미지만 업로드하면 됩니다.</div>';
     return;
   }
+  // 브랜딩 막지 — 입력 없는 고정 카드
+  if (spec.brandingCard) {
+    area.innerHTML = '<div style="font-size:12px;color:var(--text-muted);padding:4px 0;line-height:1.6;">고정 브랜딩 막지예요.<br>흰 배경 + 가운데 페이히어 로고 + “매장의 새로운 미래, 페이히어”.<br>그대로 다운로드해 마지막 장으로 쓰세요.</div>';
+    return;
+  }
   const v = spec.versions[0]; // 첫 버전 기준으로 필드 구성
   // alt(A/B 변형)는 fs가 동일하므로 spec 표기에서 제외
   const vs = spec.versions.filter(ver => !ver.id.endsWith('-alt'));
@@ -3478,6 +3495,8 @@ function renderImageUploads() {
   const spec = SPECS[currentProduct].slots[currentSlot];
   const wrap = document.getElementById('upload-area-wrap');
   wrap.innerHTML = '';
+  // 브랜딩 막지는 업로드할 이미지가 없음 (로고는 고정)
+  if (spec.brandingCard) return;
   // 실사/editable 전용 슬롯은 항상 원본 사용 → 누끼 토글 노출 안 함. 모든 버전이 editable인 경우도 동일.
   // 단, forceKnockout 버전이 하나라도 있으면 누끼가 강제되므로 토글을 노출해 OFF로 끌 수 있게.
   const hasForceKnockout = spec.versions.some(v => v.img && v.img.forceKnockout);
@@ -3919,6 +3938,9 @@ function renderPreviews() {
         b.onclick = handler;
         return b;
       };
+      // 가로/세로 꽉 채우기 — 이미지 전체 너비/높이가 프레임에 딱 맞도록 scale 자동 설정
+      btnRow.appendChild(makeBtn('⇿ 가로 꽉차게', () => fitEditableImage(v.id, 'width')));
+      btnRow.appendChild(makeBtn('⇳ 세로 꽉차게', () => fitEditableImage(v.id, 'height')));
       // 좌우 가운데 정렬 — state.x = 0 (scale 유지)
       btnRow.appendChild(makeBtn('↔ 좌우 가운데', () => {
         const t = currentImageTransforms[v.id] || { scale:1, x:0, y:0, rotation:0 };
@@ -4367,6 +4389,30 @@ function buildEditableImage(banner, v) {
   banner.appendChild(container);
   attachEditableImageHandlers(container, v);
 }
+// 편집 이미지 가로/세로 꽉 채우기 — 렌더된 프리뷰에서 이미지 기준 크기(offsetW/H)와
+// 프레임 크기(clientW/H)를 실측해 scale을 산출. cover/contain/autoSize 어떤 base든 정확.
+//   mode 'width'  : 이미지 전체 가로폭이 프레임 너비에 딱 (좌우 끝까지)
+//   mode 'height' : 이미지 전체 세로높이가 프레임 높이에 딱 (위아래 끝까지)
+function fitEditableImage(versionId, mode) {
+  if (!currentImages[versionId] || !currentImageSizes[versionId]) {
+    toast('먼저 이미지를 업로드해 주세요.', { danger: true });
+    return;
+  }
+  const banner = document.getElementById('banner-' + versionId);
+  const img = banner && banner.querySelector('img');
+  const cont = img && img.parentElement;
+  if (!img || !cont) { toast('미리보기를 찾지 못했어요.', { danger: true }); return; }
+  const fitW = img.offsetWidth, fitH = img.offsetHeight;          // transform 미적용 base 크기
+  const cw = cont.clientWidth, ch = cont.clientHeight;            // 프레임(클립 컨테이너) 크기
+  if (!fitW || !fitH || !cw || !ch) return;
+  const t = currentImageTransforms[versionId] || { scale: 1, x: 0, y: 0, rotation: 0 };
+  if (mode === 'width') t.scale = cw / fitW;
+  else                  t.scale = ch / fitH;
+  t.x = 0; t.y = 0;   // 가운데 정렬로 시작 (이후 드래그로 미세 조정 가능)
+  t.rotation = t.rotation || 0;
+  currentImageTransforms[versionId] = t;
+  renderPreviews();
+}
 // 말풍선 (카드뉴스 표지 E1) 렌더 + 인터랙션.
 //   2가지 스타일:
 //     blur    — 흰 가로 동그라미 (458×231) + filter:blur(30px) (Figma layer blur 30 등가).
@@ -4804,7 +4850,31 @@ function buildProductCardBanner(v, spec) {
   });
   return banner;
 }
+// 마지막장 브랜딩 막지 — 흰 배경 + 가운데 페이히어 로고(헤더 base64 재사용) + 태그라인. 입력 없음.
+function buildBrandingCard(v, spec) {
+  const banner = document.createElement('div');
+  banner.className = 'banner-wrap';
+  banner.id = 'banner-' + v.id;
+  banner.style.cssText = `width:${v.w}px;height:${v.h}px;background:#FFFFFF;`;
+  const center = document.createElement('div');
+  center.style.cssText = 'position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:54px;';
+  const logoSrc = (document.querySelector('.brand-logo') || {}).src || '';
+  if (logoSrc) {
+    const logo = document.createElement('img');
+    logo.src = logoSrc;
+    logo.style.cssText = 'width:300px;height:300px;object-fit:contain;border-radius:56px;display:block;';
+    center.appendChild(logo);
+  }
+  const tag = document.createElement('div');
+  tag.style.cssText = "font-family:'Pretendard','Noto Sans KR',sans-serif;font-weight:700;font-size:56px;letter-spacing:-0.03em;color:#1A1A1A;text-align:center;";
+  tag.textContent = '매장의 새로운 미래, 페이히어';
+  center.appendChild(tag);
+  banner.appendChild(center);
+  return banner;
+}
 function buildBanner(v, spec) {
+  // 마지막장 브랜딩 막지 분기 (입력/가이드 없는 고정 카드)
+  if (spec.brandingCard) return buildBrandingCard(v, spec);
   // 친구톡 K3 템플릿 분기
   if (v.template === 'vsCompare') return buildVsCompareBanner(v, spec);
   if (v.template === 'productCard') return buildProductCardBanner(v, spec);
