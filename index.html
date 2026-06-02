@@ -1769,15 +1769,15 @@ const SPECS = {
           id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1080, h: 1440,
           sub:  { bottom:100, left:70, right:70, fs:40, lines:3, lh:'130%', center:true, color:'#1A1A1A' },
           // main.bottom은 subDrivesMainPos가 동적 산출 (3줄 sub·lh130% 기준 286)
-          main: { bottom:286, left:70, right:70, fs:72, lines:1, lh:'130%', center:true, color:'#1A1A1A' },
+          main: { bottom:286, left:70, right:70, fs:66, lines:1, lh:'130%', center:true, color:'#1A1A1A' },
           // 이미지: 상단 풀폭. autoSize + subDrivesMainPos → sub 줄 수에 맞춰 height 자동 조정
-          //   3줄 sub: imgH=990, 2줄: 1042, 1줄: 1094 (lh130% 기준)
-          img:  { top:0, left:0, w:1080, h:990, editable:true, autoSize:true, gapToText:70, subDrivesMainPos:true, mainSubGap:30 }
+          //   3줄 sub: imgH=998, 2줄: 1050, 1줄: 1102 (lh130%·main fs66 기준)
+          img:  { top:0, left:0, w:1080, h:998, editable:true, autoSize:true, gapToText:70, subDrivesMainPos:true, mainSubGap:30 }
         }]
       },
       // 마지막장 (브랜딩 막지) — 흰 배경 + 가운데 페이히어 로고 + 태그라인. 입력 없는 고정 카드.
       'E7': {
-        label: '마지막장 (브랜딩)',
+        label: '막지 (브랜딩)',
         bgFixed: '#FFFFFF', noPointColor: true, isLarge: true,
         brandingCard: true,
         versions: [
