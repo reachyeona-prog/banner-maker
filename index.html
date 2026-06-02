@@ -5475,6 +5475,9 @@ function drawSpeechBubbleOnCanvas(canvas, v, spec, dlScale) {
   const rx = (SPEECH_BUBBLE_W / 2) * s;
   const ry = (SPEECH_BUBBLE_H / 2) * s;
   ctx.save();
+  // html2canvas가 컨텍스트에 남겨둔 변환(scale 등)을 초기화 — 우리 좌표는 이미 dlScale을
+  // 곱한 절대 캔버스 픽셀이므로, transform이 남아 있으면 말풍선이 밀리거나 잘린다.
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
   if (bub.style === 'blur') {
     ctx.filter = `blur(${SPEECH_BUBBLE_BLUR_PX * s}px)`;
     ctx.fillStyle = '#FFFFFF';
