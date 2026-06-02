@@ -1000,6 +1000,7 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
         <option value="cardnews">카드 뉴스</option>
         <option value="content11">콘텐츠 1:1</option>
         <option value="content43">콘텐츠 4:3</option>
+        <option value="calendar">달력</option>
         <option value="friendtalk">친구톡</option>
         <option value="reels">릴스</option>
       </select>
@@ -1971,6 +1972,23 @@ const SPECS = {
       }
     }
   },
+  calendar: {
+    label: '달력',
+    // 인스타그램 세로 달력 (1080×1440). 연도·월 선택 → 날짜 자동 배치(일요일 시작).
+    //   칸별: 이벤트 텍스트 + 종료일(~M/D) + 이모지/업로드 이미지 + 공휴일 빨강 강조.
+    //   상단: 연도 pill + 2줄 제목 / 요일 헤더(일~토) / 하단: 좌측 문구 + payhere 로고.
+    slots: {
+      'CAL': {
+        label: '달력',
+        bgFixed: null, noPointColor: true, isLarge: true,
+        calendarCard: true,
+        bgPresets: ['#FFFFFF', '#F4F1EA', '#FFF8D7', '#E8F4FF', '#EFFCE7', '#FFEFF2', '#1A1A1A'],
+        versions: [
+          { id: 'cal', label: '달력', w: 1080, h: 1440 }
+        ]
+      }
+    }
+  },
   friendtalk: {
     label: '친구톡',
     // KakaoTalk 친구톡 광고 유형. 800px 기준 3종 비율 (2:1 800×400 / 1:1 800×800 / 4:3 800×600)
@@ -2377,6 +2395,41 @@ function setSubPillTextColor(hex) {
   currentSubPill.textColor = hex;
   preserveInputsAcross(renderInputs);
   renderPreviews();
+}
+// 달력 (calendar 제품) — 연도/월 선택 → 날짜 자동 배치. 칸(1~31)별 콘텐츠.
+//   cells[day] = { text(이벤트), end('M/D' 종료일), emoji, img(dataURL 업로드), holiday(빨강) }
+//   모듈 전역으로 유지 → 슬롯/제품 전환해도 보존 (slotMemory에는 미포함).
+let currentCal = freshCalendar();
+function freshCalendar() {
+  return {
+    year: 2026, month: 6,
+    title: '여미새(여름에 미친 사람)를 위한\n6월 약속 잡기 좋은 날 모음',
+    footer: '트렌드 당일 배송',
+    cells: {},
+  };
+}
+function calCell(day) {
+  if (!currentCal.cells[day]) currentCal.cells[day] = { text:'', end:'', emoji:'', img:null, holiday:false };
+  return currentCal.cells[day];
+}
+function calDaysInMonth(y, m) { return new Date(y, m, 0).getDate(); }      // m: 1~12
+function calFirstWeekday(y, m) { return new Date(y, m - 1, 1).getDay(); }  // 0=일 … 6=토
+function setCalField(key, val) { currentCal[key] = val; renderPreviews(); }
+function setCalMonthYear(key, val) {
+  const n = parseInt(val, 10);
+  if (!isNaN(n)) currentCal[key] = n;
+  renderInputs();      // 일수/요일 바뀌므로 칸 목록 재생성
+  renderPreviews();
+}
+function setCalCell(day, key, val) { calCell(day)[key] = val; renderPreviews(); }
+function toggleCalHoliday(day) { const c = calCell(day); c.holiday = !c.holiday; renderInputs(); renderPreviews(); }
+function clearCalImage(day) { calCell(day).img = null; renderInputs(); renderPreviews(); }
+function onCalCellImage(e, day) {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => { calCell(day).img = ev.target.result; renderInputs(); renderPreviews(); };
+  reader.readAsDataURL(file);
 }
 // 출처/AI 표기 (카드뉴스) — 우측 하단 고정 위치, 30px, Pretendard 고정. 슬라이드별 텍스트.
 //   { enabled, text }. multiSlide 슬롯은 slideState에 swap-in/out (freshSlideState/snapshot/apply).
@@ -2879,7 +2932,7 @@ function onSlotChange() {
   // 실사 썸네일은 사용자 사진을 그대로 사용하므로 Nano Banana(AI 일러스트 생성) 영역 숨김
   // (카드뉴스는 AI 생성 hero 이미지 수요가 있어 editable이어도 노출 유지)
   const nanoSection = document.getElementById('nano-section');
-  if (nanoSection) nanoSection.style.display = slotSpec.imageEditable ? 'none' : '';
+  if (nanoSection) nanoSection.style.display = (slotSpec.imageEditable || slotSpec.calendarCard) ? 'none' : '';
   // 슬롯 전용 bgPresets가 있고 직전 색이 목록 밖이면 첫 프리셋으로 (슬롯 진입 시에만 실행)
   if (slotSpec.bgPresets && !slotSpec.bgFixed) {
     const upper = (currentBg || '').toUpperCase();
@@ -2910,12 +2963,13 @@ function onSlotChange() {
   //   카피 탭 자체를 숨겨서 한 탭만 노출 (배경색·텍스트 등은 per-version 컨트롤에 있음)
   const sample = slotSpec.versions[0];
   // 브랜딩 막지는 입력/이미지 둘 다 없음 → 카피 탭(안내문)만 노출, 이미지 탭 숨김
-  const isTextless = !slotSpec.brandingCard && (slotSpec.iconOnly || slotSpec.imageEditable
+  const isTextless = !slotSpec.brandingCard && !slotSpec.calendarCard && (slotSpec.iconOnly || slotSpec.imageEditable
     || (sample && !sample.main && (!sample.sub || slotSpec.noSub) && !slotSpec.hasButton));
   const tabBtnCopy = document.getElementById('tab-btn-copy');
   const tabBtnImage = document.getElementById('tab-btn-image');
   if (tabBtnCopy) tabBtnCopy.classList.toggle('hidden', isTextless);
-  if (tabBtnImage) tabBtnImage.classList.toggle('hidden', !!slotSpec.brandingCard);
+  // 달력은 칸별 업로드를 카피 탭에서 처리 → 표준 이미지 탭 숨김
+  if (tabBtnImage) tabBtnImage.classList.toggle('hidden', !!slotSpec.brandingCard || !!slotSpec.calendarCard);
   switchTab(isTextless ? 'image' : 'copy');
   // 지금 그려진 슬롯 기록 — 다음 슬롯 전환 때 이 슬롯 상태를 slotMemory에 저장한다.
   lastRenderedSlot = { product: currentProduct, slot: currentSlot };
@@ -3320,6 +3374,79 @@ function applyBgToBanners() {
 // ================================================
 //  입력 필드 렌더
 // ================================================
+// 달력 입력 UI — 연도/월/제목/하단문구 + 날짜 칸(1~말일)별 이벤트·종료일·이모지·이미지·공휴일
+function renderCalendarInputs(area) {
+  const cal = currentCal;
+  const esc = s => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+  const daysIn = calDaysInMonth(cal.year, cal.month);
+  const first = calFirstWeekday(cal.year, cal.month);
+  const WD = ['일', '월', '화', '수', '목', '금', '토'];
+  const fieldBg = 'var(--bg-elev, #fff)';
+
+  const top = document.createElement('div');
+  top.className = 'field';
+  top.innerHTML = `
+    <div class="field-label">연도 · 월</div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;">
+      <input id="cal-year" type="number" value="${cal.year}" style="width:96px;height:34px;padding:0 10px;font-family:var(--font-mono);font-size:13px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text-primary);outline:none;">
+      <select id="cal-month" style="flex:1;height:34px;padding:0 10px;font-size:13px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text-primary);outline:none;cursor:pointer;">
+        ${Array.from({ length: 12 }, (_, i) => `<option value="${i + 1}" ${cal.month === i + 1 ? 'selected' : ''}>${i + 1}월</option>`).join('')}
+      </select>
+    </div>
+    <div class="field-label">제목 (2줄, 줄바꿈)</div>
+    <textarea id="cal-title" rows="2" style="width:100%;box-sizing:border-box;min-height:54px;padding:8px 10px;font-family:var(--font);font-size:13px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text-primary);resize:vertical;line-height:1.4;margin-bottom:10px;outline:none;">${esc(cal.title)}</textarea>
+    <div class="field-label">하단 좌측 문구</div>
+    <input id="cal-footer" type="text" value="${esc(cal.footer)}" style="width:100%;box-sizing:border-box;height:34px;padding:0 10px;font-family:var(--font);font-size:13px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text-primary);outline:none;">`;
+  area.appendChild(top);
+  top.querySelector('#cal-year').addEventListener('change', e => setCalMonthYear('year', e.target.value));
+  top.querySelector('#cal-month').addEventListener('change', e => setCalMonthYear('month', e.target.value));
+  top.querySelector('#cal-title').addEventListener('input', e => setCalField('title', e.target.value));
+  top.querySelector('#cal-footer').addEventListener('input', e => setCalField('footer', e.target.value));
+
+  const hd = document.createElement('div');
+  hd.className = 'field-label';
+  hd.style.cssText = 'margin-top:18px;';
+  hd.textContent = `날짜 칸 (${cal.month}월 1~${daysIn}일)`;
+  area.appendChild(hd);
+  const hint = document.createElement('div');
+  hint.className = 'field-spec';
+  hint.style.cssText = 'margin-bottom:8px;';
+  hint.textContent = '이벤트·종료일(~6/14)·이모지/이미지·공휴일(빨강)을 채우세요. 빈 칸은 날짜만 표시돼요.';
+  area.appendChild(hint);
+
+  for (let d = 1; d <= daysIn; d++) {
+    const cc = calCell(d);
+    const wk = WD[(first + d - 1) % 7];
+    const isRedDay = cc.holiday || ((first + d - 1) % 7 === 0);
+    const row = document.createElement('div');
+    row.style.cssText = 'border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:6px;background:var(--card);';
+    row.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <span style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:${isRedDay ? '#E23E3E' : 'var(--text-primary)'};min-width:44px;">${d} ${wk}</span>
+        <input data-k="text" type="text" value="${esc(cc.text)}" placeholder="이벤트명" style="flex:1;height:30px;padding:0 8px;font-family:var(--font);font-size:12px;border:1px solid var(--border);border-radius:5px;background:${fieldBg};color:var(--text-primary);outline:none;">
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <input data-k="emoji" type="text" value="${esc(cc.emoji)}" placeholder="🎉" maxlength="4" style="width:44px;height:30px;text-align:center;padding:0;font-size:15px;border:1px solid var(--border);border-radius:5px;background:${fieldBg};outline:none;">
+        <input data-k="end" type="text" value="${esc(cc.end)}" placeholder="종료 6/14" style="width:88px;height:30px;padding:0 8px;font-family:var(--font-mono);font-size:12px;border:1px solid var(--border);border-radius:5px;background:${fieldBg};color:var(--text-primary);outline:none;">
+        <button type="button" data-act="img" style="height:30px;padding:0 10px;font-size:12px;border:1px solid var(--border);border-radius:5px;background:${cc.img ? 'var(--accent)' : fieldBg};color:${cc.img ? '#fff' : 'var(--text-primary)'};cursor:pointer;white-space:nowrap;">${cc.img ? '이미지 ✓' : '📷'}</button>
+        ${cc.img ? `<button type="button" data-act="imgclear" style="height:30px;padding:0 8px;font-size:12px;border:1px solid var(--border);border-radius:5px;background:${fieldBg};color:var(--text-muted);cursor:pointer;">×</button>` : ''}
+        <label style="display:flex;align-items:center;gap:4px;margin-left:auto;font-size:11px;color:var(--text-muted);cursor:pointer;user-select:none;white-space:nowrap;">
+          <input data-k="holiday" type="checkbox" ${cc.holiday ? 'checked' : ''} style="cursor:pointer;"> 공휴일
+        </label>
+        <input data-act="imgfile" type="file" accept="image/*" style="display:none;">
+      </div>`;
+    area.appendChild(row);
+    row.querySelector('[data-k="text"]').addEventListener('input', e => setCalCell(d, 'text', e.target.value));
+    row.querySelector('[data-k="emoji"]').addEventListener('input', e => setCalCell(d, 'emoji', e.target.value));
+    row.querySelector('[data-k="end"]').addEventListener('input', e => setCalCell(d, 'end', e.target.value));
+    row.querySelector('[data-k="holiday"]').addEventListener('change', () => toggleCalHoliday(d));
+    const fileInput = row.querySelector('[data-act="imgfile"]');
+    fileInput.addEventListener('change', e => onCalCellImage(e, d));
+    row.querySelector('[data-act="img"]').addEventListener('click', () => fileInput.click());
+    const clr = row.querySelector('[data-act="imgclear"]');
+    if (clr) clr.addEventListener('click', () => clearCalImage(d));
+  }
+}
 function renderInputs() {
   const spec = SPECS[currentProduct].slots[currentSlot];
   const area = document.getElementById('fields-area');
@@ -3334,6 +3461,8 @@ function renderInputs() {
     area.innerHTML = '<div style="font-size:12px;color:var(--text-muted);padding:4px 0;line-height:1.6;">고정 브랜딩 막지예요.<br>흰 배경 + 가운데 페이히어 로고 + “매장의 새로운 미래, 페이히어”.<br>그대로 다운로드해 마지막 장으로 쓰세요.</div>';
     return;
   }
+  // 달력 — 연도/월 + 제목 + 칸별 콘텐츠
+  if (spec.calendarCard) { renderCalendarInputs(area); return; }
   const v = spec.versions[0]; // 첫 버전 기준으로 필드 구성
   // alt(A/B 변형)는 fs가 동일하므로 spec 표기에서 제외
   const vs = spec.versions.filter(ver => !ver.id.endsWith('-alt'));
@@ -3595,8 +3724,8 @@ function renderImageUploads() {
   const spec = SPECS[currentProduct].slots[currentSlot];
   const wrap = document.getElementById('upload-area-wrap');
   wrap.innerHTML = '';
-  // 브랜딩 막지는 업로드할 이미지가 없음 (로고는 고정)
-  if (spec.brandingCard) return;
+  // 브랜딩 막지·달력은 표준 업로드 영역 없음 (달력은 칸별 업로드를 카피 탭에서 처리)
+  if (spec.brandingCard || spec.calendarCard) return;
   // 실사/editable 전용 슬롯은 항상 원본 사용 → 누끼 토글 노출 안 함. 모든 버전이 editable인 경우도 동일.
   // 단, forceKnockout 버전이 하나라도 있으면 누끼가 강제되므로 토글을 노출해 OFF로 끌 수 있게.
   const hasForceKnockout = spec.versions.some(v => v.img && v.img.forceKnockout);
@@ -4977,9 +5106,115 @@ function buildBrandingCard(v, spec) {
   banner.appendChild(center);
   return banner;
 }
+// 달력 카드 — 연도/월 → 날짜 자동 배치(일요일 시작). 칸별 이벤트/종료일/이모지·이미지/공휴일.
+function buildCalendarCard(v, spec) {
+  const banner = document.createElement('div');
+  banner.className = 'banner-wrap';
+  banner.id = 'banner-' + v.id;
+  const bg = getBgFor(v);
+  banner.style.cssText = `width:${v.w}px;height:${v.h}px;background:${bg};`;
+  const dark = isDarkBg(bg);
+  const ink = dark ? '#FFFFFF' : '#1A1A1A';
+  const onInk = dark ? '#1A1A1A' : '#FFFFFF';   // 검은 바/pill 위 글자색 (다크 배경 반전)
+  const line = dark ? 'rgba(255,255,255,0.22)' : '#E6E2D8';
+  const muted = dark ? 'rgba(255,255,255,0.6)' : '#9A968C';
+  const red = '#E23E3E';
+  const sunHead = dark ? '#FF9A9A' : '#FF7A7A';
+  const cal = currentCal;
+  const PAD = 48;
+  const wrap = document.createElement('div');
+  wrap.style.cssText = `position:absolute;inset:0;padding:44px ${PAD}px 36px;box-sizing:border-box;display:flex;flex-direction:column;font-family:'Pretendard','Noto Sans KR',sans-serif;`;
+  // 연도 pill
+  const pill = document.createElement('div');
+  pill.style.cssText = `align-self:center;background:${ink};color:${onInk};font-weight:800;font-size:34px;letter-spacing:0.02em;padding:9px 32px;border-radius:100px;line-height:1;`;
+  pill.textContent = String(cal.year);
+  wrap.appendChild(pill);
+  // 제목 (2줄, 가운데)
+  const title = document.createElement('div');
+  title.style.cssText = `text-align:center;font-weight:800;font-size:54px;line-height:1.28;letter-spacing:-0.03em;color:${ink};margin-top:22px;white-space:pre-line;word-break:keep-all;`;
+  title.textContent = cal.title || '';
+  wrap.appendChild(title);
+  // 요일 헤더 (검은 바, 일=빨강)
+  const WD = ['일','월','화','수','목','금','토'];
+  const head = document.createElement('div');
+  head.style.cssText = `display:grid;grid-template-columns:repeat(7,1fr);background:${ink};border-radius:10px;margin-top:30px;overflow:hidden;`;
+  WD.forEach((d, i) => {
+    const c = document.createElement('div');
+    c.style.cssText = `text-align:center;padding:15px 0;font-weight:700;font-size:24px;color:${i === 0 ? sunHead : onInk};`;
+    c.textContent = d;
+    head.appendChild(c);
+  });
+  wrap.appendChild(head);
+  // 날짜 그리드
+  const daysIn = calDaysInMonth(cal.year, cal.month);
+  const first = calFirstWeekday(cal.year, cal.month);
+  const rows = Math.ceil((first + daysIn) / 7);
+  const grid = document.createElement('div');
+  grid.style.cssText = `flex:1;display:grid;grid-template-columns:repeat(7,1fr);grid-template-rows:repeat(${rows},1fr);border-left:1px solid ${line};border-top:1px solid ${line};margin-top:12px;`;
+  for (let i = 0; i < rows * 7; i++) {
+    const dayNum = i - first + 1;
+    const col = i % 7;
+    const cell = document.createElement('div');
+    cell.style.cssText = `border-right:1px solid ${line};border-bottom:1px solid ${line};padding:9px 7px;box-sizing:border-box;position:relative;display:flex;flex-direction:column;align-items:center;overflow:hidden;`;
+    if (dayNum >= 1 && dayNum <= daysIn) {
+      const cc = cal.cells[dayNum] || {};
+      const isRed = cc.holiday || col === 0;
+      const dn = document.createElement('div');
+      dn.style.cssText = `align-self:flex-start;font-weight:700;font-size:24px;line-height:1;color:${isRed ? red : ink};`;
+      dn.textContent = dayNum;
+      cell.appendChild(dn);
+      if (cc.img) {
+        const im = document.createElement('img');
+        im.src = cc.img;
+        im.style.cssText = `width:62px;height:62px;object-fit:contain;margin-top:5px;`;
+        cell.appendChild(im);
+      } else if (cc.emoji) {
+        const em = document.createElement('div');
+        em.style.cssText = `font-size:42px;line-height:1;margin-top:3px;`;
+        em.textContent = cc.emoji;
+        cell.appendChild(em);
+      }
+      if (cc.text) {
+        const tx = document.createElement('div');
+        tx.style.cssText = `margin-top:6px;font-weight:600;font-size:21px;line-height:1.22;letter-spacing:-0.02em;text-align:center;color:${isRed ? red : ink};word-break:keep-all;`;
+        tx.textContent = cc.text;
+        cell.appendChild(tx);
+      }
+      if (cc.end) {
+        const ed = document.createElement('div');
+        ed.style.cssText = `margin-top:3px;font-size:17px;line-height:1.2;color:${muted};`;
+        ed.textContent = '~' + cc.end;
+        cell.appendChild(ed);
+      }
+    }
+    grid.appendChild(cell);
+  }
+  wrap.appendChild(grid);
+  // 하단 (좌측 문구 + payhere 로고)
+  const footer = document.createElement('div');
+  footer.style.cssText = `display:flex;align-items:center;justify-content:space-between;margin-top:24px;`;
+  const fl = document.createElement('div');
+  fl.style.cssText = `font-size:24px;font-weight:500;letter-spacing:-0.02em;color:${muted};`;
+  fl.textContent = cal.footer || '';
+  footer.appendChild(fl);
+  const logoSrc = (typeof BRANDING_LOGO_SRC !== 'undefined' && BRANDING_LOGO_SRC)
+    ? BRANDING_LOGO_SRC
+    : ((document.querySelector('.brand-logo') || {}).src || '');
+  if (logoSrc) {
+    const lg = document.createElement('img');
+    lg.src = logoSrc;
+    lg.style.cssText = `height:32px;width:auto;object-fit:contain;${dark ? 'filter:brightness(0) invert(1);' : ''}`;
+    footer.appendChild(lg);
+  }
+  wrap.appendChild(footer);
+  banner.appendChild(wrap);
+  return banner;
+}
 function buildBanner(v, spec) {
   // 마지막장 브랜딩 막지 분기 (입력/가이드 없는 고정 카드)
   if (spec.brandingCard) return buildBrandingCard(v, spec);
+  // 달력 카드 분기 (연도/월 → 날짜 자동 배치)
+  if (spec.calendarCard) return buildCalendarCard(v, spec);
   // 친구톡 K3 템플릿 분기
   if (v.template === 'vsCompare') return buildVsCompareBanner(v, spec);
   if (v.template === 'productCard') return buildProductCardBanner(v, spec);
