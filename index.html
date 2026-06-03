@@ -5274,16 +5274,20 @@ function buildCalendarCard(v, spec) {
     const dayNum = i - first + 1;
     const col = i % 7;
     const cell = document.createElement('div');
-    cell.style.cssText = `border-right:1px solid ${line};border-bottom:1px solid ${line};box-sizing:border-box;overflow:hidden;display:flex;flex-direction:column;position:relative;padding:0 7px 8px;`;
+    cell.style.cssText = `border-right:1px solid ${line};border-bottom:1px solid ${line};box-sizing:border-box;overflow:hidden;position:relative;`;
     if (dayNum >= 1 && dayNum <= daysIn) {
       const cc = cal.cells[dayNum] || {};
       const dayColor = (cc.holiday || col === 0) ? sun : (col === 6 ? sat : ink);
       const endColor = dark ? 'rgba(255,255,255,0.82)' : '#555555';
       const halo = dark ? '0 0 3px rgba(0,0,0,.9),0 1px 2px rgba(0,0,0,.7)' : '0 0 3px rgba(255,255,255,.95),0 1px 2px rgba(255,255,255,.85)';
-      // 이미지/이모지 — 텍스트(3줄 영역) 위 남은 공간을 차지. 이모지는 가운데 정렬 →
-      //   '칸 시작점↔이모지' 여백과 '이모지↔텍스트' 여백이 자동으로 동일해짐.
+      // 날짜 숫자 — 좌상단
+      const dn = document.createElement('div');
+      dn.style.cssText = `position:absolute;top:7px;left:9px;z-index:3;font-weight:700;font-size:24px;line-height:1;color:${dayColor};text-shadow:${halo};`;
+      dn.textContent = dayNum;
+      cell.appendChild(dn);
+      // 이미지/이모지 — 우상단에 붙임
       const media = document.createElement('div');
-      media.style.cssText = `flex:1;min-height:0;margin:0 -7px;display:flex;align-items:center;justify-content:center;overflow:hidden;`;
+      media.style.cssText = `position:absolute;top:6px;right:6px;width:92px;height:92px;display:flex;align-items:center;justify-content:center;overflow:hidden;z-index:2;`;
       if (cc.img) {
         const im = document.createElement('img');
         im.src = cc.img;
@@ -5291,34 +5295,31 @@ function buildCalendarCard(v, spec) {
         media.appendChild(im);
       } else if (cc.emoji) {
         const em = document.createElement('div');
-        em.style.cssText = `font-size:48px;line-height:1;`;
+        em.style.cssText = `font-size:68px;line-height:1;`;
         em.textContent = cc.emoji;
         media.appendChild(em);
       }
       cell.appendChild(media);
-      // 날짜 숫자 — 좌상단 오버레이 (이미지 위에서도 보이게 halo)
-      const dn = document.createElement('div');
-      dn.style.cssText = `position:absolute;top:6px;left:8px;z-index:3;font-weight:700;font-size:24px;line-height:1;color:${dayColor};text-shadow:${halo};`;
-      dn.textContent = dayNum;
-      cell.appendChild(dn);
-      // 이벤트 텍스트 + 종료일 — 항상 3줄 높이 확보(칸 하단). 텍스트는 그 영역 위에서 시작
-      //   = 줄 수와 무관하게 '아래에서 3줄 위치'부터 시작.
-      const LINE = Math.round(26 * 1.2);   // 한 줄 높이 ≈ 31px (행간 1.2와 동기화)
-      const tw = document.createElement('div');
-      tw.style.cssText = `flex:0 0 ${LINE * 3}px;min-height:0;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-start;`;
-      if (cc.text) {
-        const tx = document.createElement('div');
-        tx.style.cssText = `font-weight:600;font-size:26px;line-height:1.2;letter-spacing:-1px;text-align:center;color:${dayColor};word-break:keep-all;white-space:pre-line;`;
-        tx.textContent = cc.text;
-        tw.appendChild(tx);
+      // 이벤트 텍스트 + 종료일 — 좌하단, 좌측 정렬. 최대 3줄 공간 확보하고 그 안에서 상단 정렬
+      //   → 줄 수와 무관하게 텍스트 시작 위치(영역 상단)가 일정.
+      if (cc.text || cc.end) {
+        const LINE = Math.round(26 * 1.2);   // 한 줄 높이 ≈ 31px (행간 1.2)
+        const tw = document.createElement('div');
+        tw.style.cssText = `position:absolute;left:9px;right:9px;bottom:9px;height:${LINE * 3}px;overflow:hidden;text-align:left;`;
+        if (cc.text) {
+          const tx = document.createElement('div');
+          tx.style.cssText = `font-weight:600;font-size:26px;line-height:1.2;letter-spacing:-1px;text-align:left;color:${dayColor};word-break:keep-all;white-space:pre-line;`;
+          tx.textContent = cc.text;
+          tw.appendChild(tx);
+        }
+        if (cc.end) {
+          const ed = document.createElement('div');
+          ed.style.cssText = `margin-top:3px;font-size:20px;line-height:1.2;text-align:left;color:${endColor};`;
+          ed.textContent = '~' + cc.end;
+          tw.appendChild(ed);
+        }
+        cell.appendChild(tw);
       }
-      if (cc.end) {
-        const ed = document.createElement('div');
-        ed.style.cssText = `margin-top:3px;font-size:20px;line-height:1.2;text-align:center;color:${endColor};`;
-        ed.textContent = '~' + cc.end;
-        tw.appendChild(ed);
-      }
-      cell.appendChild(tw);
     }
     grid.appendChild(cell);
   }
