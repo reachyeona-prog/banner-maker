@@ -1677,6 +1677,7 @@ const SPECS = {
         pillSub: true,   // 동그란 pill — 투명 채움 + 컬러 테두리 2px (가이드라인)
         pillCover: true, // 히어로+pill 표지 — 상단 패딩 밴드 숨김 + 서브↔메인 간격 가이드 (G1/G3 공통)
         subFillOption: true,  // 서브 카피 pill: 테두리 버전 / 배경 채움 버전 택1 + 글자색(흰/검) 선택
+        copyBoxStyle: true,   // 카피 박스 스타일: 메인/서브에 컬러 박스 + 흰 글자 (색 선택)
         bgPresets: ['#FFFFFF', '#F4F1EA', '#F6F8F9', '#FFEFF2', '#E8F4FF', '#EFFCE7', '#FFF8D7', '#1A1A1A'],
         versions: [
           { id: 'full', label: '배경 이미지', uploadLabel: '배경 이미지', w: 1080, h: 1440,
@@ -2326,6 +2327,7 @@ function freshSpeechBubble(v) {
     style: 'blur',
     direction: 'right',   // outline 꼬리 방향 (left | right)
     font: 'gulim',
+    bgColor: '#FFFFFF',   // 배경색 (블러/외곽선/사각형). 어두우면 글자 자동 흰색.
     text: '괜히 시작해서\n손해 보는 건 아닐까..?',
     x, y,
   };
@@ -2352,6 +2354,12 @@ function setSpeechBubbleFont(fontId) {
   const spec = SPECS[currentProduct].slots[currentSlot];
   if (!spec || !spec.hasSpeechBubble) return;
   spec.versions.forEach(v => { getSpeechBubble(v).font = fontId; });
+  renderPreviews();
+}
+function setSpeechBubbleBg(hex) {
+  const spec = SPECS[currentProduct].slots[currentSlot];
+  if (!spec || !spec.hasSpeechBubble) return;
+  spec.versions.forEach(v => { getSpeechBubble(v).bgColor = hex; });
   renderPreviews();
 }
 function setSpeechBubbleDirection(dir) {
@@ -2394,6 +2402,23 @@ function setSubPillTextColor(hex) {
   if (!spec || !spec.subFillOption) return;
   currentSubPill.textColor = hex;
   preserveInputsAcross(renderInputs);
+  renderPreviews();
+}
+// 카피 박스 스타일 (카드뉴스 표지 E1, spec.copyBoxStyle) — 메인/서브 텍스트에 컬러 박스 + 흰 글자.
+//   main/sub: on/off, mainColor(기본 블랙)/subColor(기본 #1D99FF). 색 선택 가능.
+let currentCopyBox = { main: false, mainColor: '#1A1A1A', sub: false, subColor: '#1D99FF' };
+function freshCopyBox() { return { main: false, mainColor: '#1A1A1A', sub: false, subColor: '#1D99FF' }; }
+function setCopyBoxOn(which, on) {
+  const spec = SPECS[currentProduct].slots[currentSlot];
+  if (!spec || !spec.copyBoxStyle) return;
+  currentCopyBox[which] = on;
+  preserveInputsAcross(renderInputs);
+  renderPreviews();
+}
+function setCopyBoxColor(which, hex) {
+  const spec = SPECS[currentProduct].slots[currentSlot];
+  if (!spec || !spec.copyBoxStyle) return;
+  currentCopyBox[which + 'Color'] = hex;
   renderPreviews();
 }
 // 달력 (calendar 제품) — 연도/월 선택 → 날짜 자동 배치. 칸(1~31)별 콘텐츠.
@@ -2908,6 +2933,7 @@ function captureSlotState(product, slot) {
     mainLines: currentMainLines,
     sourceNote: { ...currentSourceNote },
     subPill: { ...currentSubPill },
+    copyBox: { ...currentCopyBox },
     images: { ...currentImages },          // data URL 문자열 — 얕은 복사(메모리 절약)
     imageRaw: { ...currentImageRaw },
     imageSizes: _cloneState(currentImageSizes),
@@ -2935,6 +2961,7 @@ function restoreSlotGlobals(product, slot) {
   currentMainLines = mem.mainLines;
   currentSourceNote = { ...mem.sourceNote };
   currentSubPill = { ...(mem.subPill || { fill: false, bg: '#FF4F1F', textColor: '#FFFFFF' }) };
+  currentCopyBox = { ...freshCopyBox(), ...(mem.copyBox || {}) };
   currentImages = { ...mem.images };
   currentImageRaw = { ...mem.imageRaw };
   currentImageSizes = _cloneState(mem.imageSizes);
@@ -3101,6 +3128,7 @@ function onSlotChange() {
   currentFreeImages = [];
   currentShapes = [];
   currentSubPill = { fill: false, bg: '#FF4F1F', textColor: '#FFFFFF' };
+  currentCopyBox = freshCopyBox();
   // 미리보기에 붙어있던 이전 슬롯의 마우스 핸들러 정리
   if (editableImageAbort) { editableImageAbort.abort(); editableImageAbort = null; }
   // perVersionBg 슬롯이면 버전별 기본 배경 초기화
@@ -3790,6 +3818,29 @@ function renderInputs() {
       bgIn.addEventListener('change', () => selectSubPillBg(bgIn.value)); // 확정 시 active 스와치 갱신
     }
   }
+  // 카피 박스 스타일 (카드뉴스 표지 E1) — 메인/서브 텍스트에 컬러 박스 + 흰 글자
+  if (spec.copyBoxStyle) {
+    const cb = currentCopyBox;
+    const cbField = document.createElement('div');
+    cbField.className = 'field';
+    const row = (which, label, color) => `
+      <div class="template-text-row" style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+        <span style="flex:0 0 44px;font-family:var(--font-mono);font-size:10px;color:var(--text-muted);letter-spacing:0.05em;text-transform:uppercase;">${label}</span>
+        <div class="text-color-segments" style="flex:1;">
+          <div class="text-color-segment ${!cb[which] ? 'active' : ''}" data-cb="${which}" data-on="0">제거</div>
+          <div class="text-color-segment ${cb[which] ? 'active' : ''}" data-cb="${which}" data-on="1">박스</div>
+        </div>
+        <input type="color" data-cbcolor="${which}" value="${color}" title="박스 색" style="width:34px;height:30px;padding:0;border:1px solid var(--border);border-radius:6px;background:var(--card);cursor:pointer;${cb[which] ? '' : 'opacity:0.4;'}">
+      </div>`;
+    cbField.innerHTML = `
+      <div class="field-label">카피 박스 (흰 글자)</div>
+      <div class="field-spec">메인·서브 텍스트에 컬러 박스를 씌워요. 박스 색 직접 선택.</div>
+      ${row('main', '메인', cb.mainColor)}
+      ${row('sub', '서브', cb.subColor)}`;
+    area.appendChild(cbField);
+    cbField.querySelectorAll('[data-cb]').forEach(seg => seg.addEventListener('click', () => setCopyBoxOn(seg.dataset.cb, seg.dataset.on === '1')));
+    cbField.querySelectorAll('[data-cbcolor]').forEach(inp => inp.addEventListener('input', () => setCopyBoxColor(inp.dataset.cbcolor, inp.value)));
+  }
   // 말풍선 (카드뉴스 표지 E1) — 추가 토글 + 스타일 3종 + 폰트 + 텍스트
   //   크기/폰트 크기 고정 (458×231 · 38px). 미리보기에서 드래그로 위치만 이동.
   if (spec.hasSpeechBubble) {
@@ -3809,7 +3860,7 @@ function renderInputs() {
         </div>
       </div>
       <div id="sb-input-wrap" style="display:${bubble.enabled ? 'block' : 'none'};">
-        <div class="field-spec">458×231 · 38px · 검정 텍스트 · 드래그로 위치 이동</div>
+        <div class="field-spec">38px · 글자 수·줄 수에 맞춰 크기 자동 · 드래그로 위치 이동</div>
         <div class="template-text-row" style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
           <label style="flex:0 0 56px;font-family:var(--font-mono);font-size:10px;color:var(--text-muted);letter-spacing:0.05em;text-transform:uppercase;">STYLE</label>
           <div class="text-color-segments" style="flex:1;">
@@ -3832,6 +3883,14 @@ function renderInputs() {
           <label style="flex:0 0 56px;font-family:var(--font-mono);font-size:10px;color:var(--text-muted);letter-spacing:0.05em;text-transform:uppercase;">FONT</label>
           <select id="f-sb-font" style="flex:1;height:32px;padding:0 10px;font-family:var(--font);font-size:12px;color:var(--text-primary);background:var(--card);border:1px solid var(--border);border-radius:6px;outline:none;cursor:pointer;">${fontOptions}</select>
         </div>
+        ${bubble.style !== 'text' ? `
+        <div class="template-text-row" style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <label style="flex:0 0 56px;font-family:var(--font-mono);font-size:10px;color:var(--text-muted);letter-spacing:0.05em;text-transform:uppercase;">BG</label>
+          <div style="flex:1;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            ${['#FFFFFF', '#1A1A1A', '#1D99FF', '#163BD8', '#F96C5A', '#05CC7A'].map(c => `<span data-sbbg="${c}" title="${c}" style="width:22px;height:22px;border-radius:50%;background:${c};cursor:pointer;border:1px solid rgba(0,0,0,0.15);box-shadow:${(bubble.bgColor || '#FFFFFF').toUpperCase() === c.toUpperCase() ? '0 0 0 2px var(--card),0 0 0 3px var(--ink)' : 'none'};"></span>`).join('')}
+            <input type="color" id="f-sb-bg" title="직접 선택" value="${bubble.bgColor || '#FFFFFF'}" style="width:30px;height:26px;padding:0;border:1px solid var(--border);border-radius:6px;background:var(--card);cursor:pointer;">
+          </div>
+        </div>` : ''}
         <div class="field-row">
           <textarea id="f-sb-text" rows="2" placeholder="말풍선 텍스트 (줄바꿈 가능)" style="flex:1;min-height:54px;padding:8px 10px;font-family:var(--font);font-size:13px;color:var(--text-primary);background:var(--card);border:1px solid var(--border);border-radius:6px;outline:none;resize:vertical;line-height:1.4;">${bubble.text.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</textarea>
         </div>
@@ -3844,6 +3903,9 @@ function renderInputs() {
     });
     const fsel = sbField.querySelector('#f-sb-font');
     if (fsel) fsel.addEventListener('change', () => setSpeechBubbleFont(fsel.value));
+    sbField.querySelectorAll('[data-sbbg]').forEach(sw => sw.addEventListener('click', () => { setSpeechBubbleBg(sw.dataset.sbbg); preserveInputsAcross(renderInputs); }));
+    const sbbgIn = sbField.querySelector('#f-sb-bg');
+    if (sbbgIn) sbbgIn.addEventListener('input', () => setSpeechBubbleBg(sbbgIn.value));
   }
   // (추가 이미지 자유 배치 UI는 이미지 탭 renderImageUploads로 이동)
   // 출처 / AI 표기 (카드뉴스) — 우측 하단 고정 텍스트. 토글 + 텍스트 입력 (슬라이드별).
@@ -5115,104 +5177,113 @@ function attachShapeHandlers(wrap, idx) {
     _freeImgSyncTimer = setTimeout(renderPreviews, 250);
   }, { signal, passive: false });
 }
+function bubbleBg(bub) { return bub.bgColor || '#FFFFFF'; }
+function bubbleTextColor(bub) {
+  if (bub.style === 'text') return '#1A1A1A';
+  return isDarkBg(bubbleBg(bub)) ? '#FFFFFF' : '#1A1A1A';
+}
+// 텍스트 실측 (38px·해당 폰트·줄바꿈) → 글자수/줄수에 맞춘 크기 산출의 기준
+function measureBubbleText(bub) {
+  const m = document.createElement('div');
+  m.style.cssText = `position:absolute;left:-9999px;top:-9999px;visibility:hidden;font-family:${getSpeechBubbleFontCss(bub.font)};font-weight:400;font-size:${SPEECH_BUBBLE_FS}px;line-height:1.35;letter-spacing:-0.02em;white-space:pre;`;
+  m.textContent = bub.text || '말풍선';
+  document.body.appendChild(m);
+  const tw = m.offsetWidth, th = m.offsetHeight;
+  document.body.removeChild(m);
+  return { tw: Math.max(tw, 40), th: Math.max(th, 36) };
+}
+// 스타일별 말풍선 W×H — 텍스트 박스 + 패딩(사각형/텍스트) 또는 타원 포함 배율(블러/외곽선)
+function bubbleDims(bub) {
+  const { tw, th } = measureBubbleText(bub);
+  if (bub.style === 'rect') return { W: Math.round(tw + 80), H: Math.round(th + 52) };
+  if (bub.style === 'text') return { W: Math.round(tw + 24), H: Math.round(th + 16) };
+  return { W: Math.round((tw + 56) * 1.34), H: Math.round((th + 30) * 1.6) };
+}
 function buildSpeechBubble(banner, v, bub) {
   if (bub.style === 'outline') return buildOutlineBubble(banner, v, bub);
   if (bub.style === 'rect')    return buildRectBubble(banner, v, bub);
   if (bub.style === 'text')    return buildTextOnlyBubble(banner, v, bub);
   return buildBlurBubble(banner, v, bub);
 }
-// 사각형 — 하얀색 가로 긴 사각형 + 검은 외곽선 (꼬리 없음)
-function buildRectBubble(banner, v, bub) {
-  const W = SPEECH_BUBBLE_W, H = SPEECH_BUBBLE_H;
-  const fontCss = getSpeechBubbleFontCss(bub.font);
-  const wrap = document.createElement('div');
-  wrap.className = 'b-bubble';
-  wrap.dataset.bubbleFor = v.id;
-  wrap.style.cssText = `position:absolute;left:${bub.x}px;top:${bub.y}px;width:${W}px;height:${H}px;z-index:5;cursor:move;user-select:none;`;
-  const box = document.createElement('div');
-  box.style.cssText = `position:absolute;inset:0;background:#FFFFFF;border:${SPEECH_BUBBLE_OUTLINE_PX}px solid #1A1A1A;box-sizing:border-box;pointer-events:none;`;
-  wrap.appendChild(box);
-  wrap.appendChild(buildBubbleTextDiv(0, 0, fontCss, bub.text));
-  banner.appendChild(wrap);
-  attachSpeechBubbleHandlers(wrap, v, bub, 0, 0);
-}
-// 텍스트 div 생성 헬퍼 — 위치 (offsetX, offsetY)부터 W×H 영역, 가운데 정렬
-//   pad: 텍스트 영역 안쪽 여백 (기본 '20px 40px'). 외곽선 스타일은 더 작게 넘김.
-function buildBubbleTextDiv(offsetX, offsetY, fontCss, text, pad) {
-  const W = SPEECH_BUBBLE_W, H = SPEECH_BUBBLE_H;
+// 텍스트 div — W×H 영역 가운데 정렬 (여백은 bubbleDims가 W/H에 포함, 가운데 정렬로 발생)
+function buildBubbleTextDiv(offsetX, offsetY, W, H, fontCss, text, color) {
   const txt = document.createElement('div');
-  txt.style.cssText = `position:absolute;left:${offsetX}px;top:${offsetY}px;width:${W}px;height:${H}px;display:flex;align-items:center;justify-content:center;font-family:${fontCss};font-weight:400;font-size:${SPEECH_BUBBLE_FS}px;line-height:1.35;color:#1A1A1A;text-align:center;letter-spacing:-0.02em;white-space:pre-line;pointer-events:none;padding:${pad || '20px 40px'};box-sizing:border-box;`;
+  txt.style.cssText = `position:absolute;left:${offsetX}px;top:${offsetY}px;width:${W}px;height:${H}px;display:flex;align-items:center;justify-content:center;font-family:${fontCss};font-weight:400;font-size:${SPEECH_BUBBLE_FS}px;line-height:1.35;color:${color};text-align:center;letter-spacing:-0.02em;white-space:pre-line;pointer-events:none;padding:0 6px;box-sizing:border-box;`;
   txt.textContent = text || '';
   return txt;
 }
+// 사각형 — 가로 긴 사각형 + 검은 외곽선 (배경색 선택)
+function buildRectBubble(banner, v, bub) {
+  const { W, H } = bubbleDims(bub);
+  const fontCss = getSpeechBubbleFontCss(bub.font);
+  const wrap = document.createElement('div');
+  wrap.className = 'b-bubble'; wrap.dataset.bubbleFor = v.id;
+  wrap.style.cssText = `position:absolute;left:${bub.x}px;top:${bub.y}px;width:${W}px;height:${H}px;z-index:5;cursor:move;user-select:none;`;
+  const box = document.createElement('div');
+  box.style.cssText = `position:absolute;inset:0;background:${bubbleBg(bub)};border:${SPEECH_BUBBLE_OUTLINE_PX}px solid #1A1A1A;box-sizing:border-box;pointer-events:none;`;
+  wrap.appendChild(box);
+  wrap.appendChild(buildBubbleTextDiv(0, 0, W, H, fontCss, bub.text, bubbleTextColor(bub)));
+  banner.appendChild(wrap);
+  attachSpeechBubbleHandlers(wrap, v, bub, 0, 0);
+}
 function buildBlurBubble(banner, v, bub) {
-  const W = SPEECH_BUBBLE_W, H = SPEECH_BUBBLE_H;
+  const { W, H } = bubbleDims(bub);
   const pad = SPEECH_BUBBLE_BLUR_PX * 2;
   const fontCss = getSpeechBubbleFontCss(bub.font);
   const wrap = document.createElement('div');
-  wrap.className = 'b-bubble';
-  wrap.dataset.bubbleFor = v.id;
+  wrap.className = 'b-bubble'; wrap.dataset.bubbleFor = v.id;
   wrap.style.cssText = `position:absolute;left:${bub.x - pad}px;top:${bub.y - pad}px;width:${W + pad * 2}px;height:${H + pad * 2}px;z-index:5;cursor:move;user-select:none;`;
   const shape = document.createElement('div');
-  // border-radius:50% → 진짜 가로 동그라미 (이전 9999px은 stadium 모양이라 직사각형에 라운드처럼 보였음)
-  shape.style.cssText = `position:absolute;left:${pad}px;top:${pad}px;width:${W}px;height:${H}px;background:#FFFFFF;border-radius:50%;filter:blur(${SPEECH_BUBBLE_BLUR_PX}px);pointer-events:none;`;
+  shape.style.cssText = `position:absolute;left:${pad}px;top:${pad}px;width:${W}px;height:${H}px;background:${bubbleBg(bub)};border-radius:50%;filter:blur(${SPEECH_BUBBLE_BLUR_PX}px);pointer-events:none;`;
   wrap.appendChild(shape);
-  wrap.appendChild(buildBubbleTextDiv(pad, pad, fontCss, bub.text));
+  wrap.appendChild(buildBubbleTextDiv(pad, pad, W, H, fontCss, bub.text, bubbleTextColor(bub)));
   banner.appendChild(wrap);
   attachSpeechBubbleHandlers(wrap, v, bub, pad, pad);
 }
-// 텍스트만 — 배경 shape 없음. 458×231 영역 전체가 드래그 hit (텍스트 가운데 정렬)
+// 텍스트만 — 배경 shape 없음. 텍스트 영역 전체가 드래그 hit
 function buildTextOnlyBubble(banner, v, bub) {
-  const W = SPEECH_BUBBLE_W, H = SPEECH_BUBBLE_H;
+  const { W, H } = bubbleDims(bub);
   const fontCss = getSpeechBubbleFontCss(bub.font);
   const wrap = document.createElement('div');
-  wrap.className = 'b-bubble';
-  wrap.dataset.bubbleFor = v.id;
+  wrap.className = 'b-bubble'; wrap.dataset.bubbleFor = v.id;
   wrap.style.cssText = `position:absolute;left:${bub.x}px;top:${bub.y}px;width:${W}px;height:${H}px;z-index:5;cursor:move;user-select:none;`;
-  wrap.appendChild(buildBubbleTextDiv(0, 0, fontCss, bub.text));
+  wrap.appendChild(buildBubbleTextDiv(0, 0, W, H, fontCss, bub.text, bubbleTextColor(bub)));
   banner.appendChild(wrap);
   attachSpeechBubbleHandlers(wrap, v, bub, 0, 0);
 }
 function buildOutlineBubble(banner, v, bub) {
-  const W = SPEECH_BUBBLE_W, H = SPEECH_BUBBLE_H;
+  const { W, H } = bubbleDims(bub);
   const SW = SPEECH_BUBBLE_OUTLINE_PX;
   const tail = SPEECH_BUBBLE_TAILS[bub.direction] || SPEECH_BUBBLE_TAILS.right;
-  // wrap: ellipse 박스 + tail 하단 extension + stroke margin
+  // 꼬리 좌표는 458×231 기준 → 현재 W/H에 비례 스케일
+  const tipXr = tail.tipX * (W / SPEECH_BUBBLE_W);
+  const tipYr = tail.tipY * (H / SPEECH_BUBBLE_H);
   const margin = Math.ceil(SW / 2) + 1;
-  const padL = margin;
-  const padT = margin;
+  const padL = margin, padT = margin;
   const wrapW = W + margin * 2;
-  const wrapH = tail.tipY + margin;
+  const wrapH = tipYr + margin;
   const wrap = document.createElement('div');
-  wrap.className = 'b-bubble';
-  wrap.dataset.bubbleFor = v.id;
+  wrap.className = 'b-bubble'; wrap.dataset.bubbleFor = v.id;
   wrap.style.cssText = `position:absolute;left:${bub.x - padL}px;top:${bub.y - padT}px;width:${wrapW}px;height:${wrapH}px;z-index:5;cursor:move;user-select:none;`;
-  const cx = padL + W / 2;
-  const cy = padT + H / 2;
-  const rx = W / 2;
-  const ry = H / 2;
+  const cx = padL + W / 2, cy = padT + H / 2, rx = W / 2, ry = H / 2;
   const a1 = ellipsePoint(cx, cy, rx, ry, tail.ang1);
   const a2 = ellipsePoint(cx, cy, rx, ry, tail.ang2);
-  const tipX = padL + tail.tipX;
-  const tipY = padT + tail.tipY;
-  // SVG path — ellipse 둘레 long-arc + tail 삼각형 합친 닫힌 path
-  //   M P(ang1) → A 1 sweep P(ang2) → L tip → L P(ang1) → Z
+  const tipX = padL + tipXr, tipY = padT + tipYr;
   const d = `M ${a1.x.toFixed(2)} ${a1.y.toFixed(2)} A ${rx} ${ry} 0 1 ${tail.svgSweep} ${a2.x.toFixed(2)} ${a2.y.toFixed(2)} L ${tipX.toFixed(2)} ${tipY.toFixed(2)} L ${a1.x.toFixed(2)} ${a1.y.toFixed(2)} Z`;
   const SVG_NS = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(SVG_NS, 'svg');
-  svg.setAttribute('width', wrapW);
-  svg.setAttribute('height', wrapH);
+  svg.setAttribute('width', wrapW); svg.setAttribute('height', wrapH);
   svg.setAttribute('viewBox', `0 0 ${wrapW} ${wrapH}`);
   svg.style.cssText = 'position:absolute;left:0;top:0;pointer-events:none;overflow:visible;';
   const path = document.createElementNS(SVG_NS, 'path');
   path.setAttribute('d', d);
-  path.setAttribute('fill', '#FFFFFF');
+  path.setAttribute('fill', bubbleBg(bub));
   path.setAttribute('stroke', '#1A1A1A');
   path.setAttribute('stroke-width', SW);
   path.setAttribute('stroke-linejoin', 'round');
   svg.appendChild(path);
   wrap.appendChild(svg);
-  wrap.appendChild(buildBubbleTextDiv(padL, padT, getSpeechBubbleFontCss(bub.font), bub.text, '8px 22px'));
+  wrap.appendChild(buildBubbleTextDiv(padL, padT, W, H, getSpeechBubbleFontCss(bub.font), bub.text, bubbleTextColor(bub)));
   banner.appendChild(wrap);
   attachSpeechBubbleHandlers(wrap, v, bub, padL, padT);
 }
@@ -5974,7 +6045,12 @@ function buildBanner(v, spec) {
     }
     // vcenter는 display:flex로 세로 정렬 → text 노드 + <br> + <span class="pt">가 각각 flex item이 되어
     //   {} 강조 추가 시 좁은 컬럼으로 쪼개짐. 인너 div로 감싸서 단일 flex item으로 만듦.
-    const _innerMainHTML = applyPointColor(mainText).replace(/\n/g, '<br>');
+    let _innerMainHTML = applyPointColor(mainText).replace(/\n/g, '<br>');
+    // 카피 박스 스타일: 줄마다 컬러 박스 + 흰 글자 (box-decoration-break로 줄별 클립)
+    if (spec.copyBoxStyle && currentCopyBox.main) {
+      _innerMainHTML = `<span style="box-decoration-break:clone;-webkit-box-decoration-break:clone;background:${currentCopyBox.mainColor};color:#FFFFFF;padding:0.08em 0.32em;border-radius:0.08em;">${_innerMainHTML}</span>`;
+      m.style.lineHeight = '1.5';
+    }
     m.innerHTML = v.main.vcenter ? `<div>${_innerMainHTML}</div>` : _innerMainHTML;
     banner.appendChild(m);
   }
@@ -5994,7 +6070,10 @@ function buildBanner(v, spec) {
     //   pillSubFilled: 검정 채움 + 흰 텍스트 (deprecated 호환용)
     //   pillSubBoxed : 투명 채움 + 컬러 테두리 2px + 사각 박스 (radius 4) — 카드뉴스/릴스 표지 가이드라인
     //   기본(pillSub만): 투명 채움 + 컬러 테두리 + pill (radius 100) — C1 대기 화면
-    if (spec.pillSub) {
+    if (spec.copyBoxStyle && currentCopyBox.sub) {
+      // 카피 박스 스타일: 선택 색 박스 + 흰 글자 (pill보다 우선)
+      css += `display:inline-block;background:${currentCopyBox.subColor};color:#FFFFFF;border:none;border-radius:8px;padding:12px 26px;line-height:1.15;`;
+    } else if (spec.pillSub) {
       if (spec.subFillOption && currentSubPill.fill) {
         // 배경 채움 버전 — 선택 배경색 + 흰/검 글자색. pill radius 100 유지.
         //   inline-flex 수직 중앙정렬로 한글 글리프 광학 보정 + 테두리 버전과 동일 높이(64px) 고정.
@@ -6311,31 +6390,33 @@ function drawSpeechBubbleOnCanvas(canvas, v, spec, dlScale) {
   if (!bub || !bub.enabled) return;
   const ctx = canvas.getContext('2d');
   const s = dlScale;
-  const cx = (bub.x + SPEECH_BUBBLE_W / 2) * s;
-  const cy = (bub.y + SPEECH_BUBBLE_H / 2) * s;
-  const rx = (SPEECH_BUBBLE_W / 2) * s;
-  const ry = (SPEECH_BUBBLE_H / 2) * s;
+  const { W, H } = bubbleDims(bub);   // 텍스트에 맞춘 크기 (미리보기와 동일)
+  const cx = (bub.x + W / 2) * s;
+  const cy = (bub.y + H / 2) * s;
+  const rx = (W / 2) * s;
+  const ry = (H / 2) * s;
+  const bg = bubbleBg(bub);
   ctx.save();
   // html2canvas가 컨텍스트에 남겨둔 변환(scale 등)을 초기화 — 우리 좌표는 이미 dlScale을
   // 곱한 절대 캔버스 픽셀이므로, transform이 남아 있으면 말풍선이 밀리거나 잘린다.
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   if (bub.style === 'blur') {
     ctx.filter = `blur(${SPEECH_BUBBLE_BLUR_PX * s}px)`;
-    ctx.fillStyle = '#FFFFFF';
+    ctx.fillStyle = bg;
     ctx.beginPath();
     ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.filter = 'none';
   } else if (bub.style === 'outline') {
-    // outline + tail — DOM SVG path와 동일 좌표/방향 (direction별 ang1, ang2, tipX, tipY)
+    // outline + tail — DOM SVG path와 동일 좌표/방향. 꼬리는 W/H 비례 스케일.
     const tail = SPEECH_BUBBLE_TAILS[bub.direction] || SPEECH_BUBBLE_TAILS.right;
     const a1Rad = tail.ang1 * Math.PI / 180;
     const a2Rad = tail.ang2 * Math.PI / 180;
     const a1x = cx + rx * Math.cos(a1Rad);
     const a1y = cy + ry * Math.sin(a1Rad);
-    const tipX = (bub.x + tail.tipX) * s;
-    const tipY = (bub.y + tail.tipY) * s;
-    ctx.fillStyle = '#FFFFFF';
+    const tipX = (bub.x + tail.tipX * (W / SPEECH_BUBBLE_W)) * s;
+    const tipY = (bub.y + tail.tipY * (H / SPEECH_BUBBLE_H)) * s;
+    ctx.fillStyle = bg;
     ctx.strokeStyle = '#1A1A1A';
     ctx.lineWidth = SPEECH_BUBBLE_OUTLINE_PX * s;
     ctx.lineJoin = 'round';
@@ -6349,10 +6430,10 @@ function drawSpeechBubbleOnCanvas(canvas, v, spec, dlScale) {
     ctx.fill();
     ctx.stroke();
   } else if (bub.style === 'rect') {
-    // 흰 사각형 + 검은 외곽선
-    const x = bub.x * s, y = bub.y * s, w = SPEECH_BUBBLE_W * s, h = SPEECH_BUBBLE_H * s;
+    // 사각형 + 검은 외곽선
+    const x = bub.x * s, y = bub.y * s, w = W * s, h = H * s;
     const lw = SPEECH_BUBBLE_OUTLINE_PX * s;
-    ctx.fillStyle = '#FFFFFF';
+    ctx.fillStyle = bg;
     ctx.fillRect(x, y, w, h);
     ctx.strokeStyle = '#1A1A1A';
     ctx.lineWidth = lw;
@@ -6360,7 +6441,7 @@ function drawSpeechBubbleOnCanvas(canvas, v, spec, dlScale) {
   }
   // (style === 'text' 인 경우 배경 shape 없이 텍스트만 그림)
   // 텍스트 — 또렷하게 (필터 없음). 가운데 정렬, 여러 줄 처리.
-  ctx.fillStyle = '#1A1A1A';
+  ctx.fillStyle = bubbleTextColor(bub);
   ctx.font = `400 ${SPEECH_BUBBLE_FS * s}px ${getSpeechBubbleFontCss(bub.font)}`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
