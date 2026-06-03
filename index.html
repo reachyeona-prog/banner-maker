@@ -5182,18 +5182,15 @@ function buildCalendarCard(v, spec) {
   banner.style.cssText = `width:${v.w}px;height:${v.h}px;background:${bg};`;
   const dark = isDarkBg(bg);
   const ink = dark ? '#FFFFFF' : '#1A1A1A';
-  const line = dark ? 'rgba(255,255,255,0.22)' : '#E6E2D8';
+  const line = ink;   // 칸 구분선 — 블랙(다크 배경에선 화이트)
   const muted = dark ? 'rgba(255,255,255,0.6)' : '#9A968C';
-  // 이미지 위 텍스트 가독용 halo (밝은 배경=흰 글로우 / 어두운 배경=검은 글로우)
-  const textHalo = dark
-    ? '0 0 3px rgba(0,0,0,.9),0 1px 2px rgba(0,0,0,.7)'
-    : '0 0 3px rgba(255,255,255,.95),0 1px 3px rgba(255,255,255,.85)';
   const sun = '#F96C5A';   // 일요일·공휴일 텍스트 (코랄)
   const sat = '#163BD8';   // 토요일 텍스트 (파랑)
   const cal = currentCal;
-  const PAD = 48;
+  const PAD = 24;   // 양옆 여백 축소 → 달력 칸 가로로 꽉 차게
   const wrap = document.createElement('div');
-  wrap.style.cssText = `position:absolute;inset:0;padding:44px ${PAD}px 36px;box-sizing:border-box;display:flex;flex-direction:column;font-family:'Pretendard','Noto Sans KR',sans-serif;`;
+  // 상단 패딩 72(타이틀 위 여백↑) · 하단 36. 그리드(flex:1)는 그만큼 세로가 줄어듦.
+  wrap.style.cssText = `position:absolute;inset:0;padding:72px ${PAD}px 36px;box-sizing:border-box;display:flex;flex-direction:column;font-family:'Pretendard','Noto Sans KR',sans-serif;`;
   // 메인 제목 — 'YYYY년 M월 사장님 달력' 1줄 고정 형식 (연도·월 자동)
   const title = document.createElement('div');
   title.style.cssText = `text-align:center;font-weight:800;font-size:54px;line-height:1.2;letter-spacing:-0.03em;color:${ink};`;
@@ -5203,14 +5200,14 @@ function buildCalendarCard(v, spec) {
   if (cal.subtitle) {
     const sub = document.createElement('div');
     const subColor = dark ? 'rgba(255,255,255,0.78)' : '#6E6A60';
-    sub.style.cssText = `text-align:center;font-weight:500;font-size:30px;line-height:1.3;letter-spacing:-0.02em;color:${subColor};margin-top:14px;word-break:keep-all;`;
+    sub.style.cssText = `text-align:center;font-weight:500;font-size:24px;line-height:1.3;letter-spacing:-0.02em;color:${subColor};margin-top:14px;word-break:keep-all;`;
     sub.textContent = cal.subtitle;
     wrap.appendChild(sub);
   }
   // 요일 헤더 (검은 바, 일=빨강)
   const WD = ['일','월','화','수','목','금','토'];
   const head = document.createElement('div');
-  head.style.cssText = `display:grid;grid-template-columns:repeat(7,1fr);margin-top:34px;border-bottom:2px solid ${ink};`;
+  head.style.cssText = `display:grid;grid-template-columns:repeat(7,1fr);margin-top:64px;border-bottom:2px solid ${ink};`;
   WD.forEach((d, i) => {
     const c = document.createElement('div');
     c.style.cssText = `text-align:center;padding:4px 0 12px;font-weight:700;font-size:24px;color:${i === 0 ? sun : (i === 6 ? sat : ink)};`;
@@ -5223,18 +5220,20 @@ function buildCalendarCard(v, spec) {
   const first = calFirstWeekday(cal.year, cal.month);
   const rows = Math.ceil((first + daysIn) / 7);
   const grid = document.createElement('div');
-  grid.style.cssText = `flex:1;display:grid;grid-template-columns:repeat(7,1fr);grid-template-rows:repeat(${rows},1fr);border-left:1px solid ${line};margin-top:0;`;
+  grid.style.cssText = `flex:1;min-height:0;display:grid;grid-template-columns:repeat(7,1fr);grid-template-rows:repeat(${rows},1fr);border-left:1px solid ${line};margin-top:0;`;
   for (let i = 0; i < rows * 7; i++) {
     const dayNum = i - first + 1;
     const col = i % 7;
     const cell = document.createElement('div');
-    cell.style.cssText = `border-right:1px solid ${line};border-bottom:1px solid ${line};box-sizing:border-box;position:relative;overflow:hidden;`;
+    cell.style.cssText = `border-right:1px solid ${line};border-bottom:1px solid ${line};box-sizing:border-box;overflow:hidden;display:flex;flex-direction:column;position:relative;padding:0 7px 8px;`;
     if (dayNum >= 1 && dayNum <= daysIn) {
       const cc = cal.cells[dayNum] || {};
       const dayColor = (cc.holiday || col === 0) ? sun : (col === 6 ? sat : ink);
-      // 하단 2/3 — 이미지(또는 이모지) 영역
+      const endColor = dark ? 'rgba(255,255,255,0.82)' : '#555555';
+      const halo = dark ? '0 0 3px rgba(0,0,0,.9),0 1px 2px rgba(0,0,0,.7)' : '0 0 3px rgba(255,255,255,.95),0 1px 2px rgba(255,255,255,.85)';
+      // 이미지/이모지 — 칸 최상단부터(상단 여백 활용) 고정 영역. 위치 일정 → 줄 수 무관.
       const media = document.createElement('div');
-      media.style.cssText = `position:absolute;left:0;right:0;bottom:0;height:66%;display:flex;align-items:center;justify-content:center;overflow:hidden;`;
+      media.style.cssText = `flex:0 0 28%;margin:0 -7px;display:flex;align-items:center;justify-content:center;overflow:hidden;`;
       if (cc.img) {
         const im = document.createElement('img');
         im.src = cc.img;
@@ -5242,33 +5241,33 @@ function buildCalendarCard(v, spec) {
         media.appendChild(im);
       } else if (cc.emoji) {
         const em = document.createElement('div');
-        em.style.cssText = `font-size:44px;line-height:1;`;
+        em.style.cssText = `font-size:48px;line-height:1;`;
         em.textContent = cc.emoji;
         media.appendChild(em);
       }
       cell.appendChild(media);
-      // 날짜 숫자 — 좌상단 (이미지보다 위)
+      // 날짜 숫자 — 좌상단 오버레이 (이미지 위에서도 보이게 halo)
       const dn = document.createElement('div');
-      dn.style.cssText = `position:absolute;top:9px;left:9px;z-index:3;font-weight:700;font-size:24px;line-height:1;color:${dayColor};text-shadow:${textHalo};`;
+      dn.style.cssText = `position:absolute;top:6px;left:8px;z-index:3;font-weight:700;font-size:24px;line-height:1;color:${dayColor};text-shadow:${halo};`;
       dn.textContent = dayNum;
       cell.appendChild(dn);
-      // 텍스트 오버레이 — 이미지 위에 겹쳐서 (하단 정렬, halo로 가독 확보)
+      // 이벤트 텍스트 + 종료일 — 이모지 영역 바로 아래에서 상단 정렬로 시작
       if (cc.text || cc.end) {
-        const ov = document.createElement('div');
-        ov.style.cssText = `position:absolute;left:5px;right:5px;bottom:9px;z-index:3;text-align:center;`;
+        const tw = document.createElement('div');
+        tw.style.cssText = `flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-start;margin-top:4px;`;
         if (cc.text) {
           const tx = document.createElement('div');
-          tx.style.cssText = `font-weight:500;font-size:16px;line-height:1.3;letter-spacing:-0.02em;color:${dayColor};word-break:keep-all;white-space:pre-line;text-shadow:${textHalo};`;
+          tx.style.cssText = `font-weight:600;font-size:26px;line-height:1.3;letter-spacing:-1px;text-align:center;color:${dayColor};word-break:keep-all;white-space:pre-line;`;
           tx.textContent = cc.text;
-          ov.appendChild(tx);
+          tw.appendChild(tx);
         }
         if (cc.end) {
           const ed = document.createElement('div');
-          ed.style.cssText = `margin-top:2px;font-size:14px;line-height:1.2;color:${muted};text-shadow:${textHalo};`;
+          ed.style.cssText = `margin-top:3px;font-size:20px;line-height:1.2;text-align:center;color:${endColor};`;
           ed.textContent = '~' + cc.end;
-          ov.appendChild(ed);
+          tw.appendChild(ed);
         }
-        cell.appendChild(ov);
+        cell.appendChild(tw);
       }
     }
     grid.appendChild(cell);
