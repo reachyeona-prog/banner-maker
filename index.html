@@ -2403,8 +2403,9 @@ let currentCal = freshCalendar();
 function freshCalendar() {
   return {
     year: 2026, month: 6,
-    title: '여미새(여름에 미친 사람)를 위한\n6월 약속 잡기 좋은 날 모음',
-    footer: '트렌드 당일 배송',
+    // 메인 제목은 'YYYY년 M월 사장님 달력' 형식으로 자동 생성(고정). subtitle은 1줄 서브 카피.
+    subtitle: '이달의 주요 일정을 한눈에',
+    footer: '매장의 새로운 미래, 페이히어',
     cells: {},
   };
 }
@@ -2430,6 +2431,52 @@ function onCalCellImage(e, day) {
   const reader = new FileReader();
   reader.onload = ev => { calCell(day).img = ev.target.result; renderInputs(); renderPreviews(); };
   reader.readAsDataURL(file);
+}
+// JSON 자동 채우기 — { year, month, title, footer, events:{ "1":{text,emoji,end,holiday}, ... } }
+//   카드뉴스처럼 붙여넣으면 칸이 채워지고, 이후 입력 패널에서 수정 가능.
+const CAL_JSON_SAMPLE = JSON.stringify({
+  year: 2026, month: 6,
+  subtitle: '이달의 주요 일정을 한눈에',
+  footer: '매장의 새로운 미래, 페이히어',
+  events: {
+    '1':  { text: '세계 우유의 날', emoji: '🥛' },
+    '3':  { text: '지방선거', emoji: '🗳️', holiday: true },
+    '6':  { text: '현충일', emoji: '🇰🇷', holiday: true },
+    '13': { text: '월드디제이\n페스티벌', emoji: '🎧', end: '6/14' }
+  }
+}, null, 2);
+function applyCalendarJSON(raw, hintEl) {
+  const setHint = (msg, cls) => { if (hintEl) { hintEl.textContent = msg; hintEl.className = 'json-import-hint ' + (cls || ''); } };
+  const text = (raw || '').trim();
+  if (!text) { setHint('JSON을 붙여넣어 주세요', 'is-error'); return; }
+  let data;
+  try { data = JSON.parse(text); }
+  catch (e) { setHint('JSON 형식 오류: ' + e.message, 'is-error'); toast('JSON 형식 오류', { danger: true }); return; }
+  if (typeof data.year === 'number') currentCal.year = data.year;
+  if (typeof data.month === 'number') currentCal.month = data.month;
+  if (typeof data.subtitle === 'string') currentCal.subtitle = data.subtitle;
+  else if (typeof data.title === 'string') currentCal.subtitle = data.title;  // 하위호환
+  if (typeof data.footer === 'string') currentCal.footer = data.footer;
+  const ev = data.events || data.cells || data.days || {};
+  currentCal.cells = {};
+  let n = 0;
+  Object.keys(ev).forEach(k => {
+    const d = parseInt(k, 10);
+    if (isNaN(d) || d < 1 || d > 31) return;
+    const e = ev[k] || {};
+    currentCal.cells[d] = {
+      text: (e.text != null) ? String(e.text) : '',
+      end: e.end ? String(e.end) : '',
+      emoji: e.emoji ? String(e.emoji) : '',
+      img: e.img || null,
+      holiday: !!e.holiday,
+    };
+    n++;
+  });
+  setHint(`적용 완료 — ${n}개 날짜 채움`, 'is-success');
+  toast('JSON 적용 완료 — 칸을 수정해 쓰세요');
+  renderInputs();
+  renderPreviews();
 }
 // 출처/AI 표기 (카드뉴스) — 우측 하단 고정 위치, 30px, Pretendard 고정. 슬라이드별 텍스트.
 //   { enabled, text }. multiSlide 슬롯은 slideState에 swap-in/out (freshSlideState/snapshot/apply).
@@ -3383,6 +3430,24 @@ function renderCalendarInputs(area) {
   const WD = ['일', '월', '화', '수', '목', '금', '토'];
   const fieldBg = 'var(--bg-elev, #fff)';
 
+  // JSON 자동 채우기 (카드뉴스와 동일 UX) — 붙여넣고 채운 뒤 칸에서 수정
+  const jsonBox = document.createElement('div');
+  jsonBox.className = 'json-import';
+  jsonBox.innerHTML = `
+    <div class="json-import-head">
+      <span class="json-import-label">JSON으로 한 번에 채우기</span>
+      <span class="json-import-hint" id="cal-json-hint">붙여넣고 버튼 클릭</span>
+    </div>
+    <textarea id="cal-json" class="json-import-textarea" placeholder='{"year":2026,"month":6,"subtitle":"이달의 주요 일정을 한눈에","footer":"...","events":{"1":{"text":"세계 우유의 날","emoji":"🥛"},"3":{"text":"지방선거","holiday":true}}}'></textarea>
+    <div style="display:flex;gap:8px;margin-top:8px;">
+      <button type="button" class="json-import-btn" id="cal-json-apply" style="margin-top:0;flex:1;width:auto;">달력 자동 채우기</button>
+      <button type="button" class="json-import-btn" id="cal-json-sample" style="margin-top:0;flex:0 0 auto;width:auto;padding:0 14px;background:var(--card);color:var(--text-primary);">샘플</button>
+    </div>`;
+  area.appendChild(jsonBox);
+  const jsonTa = jsonBox.querySelector('#cal-json');
+  jsonBox.querySelector('#cal-json-apply').addEventListener('click', () => applyCalendarJSON(jsonTa.value, jsonBox.querySelector('#cal-json-hint')));
+  jsonBox.querySelector('#cal-json-sample').addEventListener('click', () => { jsonTa.value = CAL_JSON_SAMPLE; });
+
   const top = document.createElement('div');
   top.className = 'field';
   top.innerHTML = `
@@ -3393,14 +3458,15 @@ function renderCalendarInputs(area) {
         ${Array.from({ length: 12 }, (_, i) => `<option value="${i + 1}" ${cal.month === i + 1 ? 'selected' : ''}>${i + 1}월</option>`).join('')}
       </select>
     </div>
-    <div class="field-label">제목 (2줄, 줄바꿈)</div>
-    <textarea id="cal-title" rows="2" style="width:100%;box-sizing:border-box;min-height:54px;padding:8px 10px;font-family:var(--font);font-size:13px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text-primary);resize:vertical;line-height:1.4;margin-bottom:10px;outline:none;">${esc(cal.title)}</textarea>
+    <div class="field-spec" style="margin-bottom:10px;">메인 제목은 <b>${cal.year}년 ${cal.month}월 사장님 달력</b> 형식으로 자동 (연도·월 따라 변경)</div>
+    <div class="field-label">서브 카피 (1줄)</div>
+    <input id="cal-subtitle" type="text" value="${esc(cal.subtitle)}" placeholder="제목 아래 한 줄 설명" style="width:100%;box-sizing:border-box;height:34px;padding:0 10px;font-family:var(--font);font-size:13px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text-primary);outline:none;margin-bottom:10px;">
     <div class="field-label">하단 좌측 문구</div>
     <input id="cal-footer" type="text" value="${esc(cal.footer)}" style="width:100%;box-sizing:border-box;height:34px;padding:0 10px;font-family:var(--font);font-size:13px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text-primary);outline:none;">`;
   area.appendChild(top);
   top.querySelector('#cal-year').addEventListener('change', e => setCalMonthYear('year', e.target.value));
   top.querySelector('#cal-month').addEventListener('change', e => setCalMonthYear('month', e.target.value));
-  top.querySelector('#cal-title').addEventListener('input', e => setCalField('title', e.target.value));
+  top.querySelector('#cal-subtitle').addEventListener('input', e => setCalField('subtitle', e.target.value));
   top.querySelector('#cal-footer').addEventListener('input', e => setCalField('footer', e.target.value));
 
   const hd = document.createElement('div');
@@ -3416,14 +3482,15 @@ function renderCalendarInputs(area) {
 
   for (let d = 1; d <= daysIn; d++) {
     const cc = calCell(d);
-    const wk = WD[(first + d - 1) % 7];
-    const isRedDay = cc.holiday || ((first + d - 1) % 7 === 0);
+    const wkIdx = (first + d - 1) % 7;
+    const wk = WD[wkIdx];
+    const dayCol = (cc.holiday || wkIdx === 0) ? '#F96C5A' : (wkIdx === 6 ? '#163BD8' : 'var(--text-primary)');
     const row = document.createElement('div');
     row.style.cssText = 'border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:6px;background:var(--card);';
     row.innerHTML = `
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-        <span style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:${isRedDay ? '#E23E3E' : 'var(--text-primary)'};min-width:44px;">${d} ${wk}</span>
-        <input data-k="text" type="text" value="${esc(cc.text)}" placeholder="이벤트명" style="flex:1;height:30px;padding:0 8px;font-family:var(--font);font-size:12px;border:1px solid var(--border);border-radius:5px;background:${fieldBg};color:var(--text-primary);outline:none;">
+        <span style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:${dayCol};min-width:44px;">${d} ${wk}</span>
+        <textarea data-k="text" rows="2" placeholder="이벤트명 (줄바꿈 가능)" style="flex:1;min-height:46px;padding:6px 8px;font-family:var(--font);font-size:12px;line-height:1.35;border:1px solid var(--border);border-radius:5px;background:${fieldBg};color:var(--text-primary);outline:none;resize:vertical;">${esc(cc.text)}</textarea>
       </div>
       <div style="display:flex;align-items:center;gap:6px;">
         <input data-k="emoji" type="text" value="${esc(cc.emoji)}" placeholder="🎉" maxlength="4" style="width:44px;height:30px;text-align:center;padding:0;font-size:15px;border:1px solid var(--border);border-radius:5px;background:${fieldBg};outline:none;">
@@ -5115,32 +5182,38 @@ function buildCalendarCard(v, spec) {
   banner.style.cssText = `width:${v.w}px;height:${v.h}px;background:${bg};`;
   const dark = isDarkBg(bg);
   const ink = dark ? '#FFFFFF' : '#1A1A1A';
-  const onInk = dark ? '#1A1A1A' : '#FFFFFF';   // 검은 바/pill 위 글자색 (다크 배경 반전)
   const line = dark ? 'rgba(255,255,255,0.22)' : '#E6E2D8';
   const muted = dark ? 'rgba(255,255,255,0.6)' : '#9A968C';
-  const red = '#E23E3E';
-  const sunHead = dark ? '#FF9A9A' : '#FF7A7A';
+  // 이미지 위 텍스트 가독용 halo (밝은 배경=흰 글로우 / 어두운 배경=검은 글로우)
+  const textHalo = dark
+    ? '0 0 3px rgba(0,0,0,.9),0 1px 2px rgba(0,0,0,.7)'
+    : '0 0 3px rgba(255,255,255,.95),0 1px 3px rgba(255,255,255,.85)';
+  const sun = '#F96C5A';   // 일요일·공휴일 텍스트 (코랄)
+  const sat = '#163BD8';   // 토요일 텍스트 (파랑)
   const cal = currentCal;
   const PAD = 48;
   const wrap = document.createElement('div');
   wrap.style.cssText = `position:absolute;inset:0;padding:44px ${PAD}px 36px;box-sizing:border-box;display:flex;flex-direction:column;font-family:'Pretendard','Noto Sans KR',sans-serif;`;
-  // 연도 pill
-  const pill = document.createElement('div');
-  pill.style.cssText = `align-self:center;background:${ink};color:${onInk};font-weight:800;font-size:34px;letter-spacing:0.02em;padding:9px 32px;border-radius:100px;line-height:1;`;
-  pill.textContent = String(cal.year);
-  wrap.appendChild(pill);
-  // 제목 (2줄, 가운데)
+  // 메인 제목 — 'YYYY년 M월 사장님 달력' 1줄 고정 형식 (연도·월 자동)
   const title = document.createElement('div');
-  title.style.cssText = `text-align:center;font-weight:800;font-size:54px;line-height:1.28;letter-spacing:-0.03em;color:${ink};margin-top:22px;white-space:pre-line;word-break:keep-all;`;
-  title.textContent = cal.title || '';
+  title.style.cssText = `text-align:center;font-weight:800;font-size:54px;line-height:1.2;letter-spacing:-0.03em;color:${ink};`;
+  title.textContent = `${cal.year}년 ${cal.month}월 사장님 달력`;
   wrap.appendChild(title);
+  // 서브 카피 (1줄)
+  if (cal.subtitle) {
+    const sub = document.createElement('div');
+    const subColor = dark ? 'rgba(255,255,255,0.78)' : '#6E6A60';
+    sub.style.cssText = `text-align:center;font-weight:500;font-size:30px;line-height:1.3;letter-spacing:-0.02em;color:${subColor};margin-top:14px;word-break:keep-all;`;
+    sub.textContent = cal.subtitle;
+    wrap.appendChild(sub);
+  }
   // 요일 헤더 (검은 바, 일=빨강)
   const WD = ['일','월','화','수','목','금','토'];
   const head = document.createElement('div');
-  head.style.cssText = `display:grid;grid-template-columns:repeat(7,1fr);background:${ink};border-radius:10px;margin-top:30px;overflow:hidden;`;
+  head.style.cssText = `display:grid;grid-template-columns:repeat(7,1fr);margin-top:34px;border-bottom:2px solid ${ink};`;
   WD.forEach((d, i) => {
     const c = document.createElement('div');
-    c.style.cssText = `text-align:center;padding:15px 0;font-weight:700;font-size:24px;color:${i === 0 ? sunHead : onInk};`;
+    c.style.cssText = `text-align:center;padding:4px 0 12px;font-weight:700;font-size:24px;color:${i === 0 ? sun : (i === 6 ? sat : ink)};`;
     c.textContent = d;
     head.appendChild(c);
   });
@@ -5150,49 +5223,60 @@ function buildCalendarCard(v, spec) {
   const first = calFirstWeekday(cal.year, cal.month);
   const rows = Math.ceil((first + daysIn) / 7);
   const grid = document.createElement('div');
-  grid.style.cssText = `flex:1;display:grid;grid-template-columns:repeat(7,1fr);grid-template-rows:repeat(${rows},1fr);border-left:1px solid ${line};border-top:1px solid ${line};margin-top:12px;`;
+  grid.style.cssText = `flex:1;display:grid;grid-template-columns:repeat(7,1fr);grid-template-rows:repeat(${rows},1fr);border-left:1px solid ${line};margin-top:0;`;
   for (let i = 0; i < rows * 7; i++) {
     const dayNum = i - first + 1;
     const col = i % 7;
     const cell = document.createElement('div');
-    cell.style.cssText = `border-right:1px solid ${line};border-bottom:1px solid ${line};padding:9px 7px;box-sizing:border-box;position:relative;display:flex;flex-direction:column;align-items:center;overflow:hidden;`;
+    cell.style.cssText = `border-right:1px solid ${line};border-bottom:1px solid ${line};box-sizing:border-box;position:relative;overflow:hidden;`;
     if (dayNum >= 1 && dayNum <= daysIn) {
       const cc = cal.cells[dayNum] || {};
-      const isRed = cc.holiday || col === 0;
-      const dn = document.createElement('div');
-      dn.style.cssText = `align-self:flex-start;font-weight:700;font-size:24px;line-height:1;color:${isRed ? red : ink};`;
-      dn.textContent = dayNum;
-      cell.appendChild(dn);
+      const dayColor = (cc.holiday || col === 0) ? sun : (col === 6 ? sat : ink);
+      // 하단 2/3 — 이미지(또는 이모지) 영역
+      const media = document.createElement('div');
+      media.style.cssText = `position:absolute;left:0;right:0;bottom:0;height:66%;display:flex;align-items:center;justify-content:center;overflow:hidden;`;
       if (cc.img) {
         const im = document.createElement('img');
         im.src = cc.img;
-        im.style.cssText = `width:62px;height:62px;object-fit:contain;margin-top:5px;`;
-        cell.appendChild(im);
+        im.style.cssText = `width:100%;height:100%;object-fit:cover;display:block;`;
+        media.appendChild(im);
       } else if (cc.emoji) {
         const em = document.createElement('div');
-        em.style.cssText = `font-size:42px;line-height:1;margin-top:3px;`;
+        em.style.cssText = `font-size:44px;line-height:1;`;
         em.textContent = cc.emoji;
-        cell.appendChild(em);
+        media.appendChild(em);
       }
-      if (cc.text) {
-        const tx = document.createElement('div');
-        tx.style.cssText = `margin-top:6px;font-weight:600;font-size:21px;line-height:1.22;letter-spacing:-0.02em;text-align:center;color:${isRed ? red : ink};word-break:keep-all;`;
-        tx.textContent = cc.text;
-        cell.appendChild(tx);
-      }
-      if (cc.end) {
-        const ed = document.createElement('div');
-        ed.style.cssText = `margin-top:3px;font-size:17px;line-height:1.2;color:${muted};`;
-        ed.textContent = '~' + cc.end;
-        cell.appendChild(ed);
+      cell.appendChild(media);
+      // 날짜 숫자 — 좌상단 (이미지보다 위)
+      const dn = document.createElement('div');
+      dn.style.cssText = `position:absolute;top:9px;left:9px;z-index:3;font-weight:700;font-size:24px;line-height:1;color:${dayColor};text-shadow:${textHalo};`;
+      dn.textContent = dayNum;
+      cell.appendChild(dn);
+      // 텍스트 오버레이 — 이미지 위에 겹쳐서 (하단 정렬, halo로 가독 확보)
+      if (cc.text || cc.end) {
+        const ov = document.createElement('div');
+        ov.style.cssText = `position:absolute;left:5px;right:5px;bottom:9px;z-index:3;text-align:center;`;
+        if (cc.text) {
+          const tx = document.createElement('div');
+          tx.style.cssText = `font-weight:500;font-size:16px;line-height:1.3;letter-spacing:-0.02em;color:${dayColor};word-break:keep-all;white-space:pre-line;text-shadow:${textHalo};`;
+          tx.textContent = cc.text;
+          ov.appendChild(tx);
+        }
+        if (cc.end) {
+          const ed = document.createElement('div');
+          ed.style.cssText = `margin-top:2px;font-size:14px;line-height:1.2;color:${muted};text-shadow:${textHalo};`;
+          ed.textContent = '~' + cc.end;
+          ov.appendChild(ed);
+        }
+        cell.appendChild(ov);
       }
     }
     grid.appendChild(cell);
   }
   wrap.appendChild(grid);
-  // 하단 (좌측 문구 + payhere 로고)
+  // 하단 (좌측 문구 + payhere 로고) — 달력과 간격 넉넉히 + 더 아래로
   const footer = document.createElement('div');
-  footer.style.cssText = `display:flex;align-items:center;justify-content:space-between;margin-top:24px;`;
+  footer.style.cssText = `display:flex;align-items:center;justify-content:space-between;margin-top:64px;`;
   const fl = document.createElement('div');
   fl.style.cssText = `font-size:24px;font-weight:500;letter-spacing:-0.02em;color:${muted};`;
   fl.textContent = cal.footer || '';
