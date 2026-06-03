@@ -1700,7 +1700,7 @@ const SPECS = {
       'E2': {
         label: '내지 (카피 상단)',
         bgFixed: null, pointColor: true, noSub: true, isLarge: true, hasSourceNote: true,
-        multiSlide: true, showMainPad: true, freeImages: true,
+        multiSlide: true, showMainPad: true, freeImages: true, hasSpeechBubble: true,
         bgPresets: ['#FFFFFF', '#FDEDEF', '#F4F1EA', '#FFF8D7', '#E8F4FF', '#F4F0FF', '#EFFCE7'],
         versions: [
           { id: 'full', label: '배경 이미지', uploadLabel: '배경 이미지', w: 1080, h: 1440,
@@ -1722,7 +1722,7 @@ const SPECS = {
       'E4': {
         label: '내지 (카피 하단)',
         bgFixed: null, pointColor: true, noSub: true, isLarge: true, hasSourceNote: true,
-        multiSlide: true, showMainPad: true, freeImages: true,
+        multiSlide: true, showMainPad: true, freeImages: true, hasSpeechBubble: true,
         bgPresets: ['#FFFFFF', '#F4F1EA', '#FDEDEF', '#E8F4FF', '#FFF8D7', '#F4F0FF', '#EFFCE7'],
         versions: [
           { id: 'full', label: '배경 이미지', uploadLabel: '배경 이미지', w: 1080, h: 1440,
@@ -1745,7 +1745,7 @@ const SPECS = {
       'E5': {
         label: '내지 (박스 카피)',
         bgFixed: null, pointColor: true, noSub: true, isLarge: true, hasSourceNote: true,
-        multiSlide: true, freeImages: true,
+        multiSlide: true, freeImages: true, hasSpeechBubble: true,
         bgPresets: ['#FFFFFF', '#F4F1EA', '#1A1A1A'],
         versions: [{
           id: 'full', label: 'IG', uploadLabel: '배경 이미지', w: 1080, h: 1440,
@@ -1763,7 +1763,7 @@ const SPECS = {
       'E6': {
         label: '내지 (서브 카피)',
         bgFixed: null, pointColor: true, isLarge: true, hasSourceNote: true,
-        multiSlide: true, showMainPad: true, freeImages: true,
+        multiSlide: true, showMainPad: true, freeImages: true, hasSpeechBubble: true,
         bgPresets: ['#FFFFFF', '#F4F1EA', '#FDEDEF', '#E8F4FF', '#FFF8D7', '#F4F0FF', '#EFFCE7'],
         versions: [{
           id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1080, h: 1440,
@@ -2755,6 +2755,7 @@ function freshSlideState() {
     sourceNote: { enabled: false, text: '' },
     freeImages: [],
     shapes: [],
+    speechBubbles: {},
   };
 }
 function snapshotActiveSlide() {
@@ -2778,6 +2779,7 @@ function snapshotActiveSlide() {
     sourceNote: { ...currentSourceNote },
     freeImages: currentFreeImages.map(o => ({ ...o })),
     shapes: currentShapes.map(o => ({ ...o })),
+    speechBubbles: _cloneState(currentSpeechBubbles),
   };
 }
 function applySlideToCurrent(idx) {
@@ -2793,6 +2795,7 @@ function applySlideToCurrent(idx) {
   currentSourceNote = { ...(st.sourceNote || { enabled: false, text: '' }) };
   currentFreeImages = (st.freeImages || []).map(o => ({ ...o }));
   currentShapes = (st.shapes || []).map(o => ({ ...o }));
+  currentSpeechBubbles = _cloneState(st.speechBubbles || {});
   activeSlideIdx[currentSlot] = idx;
 }
 function populateDOMFromActiveSlide() {
@@ -3812,6 +3815,7 @@ function renderInputs() {
           <div class="text-color-segments" style="flex:1;">
             <div class="text-color-segment ${bubble.style === 'blur' ? 'active' : ''}" id="sb-style-blur" onclick="setSpeechBubbleStyle('blur')">블러</div>
             <div class="text-color-segment ${bubble.style === 'outline' ? 'active' : ''}" id="sb-style-outline" onclick="setSpeechBubbleStyle('outline')">외곽선</div>
+            <div class="text-color-segment ${bubble.style === 'rect' ? 'active' : ''}" id="sb-style-rect" onclick="setSpeechBubbleStyle('rect')">사각형</div>
             <div class="text-color-segment ${bubble.style === 'text' ? 'active' : ''}" id="sb-style-text" onclick="setSpeechBubbleStyle('text')">텍스트만</div>
           </div>
         </div>
@@ -5113,8 +5117,24 @@ function attachShapeHandlers(wrap, idx) {
 }
 function buildSpeechBubble(banner, v, bub) {
   if (bub.style === 'outline') return buildOutlineBubble(banner, v, bub);
+  if (bub.style === 'rect')    return buildRectBubble(banner, v, bub);
   if (bub.style === 'text')    return buildTextOnlyBubble(banner, v, bub);
   return buildBlurBubble(banner, v, bub);
+}
+// 사각형 — 하얀색 가로 긴 사각형 + 검은 외곽선 (꼬리 없음)
+function buildRectBubble(banner, v, bub) {
+  const W = SPEECH_BUBBLE_W, H = SPEECH_BUBBLE_H;
+  const fontCss = getSpeechBubbleFontCss(bub.font);
+  const wrap = document.createElement('div');
+  wrap.className = 'b-bubble';
+  wrap.dataset.bubbleFor = v.id;
+  wrap.style.cssText = `position:absolute;left:${bub.x}px;top:${bub.y}px;width:${W}px;height:${H}px;z-index:5;cursor:move;user-select:none;`;
+  const box = document.createElement('div');
+  box.style.cssText = `position:absolute;inset:0;background:#FFFFFF;border:${SPEECH_BUBBLE_OUTLINE_PX}px solid #1A1A1A;box-sizing:border-box;pointer-events:none;`;
+  wrap.appendChild(box);
+  wrap.appendChild(buildBubbleTextDiv(0, 0, fontCss, bub.text));
+  banner.appendChild(wrap);
+  attachSpeechBubbleHandlers(wrap, v, bub, 0, 0);
 }
 // 텍스트 div 생성 헬퍼 — 위치 (offsetX, offsetY)부터 W×H 영역, 가운데 정렬
 //   pad: 텍스트 영역 안쪽 여백 (기본 '20px 40px'). 외곽선 스타일은 더 작게 넘김.
@@ -6328,6 +6348,15 @@ function drawSpeechBubbleOnCanvas(canvas, v, spec, dlScale) {
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
+  } else if (bub.style === 'rect') {
+    // 흰 사각형 + 검은 외곽선
+    const x = bub.x * s, y = bub.y * s, w = SPEECH_BUBBLE_W * s, h = SPEECH_BUBBLE_H * s;
+    const lw = SPEECH_BUBBLE_OUTLINE_PX * s;
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = '#1A1A1A';
+    ctx.lineWidth = lw;
+    ctx.strokeRect(x + lw / 2, y + lw / 2, w - lw, h - lw);
   }
   // (style === 'text' 인 경우 배경 shape 없이 텍스트만 그림)
   // 텍스트 — 또렷하게 (필터 없음). 가운데 정렬, 여러 줄 처리.
