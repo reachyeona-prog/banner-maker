@@ -5207,7 +5207,7 @@ function buildCalendarCard(v, spec) {
   // 요일 헤더 (검은 바, 일=빨강)
   const WD = ['일','월','화','수','목','금','토'];
   const head = document.createElement('div');
-  head.style.cssText = `display:grid;grid-template-columns:repeat(7,1fr);margin-top:64px;border-bottom:2px solid ${ink};`;
+  head.style.cssText = `display:grid;grid-template-columns:repeat(7,1fr);margin-top:64px;border-bottom:1px solid ${ink};`;
   WD.forEach((d, i) => {
     const c = document.createElement('div');
     c.style.cssText = `text-align:center;padding:4px 0 12px;font-weight:700;font-size:24px;color:${i === 0 ? sun : (i === 6 ? sat : ink)};`;
@@ -5231,9 +5231,10 @@ function buildCalendarCard(v, spec) {
       const dayColor = (cc.holiday || col === 0) ? sun : (col === 6 ? sat : ink);
       const endColor = dark ? 'rgba(255,255,255,0.82)' : '#555555';
       const halo = dark ? '0 0 3px rgba(0,0,0,.9),0 1px 2px rgba(0,0,0,.7)' : '0 0 3px rgba(255,255,255,.95),0 1px 2px rgba(255,255,255,.85)';
-      // 이미지/이모지 — 칸 최상단부터(상단 여백 활용) 고정 영역. 위치 일정 → 줄 수 무관.
+      // 이미지/이모지 — 텍스트(3줄 영역) 위 남은 공간을 차지. 이모지는 가운데 정렬 →
+      //   '칸 시작점↔이모지' 여백과 '이모지↔텍스트' 여백이 자동으로 동일해짐.
       const media = document.createElement('div');
-      media.style.cssText = `flex:0 0 28%;margin:0 -7px;display:flex;align-items:center;justify-content:center;overflow:hidden;`;
+      media.style.cssText = `flex:1;min-height:0;margin:0 -7px;display:flex;align-items:center;justify-content:center;overflow:hidden;`;
       if (cc.img) {
         const im = document.createElement('img');
         im.src = cc.img;
@@ -5251,35 +5252,31 @@ function buildCalendarCard(v, spec) {
       dn.style.cssText = `position:absolute;top:6px;left:8px;z-index:3;font-weight:700;font-size:24px;line-height:1;color:${dayColor};text-shadow:${halo};`;
       dn.textContent = dayNum;
       cell.appendChild(dn);
-      // 이벤트 텍스트 + 종료일 — 이모지 영역 바로 아래에서 상단 정렬로 시작
-      if (cc.text || cc.end) {
-        const tw = document.createElement('div');
-        tw.style.cssText = `flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-start;margin-top:4px;`;
-        if (cc.text) {
-          const tx = document.createElement('div');
-          tx.style.cssText = `font-weight:600;font-size:26px;line-height:1.3;letter-spacing:-1px;text-align:center;color:${dayColor};word-break:keep-all;white-space:pre-line;`;
-          tx.textContent = cc.text;
-          tw.appendChild(tx);
-        }
-        if (cc.end) {
-          const ed = document.createElement('div');
-          ed.style.cssText = `margin-top:3px;font-size:20px;line-height:1.2;text-align:center;color:${endColor};`;
-          ed.textContent = '~' + cc.end;
-          tw.appendChild(ed);
-        }
-        cell.appendChild(tw);
+      // 이벤트 텍스트 + 종료일 — 항상 3줄 높이 확보(칸 하단). 텍스트는 그 영역 위에서 시작
+      //   = 줄 수와 무관하게 '아래에서 3줄 위치'부터 시작.
+      const LINE = Math.round(26 * 1.2);   // 한 줄 높이 ≈ 31px (행간 1.2와 동기화)
+      const tw = document.createElement('div');
+      tw.style.cssText = `flex:0 0 ${LINE * 3}px;min-height:0;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-start;`;
+      if (cc.text) {
+        const tx = document.createElement('div');
+        tx.style.cssText = `font-weight:600;font-size:26px;line-height:1.2;letter-spacing:-1px;text-align:center;color:${dayColor};word-break:keep-all;white-space:pre-line;`;
+        tx.textContent = cc.text;
+        tw.appendChild(tx);
       }
+      if (cc.end) {
+        const ed = document.createElement('div');
+        ed.style.cssText = `margin-top:3px;font-size:20px;line-height:1.2;text-align:center;color:${endColor};`;
+        ed.textContent = '~' + cc.end;
+        tw.appendChild(ed);
+      }
+      cell.appendChild(tw);
     }
     grid.appendChild(cell);
   }
   wrap.appendChild(grid);
-  // 하단 (좌측 문구 + payhere 로고) — 달력과 간격 넉넉히 + 더 아래로
+  // 하단 (좌: payhere 로고 / 우: 문구) — 좌우 위치 교체
   const footer = document.createElement('div');
   footer.style.cssText = `display:flex;align-items:center;justify-content:space-between;margin-top:64px;`;
-  const fl = document.createElement('div');
-  fl.style.cssText = `font-size:24px;font-weight:500;letter-spacing:-0.02em;color:${muted};`;
-  fl.textContent = cal.footer || '';
-  footer.appendChild(fl);
   const logoSrc = (typeof BRANDING_LOGO_SRC !== 'undefined' && BRANDING_LOGO_SRC)
     ? BRANDING_LOGO_SRC
     : ((document.querySelector('.brand-logo') || {}).src || '');
@@ -5288,7 +5285,13 @@ function buildCalendarCard(v, spec) {
     lg.src = logoSrc;
     lg.style.cssText = `height:32px;width:auto;object-fit:contain;${dark ? 'filter:brightness(0) invert(1);' : ''}`;
     footer.appendChild(lg);
+  } else {
+    footer.appendChild(document.createElement('div')); // 로고 없을 때도 문구를 우측으로
   }
+  const fl = document.createElement('div');
+  fl.style.cssText = `font-size:24px;font-weight:500;letter-spacing:-0.02em;color:${muted};`;
+  fl.textContent = cal.footer || '';
+  footer.appendChild(fl);
   wrap.appendChild(footer);
   banner.appendChild(wrap);
   return banner;
