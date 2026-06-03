@@ -2429,8 +2429,49 @@ function onCalCellImage(e, day) {
   const file = e.target.files && e.target.files[0];
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = ev => { calCell(day).img = ev.target.result; renderInputs(); renderPreviews(); };
+  reader.onload = ev => {
+    knockoutWhiteBg(ev.target.result, (cut) => {
+      calCell(day).img = cut;
+      renderInputs(); renderPreviews();
+    });
+  };
   reader.readAsDataURL(file);
+}
+// 흰 배경 누끼 — 가장자리에서 flood-fill로 외곽과 연결된 흰 픽셀만 투명화 (내부 흰 영역 보존).
+//   processImageFile/applyKnockoutForVersion과 동일 알고리즘. 결과는 PNG dataURL로 콜백.
+function knockoutWhiteBg(rawDataURL, done) {
+  const img = new Image();
+  img.onload = () => {
+    const w = img.width, h = img.height;
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    let data;
+    try { data = ctx.getImageData(0, 0, w, h); }
+    catch (err) { done(rawDataURL); return; }   // CORS 등 실패 시 원본 그대로
+    const px = data.data;
+    const total = w * h;
+    const bg = new Uint8Array(total);
+    const isWhite = (p) => px[p] > 230 && px[p + 1] > 230 && px[p + 2] > 230;
+    const stack = [];
+    const push = (idx) => { if (!bg[idx] && isWhite(idx * 4)) { bg[idx] = 1; stack.push(idx); } };
+    for (let x = 0; x < w; x++) { push(x); push((h - 1) * w + x); }
+    for (let y = 0; y < h; y++) { push(y * w); push(y * w + w - 1); }
+    while (stack.length) {
+      const i = stack.pop();
+      const x = i % w, y = (i - x) / w;
+      if (x > 0) push(i - 1);
+      if (x < w - 1) push(i + 1);
+      if (y > 0) push(i - w);
+      if (y < h - 1) push(i + w);
+    }
+    for (let i = 0; i < total; i++) if (bg[i]) px[i * 4 + 3] = 0;
+    ctx.putImageData(data, 0, 0);
+    done(canvas.toDataURL('image/png'));
+  };
+  img.onerror = () => done(rawDataURL);
+  img.src = rawDataURL;
 }
 // JSON 자동 채우기 — { year, month, title, footer, events:{ "1":{text,emoji,end,holiday}, ... } }
 //   카드뉴스처럼 붙여넣으면 칸이 채워지고, 이후 입력 패널에서 수정 가능.
@@ -5238,7 +5279,7 @@ function buildCalendarCard(v, spec) {
       if (cc.img) {
         const im = document.createElement('img');
         im.src = cc.img;
-        im.style.cssText = `width:100%;height:100%;object-fit:cover;display:block;`;
+        im.style.cssText = `width:100%;height:100%;object-fit:contain;display:block;`;
         media.appendChild(im);
       } else if (cc.emoji) {
         const em = document.createElement('div');
