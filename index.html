@@ -4788,10 +4788,11 @@ function buildSpeechBubble(banner, v, bub) {
   return buildBlurBubble(banner, v, bub);
 }
 // 텍스트 div 생성 헬퍼 — 위치 (offsetX, offsetY)부터 W×H 영역, 가운데 정렬
-function buildBubbleTextDiv(offsetX, offsetY, fontCss, text) {
+//   pad: 텍스트 영역 안쪽 여백 (기본 '20px 40px'). 외곽선 스타일은 더 작게 넘김.
+function buildBubbleTextDiv(offsetX, offsetY, fontCss, text, pad) {
   const W = SPEECH_BUBBLE_W, H = SPEECH_BUBBLE_H;
   const txt = document.createElement('div');
-  txt.style.cssText = `position:absolute;left:${offsetX}px;top:${offsetY}px;width:${W}px;height:${H}px;display:flex;align-items:center;justify-content:center;font-family:${fontCss};font-weight:400;font-size:${SPEECH_BUBBLE_FS}px;line-height:1.35;color:#1A1A1A;text-align:center;letter-spacing:-0.02em;white-space:pre-line;pointer-events:none;padding:20px 40px;box-sizing:border-box;`;
+  txt.style.cssText = `position:absolute;left:${offsetX}px;top:${offsetY}px;width:${W}px;height:${H}px;display:flex;align-items:center;justify-content:center;font-family:${fontCss};font-weight:400;font-size:${SPEECH_BUBBLE_FS}px;line-height:1.35;color:#1A1A1A;text-align:center;letter-spacing:-0.02em;white-space:pre-line;pointer-events:none;padding:${pad || '20px 40px'};box-sizing:border-box;`;
   txt.textContent = text || '';
   return txt;
 }
@@ -4862,7 +4863,7 @@ function buildOutlineBubble(banner, v, bub) {
   path.setAttribute('stroke-linejoin', 'round');
   svg.appendChild(path);
   wrap.appendChild(svg);
-  wrap.appendChild(buildBubbleTextDiv(padL, padT, getSpeechBubbleFontCss(bub.font), bub.text));
+  wrap.appendChild(buildBubbleTextDiv(padL, padT, getSpeechBubbleFontCss(bub.font), bub.text, '8px 22px'));
   banner.appendChild(wrap);
   attachSpeechBubbleHandlers(wrap, v, bub, padL, padT);
 }
