@@ -3020,7 +3020,10 @@ function onSlotChange() {
   // 실사 썸네일은 사용자 사진을 그대로 사용하므로 Nano Banana(AI 일러스트 생성) 영역 숨김
   // (카드뉴스는 AI 생성 hero 이미지 수요가 있어 editable이어도 노출 유지)
   const nanoSection = document.getElementById('nano-section');
-  if (nanoSection) nanoSection.style.display = (slotSpec.imageEditable || slotSpec.calendarCard) ? 'none' : '';
+  if (nanoSection) nanoSection.style.display = slotSpec.imageEditable ? 'none' : '';
+  // 달력은 칸별 업로드를 카피 탭에서 처리 → 이미지 탭에선 표준 업로드 영역 숨기고 Nano 프롬프트만 노출
+  const uploadSection = document.getElementById('upload-section');
+  if (uploadSection) uploadSection.style.display = slotSpec.calendarCard ? 'none' : '';
   // 슬롯 전용 bgPresets가 있고 직전 색이 목록 밖이면 첫 프리셋으로 (슬롯 진입 시에만 실행)
   if (slotSpec.bgPresets && !slotSpec.bgFixed) {
     const upper = (currentBg || '').toUpperCase();
@@ -3057,7 +3060,7 @@ function onSlotChange() {
   const tabBtnImage = document.getElementById('tab-btn-image');
   if (tabBtnCopy) tabBtnCopy.classList.toggle('hidden', isTextless);
   // 달력은 칸별 업로드를 카피 탭에서 처리 → 표준 이미지 탭 숨김
-  if (tabBtnImage) tabBtnImage.classList.toggle('hidden', !!slotSpec.brandingCard || !!slotSpec.calendarCard);
+  if (tabBtnImage) tabBtnImage.classList.toggle('hidden', !!slotSpec.brandingCard);
   switchTab(isTextless ? 'image' : 'copy');
   // 지금 그려진 슬롯 기록 — 다음 슬롯 전환 때 이 슬롯 상태를 slotMemory에 저장한다.
   lastRenderedSlot = { product: currentProduct, slot: currentSlot };
@@ -4063,6 +4066,11 @@ function updateNanoRatio() {
   const spec = SPECS[currentProduct].slots[currentSlot];
   const v = spec.versions[0];
   const ratio = document.getElementById('nano-ratio');
+  if (spec.calendarCard) {
+    ratio.textContent = '1:1';   // 달력 칸 아이콘은 정사각 (업로드 시 흰 배경 자동 누끼)
+    ratio.style.color = 'var(--text-primary)';
+    return;
+  }
   if (v.img && v.img.w && v.img.h) {
     ratio.textContent = calcAspectRatio(v.img.w, v.img.h);
     ratio.style.color = 'var(--text-primary)';
