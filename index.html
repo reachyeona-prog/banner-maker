@@ -5663,7 +5663,7 @@ function buildCalendarCard(v, spec) {
   const sun = '#F96C5A';   // 일요일·공휴일 텍스트 (코랄)
   const sat = '#163BD8';   // 토요일 텍스트 (파랑)
   const cal = currentCal;
-  const PAD = 70;   // 달력 좌우 패딩 고정 70
+  const PAD = 24;   // 양옆 여백 축소 → 달력 칸 가로로 꽉 차게
   const wrap = document.createElement('div');
   // 상단 패딩 72(타이틀 위 여백↑) · 하단 36. 그리드(flex:1)는 그만큼 세로가 줄어듦.
   wrap.style.cssText = `position:absolute;inset:0;padding:72px ${PAD}px 36px;box-sizing:border-box;display:flex;flex-direction:column;font-family:'Pretendard','Noto Sans KR',sans-serif;`;
