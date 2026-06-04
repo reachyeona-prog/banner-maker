@@ -5745,7 +5745,9 @@ function buildCalendarCard(v, spec) {
       if (cc.text || cc.end) {
         const LINE = Math.round(26 * 1.2);   // 한 줄 높이 ≈ 31px (행간 1.2)
         const tw = document.createElement('div');
-        tw.style.cssText = `position:absolute;left:9px;right:9px;bottom:9px;height:${LINE * 3}px;overflow:hidden;text-align:left;`;
+        // 4줄까지 확보(아래 고정, 위로 확장) → 첫 줄은 우상단 이모지/이미지와 살짝 겹칠 수 있음.
+        //   z-index:2로 미디어 위에 올려 첫 줄 가독성 확보(날짜 숫자 z-index:3은 그대로 위).
+        tw.style.cssText = `position:absolute;left:9px;right:9px;bottom:9px;height:${LINE * 4}px;overflow:hidden;text-align:left;z-index:2;`;
         if (cc.text) {
           const tx = document.createElement('div');
           tx.style.cssText = `font-weight:600;font-size:26px;line-height:1.2;letter-spacing:-1px;text-align:left;color:${eventColor};word-break:keep-all;white-space:pre-line;`;
