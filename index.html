@@ -5714,6 +5714,8 @@ function buildCalendarCard(v, spec) {
     if (dayNum >= 1 && dayNum <= daysIn) {
       const cc = cal.cells[dayNum] || {};
       const dayColor = (cc.holiday || col === 0) ? sun : (col === 6 ? sat : ink);
+      // 이벤트명 색 — 공휴일만 코랄, 나머지(일·토 포함)는 모두 블랙으로 통일
+      const eventColor = cc.holiday ? sun : ink;
       const endColor = dark ? 'rgba(255,255,255,0.92)' : '#333333';
       const halo = dark ? '0 0 3px rgba(0,0,0,.9),0 1px 2px rgba(0,0,0,.7)' : '0 0 3px rgba(255,255,255,.95),0 1px 2px rgba(255,255,255,.85)';
       // 날짜 숫자 — 좌상단
@@ -5721,9 +5723,11 @@ function buildCalendarCard(v, spec) {
       dn.style.cssText = `position:absolute;top:7px;left:9px;z-index:3;font-weight:700;font-size:24px;line-height:1;color:${dayColor};text-shadow:${halo};`;
       dn.textContent = dayNum;
       cell.appendChild(dn);
-      // 이미지/이모지 — 우상단에 붙임
+      // 이미지/이모지 — 우상단에 붙임. 이미지는 object-fit:contain으로 박스를 꽉 채워
+      //   이모지(글리프 여백 있음)보다 커 보이므로, 이미지일 때 박스를 더 작게(72) 잡아 텍스트 영역 침범 방지.
       const media = document.createElement('div');
-      media.style.cssText = `position:absolute;top:6px;right:6px;width:92px;height:92px;display:flex;align-items:center;justify-content:center;overflow:hidden;z-index:2;`;
+      const mediaSize = cc.img ? 72 : 92;
+      media.style.cssText = `position:absolute;top:6px;right:6px;width:${mediaSize}px;height:${mediaSize}px;display:flex;align-items:center;justify-content:center;overflow:hidden;z-index:2;`;
       if (cc.img) {
         const im = document.createElement('img');
         im.src = cc.img;
@@ -5744,7 +5748,7 @@ function buildCalendarCard(v, spec) {
         tw.style.cssText = `position:absolute;left:9px;right:9px;bottom:9px;height:${LINE * 3}px;overflow:hidden;text-align:left;`;
         if (cc.text) {
           const tx = document.createElement('div');
-          tx.style.cssText = `font-weight:600;font-size:26px;line-height:1.2;letter-spacing:-1px;text-align:left;color:${dayColor};word-break:keep-all;white-space:pre-line;`;
+          tx.style.cssText = `font-weight:600;font-size:26px;line-height:1.2;letter-spacing:-1px;text-align:left;color:${eventColor};word-break:keep-all;white-space:pre-line;`;
           tx.textContent = cc.text;
           tw.appendChild(tx);
         }
