@@ -5714,7 +5714,7 @@ function buildCalendarCard(v, spec) {
     if (dayNum >= 1 && dayNum <= daysIn) {
       const cc = cal.cells[dayNum] || {};
       const dayColor = (cc.holiday || col === 0) ? sun : (col === 6 ? sat : ink);
-      const endColor = dark ? 'rgba(255,255,255,0.82)' : '#555555';
+      const endColor = dark ? 'rgba(255,255,255,0.92)' : '#333333';
       const halo = dark ? '0 0 3px rgba(0,0,0,.9),0 1px 2px rgba(0,0,0,.7)' : '0 0 3px rgba(255,255,255,.95),0 1px 2px rgba(255,255,255,.85)';
       // 날짜 숫자 — 좌상단
       const dn = document.createElement('div');
@@ -5750,7 +5750,7 @@ function buildCalendarCard(v, spec) {
         }
         if (cc.end) {
           const ed = document.createElement('div');
-          ed.style.cssText = `margin-top:3px;font-size:20px;line-height:1.2;text-align:left;color:${endColor};`;
+          ed.style.cssText = `margin-top:3px;font-size:23px;font-weight:700;line-height:1.2;text-align:left;color:${endColor};`;
           ed.textContent = '~' + cc.end;
           tw.appendChild(ed);
         }
