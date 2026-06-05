@@ -5875,7 +5875,7 @@ function buildCoverStack(banner, v, spec) {
   const left = (v.main && v.main.left != null) ? v.main.left : 70;
   const right = (v.main && v.main.right != null) ? v.main.right : 70;
   const PAD_X = 10;        // 메인 박스 좌우 패딩
-  const PAD_X_SUB = 16;    // 서브 박스 좌우 패딩 — 행간으로 커 보이는 상하 여백과 시각적으로 맞춤(넓힘)
+  const PAD_X_SUB = 20;    // 서브 박스 좌우 패딩 — 행간으로 커 보이는 상하 여백과 시각적으로 맞춤(넓힘)
   const PAD_Y_SUB = 10;    // 서브 상하 패딩
   const PAD_Y_MAIN = 10;   // 메인 상하 패딩
   // Pretendard Bold · 자간 -2%(-0.02em) · 박스 안 좌우/상하 가운데 (사방 대칭 패딩 10 + 행간 1.0 + text-align:center)
