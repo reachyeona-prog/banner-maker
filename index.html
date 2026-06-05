@@ -1683,26 +1683,22 @@ const SPECS = {
         bgFixed: null, noPointColor: true, isLarge: true,
         hasSpeechBubble: true,  // 흰 말풍선(블랙 텍스트) — 위치/크기/폰트 사용자 조절
         hasSourceNote: true,    // 우측 하단 고정 출처/AI 표기 (30px Pretendard, 슬라이드별 텍스트)
-        pillSub: true,   // 동그란 pill — 투명 채움 + 컬러 테두리 2px (가이드라인)
-        pillCover: true, // 히어로+pill 표지 — 상단 패딩 밴드 숨김 + 서브↔메인 간격 가이드 (G1/G3 공통)
-        subFillOption: true,  // 서브 카피 pill: 테두리 버전 / 배경 채움 버전 택1 + 글자색(흰/검) 선택
-        copyBoxStyle: true,   // 카피 박스 스타일: 메인/서브에 컬러 박스 + 흰 글자 (색 선택)
+        copyBoxStyle: true,     // 서브 카피 박스 on/off + 색 선택 (메인은 항상 블랙 박스 고정 → buildCoverStack)
+        coverStack: true,       // 하단 고정 카피 스택 — 서브(위)·메인(아래), 줄별 박스 (좌우 70)
+        coverPadBottom: 160,    // 하단 패딩
+        coverGap: 35,           // 서브↔메인 간격
         bgPresets: ['#FFFFFF', '#F4F1EA', '#F6F8F9', '#FFEFF2', '#E8F4FF', '#EFFCE7', '#FFF8D7', '#1A1A1A'],
         versions: [
           { id: 'full', label: '배경 이미지', uploadLabel: '배경 이미지', w: 1080, h: 1440,
             lockTextColor: true,
             img:  { top:0, left:0, w:1080, h:1440, bgFull:true, editable:true },
-            // 가이드라인: 좌우 70 (전 슬롯 통일) / 상단 1012 (pill 시작) / sub-main gap 30 / 메인 90px 130% -0.5px / 하단 100 (전 슬롯 통일)
-            //   서브 40(짝수) → pill 높이 64. sub 1012 + pill 64 + gap 30 + main 234(2줄 fs90 130%) + 하단 100 = 1440
-            sub:  { top:1012, left:70, fs:40, color:'#FFFFFF' },
-            main: { top:1106, left:70, right:70, fs:90, lines:2, lh:'130%', paddingBottom:100, color:'#FFFFFF' },
+            // 카피는 buildCoverStack가 하단(bottom:160)에서 스택 배치 — sub/main의 top은 사용 안 함.
+            //   메인 90px(줄별 블랙 박스+흰 외곽선) / 서브 46px(박스 옵션) / 서브↔메인 35 / 좌우 70 / 하단 160.
+            sub:  { left:70, fs:46, lines:1, color:'#FFFFFF' },
+            main: { left:70, right:70, fs:90, lines:2, lh:'130%', paddingBottom:160, color:'#FFFFFF' },
             // 그라데이션: strong 이미지 하단 고정. 기본 dim 범위 y:920~1440 (텍스트 영역 커버) → 슬라이더 0 = no dim.
-            fade: { strong:1440, faded:920, rgb:'0,0,0', maxAlpha:0.72 } },
-          { id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1080, h: 1440,
-            // 이미지 h:942 — 하단(942) ~ sub 시작(1012) 간격 70px (이미지↔텍스트 70 간격 유지)
-            img:  { top:0, left:0, w:1080, h:942, cover:true, editable:true },
-            sub:  { top:1012, left:70, fs:40, color:'#1A1A1A' },
-            main: { top:1106, left:70, right:70, fs:90, lines:2, lh:'130%', paddingBottom:100, color:'#1A1A1A' } }
+            fade: { strong:1440, faded:920, rgb:'0,0,0', maxAlpha:0.72 } }
+          // (이미지 박스 버전 삭제 — 배경 이미지 버전만 운영)
         ]
       },
       // 내지 (카피 상단) — 메인 카피(2~3줄 자동 감지) 위 + 인포그래픽/이미지 아래
@@ -2413,10 +2409,16 @@ function setSubPillTextColor(hex) {
   preserveInputsAcross(renderInputs);
   renderPreviews();
 }
-// 카피 박스 스타일 (카드뉴스 표지 E1, spec.copyBoxStyle) — 메인/서브 텍스트에 컬러 박스 + 흰 글자.
-//   main/sub: on/off, mainColor(기본 블랙)/subColor(기본 #1D99FF). 색 선택 가능.
-let currentCopyBox = { main: false, mainColor: '#1A1A1A', sub: false, subColor: '#1D99FF' };
-function freshCopyBox() { return { main: false, mainColor: '#1A1A1A', sub: false, subColor: '#1D99FF' }; }
+// 카피 박스 스타일 (카드뉴스 표지 E1, spec.copyBoxStyle) — 메인/서브 텍스트에 컬러 박스.
+//   main/sub: on/off, mainColor/subColor. 서브는 박스색 + 글자색(subTextColor) 선택.
+//   서브 박스 컬러 샘플: 0077FE(흰 글자) · FFFAAB(검은 글자) · FF7C61(검은 글자). 이외 자유 선택(글자색 자동).
+const SUB_BOX_PRESETS = [
+  { bg: '#0077FE', text: '#FFFFFF' },
+  { bg: '#FFFAAB', text: '#1A1A1A' },
+  { bg: '#FF5E3C', text: '#1A1A1A' },
+];
+let currentCopyBox = { main: false, mainColor: '#1A1A1A', sub: false, subColor: '#0077FE', subTextColor: '#FFFFFF' };
+function freshCopyBox() { return { main: false, mainColor: '#1A1A1A', sub: false, subColor: '#0077FE', subTextColor: '#FFFFFF' }; }
 function setCopyBoxOn(which, on) {
   const spec = SPECS[currentProduct].slots[currentSlot];
   if (!spec || !spec.copyBoxStyle) return;
@@ -2428,6 +2430,17 @@ function setCopyBoxColor(which, hex) {
   const spec = SPECS[currentProduct].slots[currentSlot];
   if (!spec || !spec.copyBoxStyle) return;
   currentCopyBox[which + 'Color'] = hex;
+  // 서브 박스: 커스텀 색이면 글자색을 명도(WCAG)로 자동 결정 (어두우면 흰, 밝으면 검정)
+  if (which === 'sub') currentCopyBox.subTextColor = isDarkBg(hex) ? '#FFFFFF' : '#1A1A1A';
+  renderPreviews();
+}
+// 서브 박스 프리셋 선택 — 박스색 + 글자색을 함께 지정
+function selectSubBoxPreset(bg, text) {
+  const spec = SPECS[currentProduct].slots[currentSlot];
+  if (!spec || !spec.copyBoxStyle) return;
+  currentCopyBox.subColor = bg;
+  currentCopyBox.subTextColor = text;
+  preserveInputsAcross(renderInputs);   // active 스와치 갱신
   renderPreviews();
 }
 // 달력 (calendar 제품) — 연도/월 선택 → 날짜 자동 배치. 칸(1~31)별 콘텐츠.
@@ -3718,16 +3731,56 @@ function renderInputs() {
     if (el.bottom !== undefined) return v.h - el.bottom; // approx
     return Infinity;
   };
+  //   coverStack(표지)은 sub/main 절대 top이 없지만 서브가 항상 위 → 서브 먼저
   const subFirst = v.sub && v.main && !spec.noSub
-    && visualTop(v.sub) < visualTop(v.main);
+    && (spec.coverStack || visualTop(v.sub) < visualTop(v.main));
+
+  // 표지(coverStack) 서브 카피 박스 컨트롤 — on/off + 프리셋/커스텀 색. 서브 카피 칸 바로 아래에 노출.
+  const appendSubBoxControl = () => {
+    if (!spec.copyBoxStyle || !spec.coverStack) return;
+    const cb = currentCopyBox;
+    const isPreset = SUB_BOX_PRESETS.some(p => p.bg.toUpperCase() === cb.subColor.toUpperCase());
+    const swatches = SUB_BOX_PRESETS.map(p =>
+      `<div class="preset-swatch ${cb.subColor.toUpperCase() === p.bg.toUpperCase() ? 'active' : ''}" style="background:${p.bg}" title="${p.bg} · 글자 ${p.text === '#FFFFFF' ? '흰' : '검정'}" data-subbg="${p.bg}" data-subtext="${p.text}"></div>`
+    ).join('');
+    const cbField = document.createElement('div');
+    cbField.className = 'field';
+    cbField.innerHTML = `
+      <div class="field-label">서브 카피 박스</div>
+      <div class="field-spec">서브 카피에 컬러 박스 on/off · 색 선택 (글자색 자동).</div>
+      <div class="template-text-row" style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+        <span style="flex:0 0 44px;font-family:var(--font-mono);font-size:10px;color:var(--text-muted);letter-spacing:0.05em;text-transform:uppercase;">박스</span>
+        <div class="text-color-segments" style="flex:1;">
+          <div class="text-color-segment ${!cb.sub ? 'active' : ''}" data-cb="sub" data-on="0">제거</div>
+          <div class="text-color-segment ${cb.sub ? 'active' : ''}" data-cb="sub" data-on="1">박스</div>
+        </div>
+      </div>
+      <div id="sub-box-color-wrap" style="display:${cb.sub ? 'flex' : 'none'};align-items:center;gap:6px;flex-wrap:wrap;margin-top:8px;padding-left:52px;">
+        ${swatches}
+        <div class="preset-swatch custom-picker ${!isPreset ? 'active' : ''}" title="직접 선택 (${cb.subColor.toUpperCase()})" data-subcustom="1"></div>
+        <input type="color" id="f-sub-box-color" value="${cb.subColor}" style="position:absolute;width:0;height:0;opacity:0;pointer-events:none;">
+      </div>`;
+    area.appendChild(cbField);
+    cbField.querySelectorAll('[data-cb]').forEach(seg => seg.addEventListener('click', () => setCopyBoxOn(seg.dataset.cb, seg.dataset.on === '1')));
+    cbField.querySelectorAll('[data-subbg]').forEach(sw => sw.addEventListener('click', () => selectSubBoxPreset(sw.dataset.subbg, sw.dataset.subtext)));
+    const subColorIn = cbField.querySelector('#f-sub-box-color');
+    const customSw = cbField.querySelector('[data-subcustom]');
+    if (customSw && subColorIn) customSw.addEventListener('click', () => subColorIn.click());
+    if (subColorIn) {
+      subColorIn.addEventListener('input', () => setCopyBoxColor('sub', subColorIn.value));
+      subColorIn.addEventListener('change', () => { setCopyBoxColor('sub', subColorIn.value); preserveInputsAcross(renderInputs); });
+    }
+  };
 
   const renderMainFields = () => {
     if (!v.main) return;
     const lines = spec.selectableLines ? currentMainLines : (v.main.lines || 1);
     const mainColor = v.main.color || '#111111';
-    const lsDisplay = v.main.ls || '-0.5px';
+    const lsDisplay = spec.coverStack ? '-2%' : (v.main.ls || '-0.5px');
     const pbDisplay = (v.main.paddingBottom !== undefined) ? `  │  하단 패딩 ${v.main.paddingBottom}px` : '';
-    const mainSpec = `${fsStr('main')}  │  Bold<br>행간 ${v.main.lh}  │  자간 ${lsDisplay}${pbDisplay}  │  컬러 ${mainColor}`;
+    const mainSpec = spec.coverStack
+      ? `${fsStr('main')}  │  Bold · 자간 -2%<br>줄별 블랙 박스 + 흰 외곽선${pbDisplay}`
+      : `${fsStr('main')}  │  Bold<br>행간 ${v.main.lh}  │  자간 ${lsDisplay}${pbDisplay}  │  컬러 ${mainColor}`;
     if (spec.selectableLines) {
       const linesField = document.createElement('div');
       linesField.className = 'field';
@@ -3755,7 +3808,9 @@ function renderInputs() {
 
   const renderSubFields = () => {
     if (!v.sub || spec.noSub) return;
-    const subSpec = `${fsStr('sub')}  │  Medium<br>행간 ${v.sub.lh || '130%'}  │  자간 -0.5px  │  컬러 ${v.sub.color}`;
+    const subSpec = spec.coverStack
+      ? `${fsStr('sub')}  │  Bold · 자간 -2%<br>박스 on/off · 색 선택 (글자색 자동)`
+      : `${fsStr('sub')}  │  Medium<br>행간 ${v.sub.lh || '130%'}  │  자간 -0.5px  │  컬러 ${v.sub.color}`;
     const subLines = v.sub.lines || 1;
     if (subLines >= 3) {
       area.appendChild(makeField('sub1', '서브 카피 1줄', subSpec, 1));
@@ -3767,6 +3822,7 @@ function renderInputs() {
     } else {
       area.appendChild(makeField('sub', '서브 카피', subSpec, 1));
     }
+    appendSubBoxControl();   // 표지: 서브 카피 칸 바로 아래에 박스 컨트롤
   };
 
   if (subFirst) {
@@ -3822,8 +3878,9 @@ function renderInputs() {
       bgIn.addEventListener('change', () => selectSubPillBg(bgIn.value)); // 확정 시 active 스와치 갱신
     }
   }
-  // 카피 박스 스타일 (카드뉴스 표지 E1) — 메인/서브 텍스트에 컬러 박스 + 흰 글자
-  if (spec.copyBoxStyle) {
+  // 카피 박스 스타일 (비-coverStack 슬롯) — 메인/서브 텍스트에 컬러 박스 + 흰 글자.
+  //   coverStack(표지)은 서브 카피 칸 바로 아래(appendSubBoxControl)에서 이미 렌더 → 여기선 제외.
+  if (spec.copyBoxStyle && !spec.coverStack) {
     const cb = currentCopyBox;
     const cbField = document.createElement('div');
     cbField.className = 'field';
@@ -4737,10 +4794,19 @@ function renderPreviews() {
         <input type="color" id="${inputId}" class="overlay-color-input" value="${currentHex}" data-vid="${v.id}">
         <label for="${inputId}" class="overlay-color-btn" style="background:${currentHex};" title="오버레이 컬러 선택"></label>
         <span class="overlay-color-val">${currentHex.toUpperCase()}</span>
+        <span class="overlay-color-presets" style="display:inline-flex;gap:6px;margin-left:8px;">
+          <button type="button" data-ovpreset="#000000" title="검정" style="width:20px;height:20px;border-radius:4px;border:1px solid rgba(0,0,0,0.25);background:#000;cursor:pointer;padding:0;"></button>
+          <button type="button" data-ovpreset="#FFFFFF" title="화이트" style="width:20px;height:20px;border-radius:4px;border:1px solid rgba(0,0,0,0.25);background:#fff;cursor:pointer;padding:0;"></button>
+        </span>
       `;
       const input = wrap.querySelector('input');
       const valSpan = wrap.querySelector('.overlay-color-val');
       const btn = wrap.querySelector('.overlay-color-btn');
+      // 빠른 선택 스와치 (검정/화이트) — input 값 설정 후 input 이벤트로 동일 갱신 로직 재사용
+      wrap.querySelectorAll('[data-ovpreset]').forEach(sw => sw.addEventListener('click', () => {
+        input.value = sw.dataset.ovpreset;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      }));
       input.addEventListener('input', () => {
         currentOverlayColors[v.id] = input.value;
         valSpan.textContent = input.value.toUpperCase();
@@ -5788,6 +5854,81 @@ function buildCalendarCard(v, spec) {
   banner.appendChild(wrap);
   return banner;
 }
+// 표지 카피 줄 추출 — 채워진 줄만, 뒤 빈 줄 trim (renderPreviews 본 로직과 동일 규칙)
+function coverCopyLines(prefix, maxLines, placeholderBase) {
+  if (maxLines <= 1) return [getVal(prefix) || placeholderBase];
+  const vals = [];
+  for (let i = 1; i <= maxLines; i++) vals.push(getVal(prefix + i));
+  if (vals.every(s => !s)) return vals.map((_, i) => `${placeholderBase} ${i + 1}줄`);
+  const trimmed = [...vals];
+  while (trimmed.length > 1 && !trimmed[trimmed.length - 1]) trimmed.pop();
+  return trimmed.map((s, i) => s || `${placeholderBase} ${i + 1}줄`);
+}
+// 카드뉴스 표지(E1) 하단 고정 카피 스택 — 서브(위)·메인(아래), 줄별 박스.
+//   메인: 항상 블랙 박스 + 흰 외곽선 1px + 흰 글자 (고정).
+//   서브: 박스 on/off(currentCopyBox.sub) + 박스색 선택(subColor). off면 평문(버전 sub.color).
+//   박스↔글자 패딩 10 · 서브↔메인 35 · 하단 패딩 160 · 좌우 70.
+function buildCoverStack(banner, v, spec) {
+  const padBottom = spec.coverPadBottom != null ? spec.coverPadBottom : 160;
+  const gap = spec.coverGap != null ? spec.coverGap : 35;
+  const left = (v.main && v.main.left != null) ? v.main.left : 70;
+  const right = (v.main && v.main.right != null) ? v.main.right : 70;
+  const PAD_X = 10;       // 박스 ↔ 글자 좌우 패딩 (서브·메인 공통)
+  const PAD_Y_SUB = 10;   // 상하 패딩 = 좌우와 동일 (사방 10)
+  const PAD_Y_MAIN = 10;  // 상하 패딩 = 좌우와 동일 (사방 10)
+  // Pretendard Bold · 자간 -2%(-0.02em) · 박스 안 좌우/상하 가운데 (사방 대칭 패딩 10 + 행간 1.0 + text-align:center)
+  const INNER = "font-family:var(--font);font-weight:700;line-height:1.0;letter-spacing:-0.02em;word-break:keep-all;text-align:center;";
+  const wrap = document.createElement('div');
+  wrap.style.cssText = `position:absolute;left:${left}px;right:${right}px;bottom:${padBottom}px;z-index:3;display:flex;flex-direction:column;align-items:flex-start;gap:${gap}px;`;
+  // 한글 폰트는 글자 잉크가 em 박스 중앙이 아니라 위/아래로 비대칭하게 앉음 → 패딩이 대칭이어도
+  //   보이는 상·하 여백이 달라짐. 줄 텍스트의 실제 잉크(actualBoundingBox)를 측정해 정확히 중앙으로
+  //   올림/내림(position:relative;top). 패딩 값(10/10)은 그대로 유지.
+  const mc = (buildCoverStack._mc || (buildCoverStack._mc = document.createElement('canvas').getContext('2d')));
+  const opticalTop = (line, fs) => {
+    try {
+      mc.font = `700 ${fs}px 'Pretendard','Noto Sans KR',sans-serif`;
+      const m = mc.measureText((line || '가').replace(/[{}]/g, '') || '가');
+      const off = (m.fontBoundingBoxDescent - m.fontBoundingBoxAscent + m.actualBoundingBoxAscent - m.actualBoundingBoxDescent) / 2;
+      return isFinite(off) ? off : 0;
+    } catch (e) { return 0; }
+  };
+  // 한 카피 블록(여러 줄)을 줄별 inline-block 박스로 쌓아 반환
+  const buildBlock = (lines, fs, spanCss) => {
+    const block = document.createElement('div');
+    block.style.cssText = `display:flex;flex-direction:column;align-items:flex-start;gap:${Math.round(fs * 0.13)}px;max-width:100%;`;
+    lines.forEach(line => {
+      const row = document.createElement('div');
+      row.style.cssText = 'max-width:100%;';
+      const span = document.createElement('span');   // 박스 (배경/외곽선/패딩)
+      span.style.cssText = `display:inline-block;max-width:100%;font-size:${fs}px;${INNER}${spanCss}`;
+      // 글자만 박스 안에서 미세 이동 → 보이는 상·하 여백 균일 (패딩은 대칭 유지)
+      const inner = document.createElement('span');
+      inner.style.cssText = `position:relative;top:${opticalTop(line, fs).toFixed(2)}px;`;
+      inner.innerHTML = applyPointColor(line);
+      span.appendChild(inner);
+      row.appendChild(span);
+      block.appendChild(row);
+    });
+    return block;
+  };
+  // 서브 카피 (위)
+  if (v.sub && !spec.noSub) {
+    const subLines = coverCopyLines('sub', v.sub.lines || 1, '서브 카피');
+    const subBoxed = spec.copyBoxStyle && currentCopyBox.sub;
+    const subCss = subBoxed
+      ? `background:${currentCopyBox.subColor};color:${currentCopyBox.subTextColor || '#FFFFFF'};padding:${PAD_Y_SUB}px ${PAD_X}px;`
+      : `color:${resolveTextColor(v.sub.color, v)};`;
+    wrap.appendChild(buildBlock(subLines, v.sub.fs, subCss));
+  }
+  // 메인 카피 (아래) — 항상 블랙 박스 + 흰 외곽선
+  if (v.main) {
+    const maxLines = spec.selectableLines ? currentMainLines : (v.main.lines || 1);
+    const mainLines = coverCopyLines('main', maxLines, '메인 카피');
+    const mainCss = `background:#000000;color:#FFFFFF;border:1px solid #FFFFFF;padding:${PAD_Y_MAIN}px ${PAD_X}px;`;
+    wrap.appendChild(buildBlock(mainLines, v.main.fs, mainCss));
+  }
+  banner.appendChild(wrap);
+}
 function buildBanner(v, spec) {
   // 마지막장 브랜딩 막지 분기 (입력/가이드 없는 고정 카드)
   if (spec.brandingCard) return buildBrandingCard(v, spec);
@@ -6000,8 +6141,8 @@ function buildBanner(v, spec) {
     btn.innerHTML = `<span style="font-size:${v.btn.fs}px;font-weight:700;font-family:var(--font);color:#16191D;letter-spacing:-0.5px;">${btnText}</span>`;
     banner.appendChild(btn);
   }
-  // 메인 카피
-  if (v.main) {
+  // 메인 카피 (표지 coverStack은 별도 렌더 → 건너뜀)
+  if (v.main && !spec.coverStack) {
     const m = document.createElement('div');
     m.className = 'b-main' + (v.main.center ? ' center' : '');
     let css = `font-size:${v.main.fs}px;font-weight:${v.main.fw || 700};line-height:${v.main.lh};`;
@@ -6075,8 +6216,8 @@ function buildBanner(v, spec) {
     m.innerHTML = v.main.vcenter ? `<div>${_innerMainHTML}</div>` : _innerMainHTML;
     banner.appendChild(m);
   }
-  // 서브 카피
-  if (v.sub && !spec.noSub) {
+  // 서브 카피 (표지 coverStack은 별도 렌더 → 건너뜀)
+  if (v.sub && !spec.noSub && !spec.coverStack) {
     const s = document.createElement('div');
     s.className = 'b-sub' + (v.sub.center ? ' center' : '');
     const subTextColor = resolveTextColor(v.sub.color, v);
@@ -6132,6 +6273,8 @@ function buildBanner(v, spec) {
     s.innerHTML = applyPointColor(subText).replace(/\n/g, '<br>');
     banner.appendChild(s);
   }
+  // 표지(E1) 하단 고정 카피 스택 — 서브(위)·메인(아래) 줄별 박스
+  if (spec.coverStack) buildCoverStack(banner, v, spec);
   // 이미지 (bgFull은 buildBanner 최상단에서 이미 렌더링됨)
   if (v.img && !v.img.bgFull) {
     // 컨테인드 이미지 박스 — stateId별로 별도 렌더(주: dualImage 슬롯은 v.id, v.id+'_2' 두 번 호출)
