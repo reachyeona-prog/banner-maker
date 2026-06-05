@@ -3809,7 +3809,7 @@ function renderInputs() {
   const renderSubFields = () => {
     if (!v.sub || spec.noSub) return;
     const subSpec = spec.coverStack
-      ? `${fsStr('sub')}  │  Bold · 자간 -2%<br>박스 on/off · 색 선택 (글자색 자동)`
+      ? `${fsStr('sub')}  │  굴림 Regular · 자간 -9%<br>박스 on/off · 색 선택 (글자색 자동)`
       : `${fsStr('sub')}  │  Medium<br>행간 ${v.sub.lh || '130%'}  │  자간 -0.5px  │  컬러 ${v.sub.color}`;
     const subLines = v.sub.lines || 1;
     if (subLines >= 3) {
@@ -5886,16 +5886,16 @@ function buildCoverStack(banner, v, spec) {
   //   보이는 상·하 여백이 달라짐. 줄 텍스트의 실제 잉크(actualBoundingBox)를 측정해 정확히 중앙으로
   //   올림/내림(position:relative;top). 패딩 값(10/10)은 그대로 유지.
   const mc = (buildCoverStack._mc || (buildCoverStack._mc = document.createElement('canvas').getContext('2d')));
-  const opticalTop = (line, fs) => {
+  const opticalTop = (line, fs, fontStr) => {
     try {
-      mc.font = `700 ${fs}px 'Pretendard','Noto Sans KR',sans-serif`;
+      mc.font = fontStr || `700 ${fs}px 'Pretendard','Noto Sans KR',sans-serif`;
       const m = mc.measureText((line || '가').replace(/[{}]/g, '') || '가');
       const off = (m.fontBoundingBoxDescent - m.fontBoundingBoxAscent + m.actualBoundingBoxAscent - m.actualBoundingBoxDescent) / 2;
       return isFinite(off) ? off : 0;
     } catch (e) { return 0; }
   };
-  // 한 카피 블록(여러 줄)을 줄별 inline-block 박스로 쌓아 반환
-  const buildBlock = (lines, fs, spanCss) => {
+  // 한 카피 블록(여러 줄)을 줄별 inline-block 박스로 쌓아 반환. fontStr: 광학 보정 측정용 캔버스 폰트.
+  const buildBlock = (lines, fs, spanCss, fontStr) => {
     const block = document.createElement('div');
     block.style.cssText = `display:flex;flex-direction:column;align-items:flex-start;gap:${Math.round(fs * 0.13)}px;max-width:100%;`;
     lines.forEach(line => {
@@ -5905,7 +5905,7 @@ function buildCoverStack(banner, v, spec) {
       span.style.cssText = `display:inline-block;max-width:100%;font-size:${fs}px;${INNER}${spanCss}`;
       // 글자만 박스 안에서 미세 이동 → 보이는 상·하 여백 균일 (패딩은 대칭 유지)
       const inner = document.createElement('span');
-      inner.style.cssText = `position:relative;top:${opticalTop(line, fs).toFixed(2)}px;`;
+      inner.style.cssText = `position:relative;top:${opticalTop(line, fs, fontStr).toFixed(2)}px;`;
       inner.innerHTML = applyPointColor(line);
       span.appendChild(inner);
       row.appendChild(span);
@@ -5917,11 +5917,12 @@ function buildCoverStack(banner, v, spec) {
   if (v.sub && !spec.noSub) {
     const subLines = coverCopyLines('sub', v.sub.lines || 1, '서브 카피');
     const subBoxed = spec.copyBoxStyle && currentCopyBox.sub;
-    const subLs = 'letter-spacing:-0.09em;';   // 서브 카피 자간 -9% (메인은 INNER의 -2% 유지)
+    // 서브 카피 = 굴림(Gulim) Regular · 자간 -9% (INNER의 Pretendard Bold/-2%를 덮어씀)
+    const subFont = "font-family:'GulimLocal','Gulim','Noto Sans KR',sans-serif;font-weight:400;letter-spacing:-0.09em;";
     const subCss = subBoxed
-      ? `${subLs}background:${currentCopyBox.subColor};color:${currentCopyBox.subTextColor || '#FFFFFF'};padding:${PAD_Y_SUB}px ${PAD_X_SUB}px;`
-      : `${subLs}color:${resolveTextColor(v.sub.color, v)};`;
-    wrap.appendChild(buildBlock(subLines, v.sub.fs, subCss));
+      ? `${subFont}background:${currentCopyBox.subColor};color:${currentCopyBox.subTextColor || '#FFFFFF'};padding:${PAD_Y_SUB}px ${PAD_X_SUB}px;`
+      : `${subFont}color:${resolveTextColor(v.sub.color, v)};`;
+    wrap.appendChild(buildBlock(subLines, v.sub.fs, subCss, `400 ${v.sub.fs}px 'GulimLocal','Gulim',sans-serif`));
   }
   // 메인 카피 (아래) — 항상 블랙 박스 + 흰 외곽선
   if (v.main) {
