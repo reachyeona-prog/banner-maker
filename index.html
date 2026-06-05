@@ -3809,7 +3809,7 @@ function renderInputs() {
   const renderSubFields = () => {
     if (!v.sub || spec.noSub) return;
     const subSpec = spec.coverStack
-      ? `${fsStr('sub')}  │  굴림 Regular · 자간 -9%<br>박스 on/off · 색 선택 (글자색 자동)`
+      ? `${fsStr('sub')}  │  Pretendard Bold · 자간 -2%<br>박스 on/off · 색 선택 (글자색 자동)`
       : `${fsStr('sub')}  │  Medium<br>행간 ${v.sub.lh || '130%'}  │  자간 -0.5px  │  컬러 ${v.sub.color}`;
     const subLines = v.sub.lines || 1;
     if (subLines >= 3) {
@@ -5256,7 +5256,7 @@ function bubbleTextColor(bub) {
 // 텍스트 실측 (38px·해당 폰트·줄바꿈) → 글자수/줄수에 맞춘 크기 산출의 기준
 function measureBubbleText(bub) {
   const m = document.createElement('div');
-  m.style.cssText = `position:absolute;left:-9999px;top:-9999px;visibility:hidden;font-family:${getSpeechBubbleFontCss(bub.font)};font-weight:400;font-size:${SPEECH_BUBBLE_FS}px;line-height:1.35;letter-spacing:-0.02em;white-space:pre;`;
+  m.style.cssText = `position:absolute;left:-9999px;top:-9999px;visibility:hidden;font-family:${getSpeechBubbleFontCss(bub.font)};font-weight:400;font-size:${SPEECH_BUBBLE_FS}px;line-height:1.35;letter-spacing:-0.09em;white-space:pre;`;
   m.textContent = bub.text || '말풍선';
   document.body.appendChild(m);
   const tw = m.offsetWidth, th = m.offsetHeight;
@@ -5279,7 +5279,7 @@ function buildSpeechBubble(banner, v, bub) {
 // 텍스트 div — W×H 영역 가운데 정렬 (여백은 bubbleDims가 W/H에 포함, 가운데 정렬로 발생)
 function buildBubbleTextDiv(offsetX, offsetY, W, H, fontCss, text, color) {
   const txt = document.createElement('div');
-  txt.style.cssText = `position:absolute;left:${offsetX}px;top:${offsetY}px;width:${W}px;height:${H}px;display:flex;align-items:center;justify-content:center;font-family:${fontCss};font-weight:400;font-size:${SPEECH_BUBBLE_FS}px;line-height:1.35;color:${color};text-align:center;letter-spacing:-0.02em;white-space:pre-line;pointer-events:none;padding:0 6px;box-sizing:border-box;`;
+  txt.style.cssText = `position:absolute;left:${offsetX}px;top:${offsetY}px;width:${W}px;height:${H}px;display:flex;align-items:center;justify-content:center;font-family:${fontCss};font-weight:400;font-size:${SPEECH_BUBBLE_FS}px;line-height:1.35;color:${color};text-align:center;letter-spacing:-0.09em;white-space:pre-line;pointer-events:none;padding:0 6px;box-sizing:border-box;`;
   txt.textContent = text || '';
   return txt;
 }
@@ -5917,12 +5917,11 @@ function buildCoverStack(banner, v, spec) {
   if (v.sub && !spec.noSub) {
     const subLines = coverCopyLines('sub', v.sub.lines || 1, '서브 카피');
     const subBoxed = spec.copyBoxStyle && currentCopyBox.sub;
-    // 서브 카피 = 굴림(Gulim) Regular · 자간 -9% (INNER의 Pretendard Bold/-2%를 덮어씀)
-    const subFont = "font-family:'GulimLocal','Gulim','Noto Sans KR',sans-serif;font-weight:400;letter-spacing:-0.09em;";
+    // 서브 카피 = Pretendard Bold · 자간 -2% (INNER 그대로). 박스 시 색만 덮어씀.
     const subCss = subBoxed
-      ? `${subFont}background:${currentCopyBox.subColor};color:${currentCopyBox.subTextColor || '#FFFFFF'};padding:${PAD_Y_SUB}px ${PAD_X_SUB}px;`
-      : `${subFont}color:${resolveTextColor(v.sub.color, v)};`;
-    wrap.appendChild(buildBlock(subLines, v.sub.fs, subCss, `400 ${v.sub.fs}px 'GulimLocal','Gulim',sans-serif`));
+      ? `background:${currentCopyBox.subColor};color:${currentCopyBox.subTextColor || '#FFFFFF'};padding:${PAD_Y_SUB}px ${PAD_X_SUB}px;`
+      : `color:${resolveTextColor(v.sub.color, v)};`;
+    wrap.appendChild(buildBlock(subLines, v.sub.fs, subCss));
   }
   // 메인 카피 (아래) — 항상 블랙 박스 + 흰 외곽선
   if (v.main) {
@@ -6613,6 +6612,7 @@ function drawSpeechBubbleOnCanvas(canvas, v, spec, dlScale) {
   ctx.font = `400 ${SPEECH_BUBBLE_FS * s}px ${getSpeechBubbleFontCss(bub.font)}`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
+  if ('letterSpacing' in ctx) ctx.letterSpacing = (-0.09 * SPEECH_BUBBLE_FS * s) + 'px';   // 자간 -9%
   const lines = (bub.text || '').split('\n');
   const lh = SPEECH_BUBBLE_FS * 1.35 * s;
   const startY = cy - (lines.length - 1) * lh / 2;
