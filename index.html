@@ -5917,9 +5917,10 @@ function buildCoverStack(banner, v, spec) {
   if (v.sub && !spec.noSub) {
     const subLines = coverCopyLines('sub', v.sub.lines || 1, '서브 카피');
     const subBoxed = spec.copyBoxStyle && currentCopyBox.sub;
+    const subLs = 'letter-spacing:-0.09em;';   // 서브 카피 자간 -9% (메인은 INNER의 -2% 유지)
     const subCss = subBoxed
-      ? `background:${currentCopyBox.subColor};color:${currentCopyBox.subTextColor || '#FFFFFF'};padding:${PAD_Y_SUB}px ${PAD_X_SUB}px;`
-      : `color:${resolveTextColor(v.sub.color, v)};`;
+      ? `${subLs}background:${currentCopyBox.subColor};color:${currentCopyBox.subTextColor || '#FFFFFF'};padding:${PAD_Y_SUB}px ${PAD_X_SUB}px;`
+      : `${subLs}color:${resolveTextColor(v.sub.color, v)};`;
     wrap.appendChild(buildBlock(subLines, v.sub.fs, subCss));
   }
   // 메인 카피 (아래) — 항상 블랙 박스 + 흰 외곽선
