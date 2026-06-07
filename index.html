@@ -3825,7 +3825,7 @@ function renderInputs() {
       const label = count === 1 ? '로고' : `로고 ${i + 1}`;
       f.innerHTML = `
         <div class="field-label">${label}</div>
-        <div class="field-spec">PNG 권장(배경 투명). 표지 서브 자리에 표시 · 높이 90px.</div>
+        <div class="field-spec">PNG 권장(배경 투명). 표지 서브 자리에 표시 · 높이 66px.</div>
         <div class="logo-drop" data-logoidx="${i}" style="display:flex;align-items:center;justify-content:center;gap:10px;min-height:64px;padding:10px;border:1px dashed var(--border);border-radius:8px;background:var(--card);cursor:pointer;text-align:center;box-sizing:border-box;">
           ${has
             ? `<img src="${currentCoverLogo.logos[i]}" style="max-height:48px;max-width:60%;object-fit:contain;"><button type="button" data-logodel="${i}" style="font-family:var(--font-mono);font-size:11px;padding:4px 8px;border:1px solid var(--border);border-radius:5px;background:var(--bg-elev);color:var(--text-primary);cursor:pointer;">제거</button>`
@@ -6104,7 +6104,7 @@ function buildCoverStack(banner, v, spec) {
     const count = currentCoverLogo.mode === 'logo2' ? 2 : 1;
     const logos = currentCoverLogo.logos.slice(0, count).filter(Boolean);
     if (logos.length) {
-      const LOGO_H = 90;
+      const LOGO_H = 66;   // 서브 카피 박스 높이(글자 46 + 상하 패딩 10)와 동일 수준
       const dividerCol = resolveTextColor('#FFFFFF', v);   // 표지 글자색(다크 위 흰색)과 동일
       const row = document.createElement('div');
       row.style.cssText = `display:flex;align-items:center;gap:36px;max-width:100%;`;
