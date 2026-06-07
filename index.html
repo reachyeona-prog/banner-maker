@@ -95,6 +95,16 @@ body {
   color: var(--text-primary);
 }
 button { font-family: inherit; }
+/* 텍스트 선택 = 옅은 코랄 (브랜드 결) */
+::selection { background: var(--accent-light); color: var(--accent-deep); }
+/* 커스텀 스크롤바 — 크림 위 얇은 잉크 thumb (측정 도구 결) */
+::-webkit-scrollbar { width: 11px; height: 11px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--border); border-radius: 6px;
+  border: 3px solid var(--bg); background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--text-faint); background-clip: padding-box; }
 
 /* 페이지 로드 staggered reveal — 카드만 애니메이션.
    .preview-section은 입력할 때마다 재렌더되므로 애니메이션 없음 (깜박임 방지). */
@@ -315,7 +325,8 @@ button { font-family: inherit; }
   transition: border-color var(--t-base), background var(--t-base), box-shadow var(--t-base);
 }
 .field-row input[type="text"]:focus {
-  border-color: var(--ink); background: #fff;
+  border-color: var(--accent); background: #fff;
+  box-shadow: 0 0 0 3px var(--accent-light);
 }
 .char-count {
   font-family: var(--font);
@@ -411,10 +422,13 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
   transition: background var(--t-base), color var(--t-base), box-shadow var(--t-base);
   font-family: var(--font);
 }
+.text-color-segment:hover { color: var(--ink); }
+/* active = 잉크 pill (가이드 토글과 동일 결로 모든 토글 통일) */
 .text-color-segment.active {
-  background: var(--card); color: var(--ink);
-  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  background: var(--ink); color: #fff;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.12);
 }
+.text-color-segment.active:hover { color: #fff; }
 
 /* ===== §10 이미지 업로드 (드래그 앤 드롭 포함) ===== */
 #upload-area-wrap { display: flex; flex-direction: column; gap: 12px; }
@@ -764,7 +778,7 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
   outline: none; box-sizing: border-box;
   transition: border-color var(--t-base) var(--ease);
 }
-.json-import-textarea:focus { border-color: var(--ink); }
+.json-import-textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
 .json-import-btn {
   width: 100%; margin-top: 8px; height: 32px; padding: 0 14px;
   background: var(--ink); color: #fff;
