@@ -1133,7 +1133,7 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
         <span class="markup-chip" onclick="copyMarkup('/밑줄/')" title="포인트 컬러 + 밑줄">/밑줄/</span>
         <span class="markup-chip" onclick="copyMarkup('==형광펜==')" title="포인트 컬러 배경 (형광펜)">==형광펜==</span>
         <span class="markup-chip" onclick="copyMarkup('[[박스]]')" title="포인트 컬러 보더 박스">[[박스]]</span>
-        <span class="markup-chip" onclick="copyMarkup('((미디엄))')" title="프리텐다드 Medium 굵기">((미디엄))</span>
+        <span class="markup-chip" onclick="copyMarkup('((볼드))')" title="프리텐다드 Bold 굵기">((볼드))</span>
       </div>
       <!-- 추천 컬러 영역 (배경색에 따라 자동 갱신) -->
       <div id="pt-recommend-wrap" style="display:none;"></div>
@@ -1764,7 +1764,7 @@ const SPECS = {
           lockTextColor: true, noDefaultOverlay: true,
           img:  { top:0, left:0, w:1080, h:1440, bgFull:true, editable:true },
           // 흰 박스(CSS autoHeight) 안: 메인(1줄 헤드, Bold) + 서브(다줄 본문, Medium). 좌우 70 / 하단 100 / 내부 40.
-          copyBox: { left:70, right:70, paddingBottom:100, innerPadding:40, bg:'#FFFFFF', radius:0, border:'2px solid #1A1A1A' },
+          copyBox: { left:70, right:70, paddingBottom:70, innerPadding:40, bg:'#FFFFFF', radius:0, border:'2px solid #1A1A1A' },
           main: { fs:50, lines:1, lh:'130%', color:'#1A1A1A' },
           sub:  { fs:40, lines:1, lh:'150%', color:'#1A1A1A', freeText:true, fw:500 }
         }]
@@ -3526,7 +3526,7 @@ function updatePointColorUI() {
 function applyPointColor(text) {
   // 모든 구좌에서 사용 가능 — HTML 특수문자를 먼저 escape해야 사용자 입력이 HTML로 해석되지 않음
   // 마크업 시리즈:
-  //   ((text))   — Pretendard Medium (font-weight 500)
+  //   ((text))   — Pretendard Bold (font-weight 700)
   //   [[text]]   — 박스 (point color 풀 배경 + 패딩)
   //   ==text==   — 형광펜 (point color 하단 부분 하이라이트, 실제 형광펜 마크 느낌)
   //   ##text##   — 포인트 컬러 텍스트
@@ -3542,7 +3542,7 @@ function applyPointColor(text) {
     return `PH${i}`;
   };
   // 패턴별 적용 — 더블 delimiter (((,[[,==,##) 먼저 처리해 single이 partial 매칭하지 않도록
-  html = html.replace(/\(\(([^)]+)\)\)/g, (_, c) => reserve(`<span style="font-weight:500">${c}</span>`));
+  html = html.replace(/\(\(([^)]+)\)\)/g, (_, c) => reserve(`<span style="font-weight:700">${c}</span>`));
   html = html.replace(/\[\[([^\]]+)\]\]/g, (_, c) => reserve(`<span style="background:${pc};padding:0 12px;">${c}</span>`));
   html = html.replace(/==([^=]+)==/g, (_, c) => reserve(`<span style="background:linear-gradient(180deg,transparent 55%,${pc} 55%);padding:0 4px;">${c}</span>`));
   html = html.replace(/##([^#]+)##/g, (_, c) => reserve(`<span style="color:${pc}">${c}</span>`));
