@@ -5340,7 +5340,9 @@ function bubbleDims(bub) {
   const { tw, th } = measureBubbleText(bub);
   if (bub.style === 'rect') return { W: Math.round(tw + 80), H: Math.round(th + 52) };
   if (bub.style === 'text') return { W: Math.round(tw + 24), H: Math.round(th + 16) };
-  return { W: Math.round((tw + 56) * 1.34), H: Math.round((th + 30) * 1.6) };
+  // 외곽선(타원) — 글자-말풍선 여백을 더 타이트하게 (블러보다 작은 배율)
+  if (bub.style === 'outline') return { W: Math.round((tw + 38) * 1.28), H: Math.round((th + 18) * 1.5) };
+  return { W: Math.round((tw + 56) * 1.34), H: Math.round((th + 30) * 1.6) };  // blur
 }
 function buildSpeechBubble(banner, v, bub) {
   if (bub.style === 'outline') return buildOutlineBubble(banner, v, bub);
