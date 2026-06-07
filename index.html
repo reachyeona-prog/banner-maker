@@ -3821,7 +3821,7 @@ function renderInputs() {
       area.appendChild(makeField('main1', '메인 카피 1줄', mainSpec, 1));
       area.appendChild(makeField('main2', '메인 카피 2줄', mainSpec, 1));
     } else {
-      area.appendChild(makeField('main', '메인 카피', mainSpec, 1));
+      area.appendChild(makeField('main', spec.boxCopyStack ? '메인 카피 (생략 가능)' : '메인 카피', mainSpec, 1));
     }
   };
 
@@ -6052,17 +6052,23 @@ function buildBoxCopy(banner, v, spec) {
   const txtCol = showBox ? '#1A1A1A' : (currentTextColorMode === 'black' ? '#1A1A1A' : '#FFFFFF');
   const box = document.createElement('div');
   box.style.cssText = `position:absolute;left:${cb.left}px;right:${cb.right}px;bottom:${cb.paddingBottom || 0}px;background:${showBox ? (cb.bg || '#FFFFFF') : 'transparent'};border:${showBox ? (cb.border || 'none') : 'none'};border-radius:${cb.radius || 0}px;box-sizing:border-box;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:${innerPad}px;`;
-  if (v.main) {
+  const mainText = getVal('main');
+  const subText = getVal('sub');
+  // 메인 생략 가능 — 메인이 비면 메인 블록 자체를 그리지 않음(서브만). 단, 둘 다 비면 placeholder로 빈 박스 형태 유지.
+  const showMainPlaceholder = !mainText && !subText;
+  let mainRendered = false;
+  if (v.main && (mainText || showMainPlaceholder)) {
     const mLines = coverCopyLines('main', v.main.lines || 1, '메인 카피');
     const m = document.createElement('div');
     m.style.cssText = `width:100%;font-family:${mainFontCss};font-weight:700;font-size:${v.main.fs}px;line-height:${v.main.lh || '130%'};letter-spacing:-0.02em;color:${txtCol};text-align:center;white-space:pre-line;word-break:keep-all;`;
     m.innerHTML = mLines.map(l => applyPointColor(l)).join('<br>');
     box.appendChild(m);
+    mainRendered = true;
   }
-  const subText = getVal('sub');
   if (v.sub && subText) {
     const sdiv = document.createElement('div');
-    sdiv.style.cssText = `width:100%;margin-top:${Math.round((v.main ? v.main.fs : 50) * 0.42)}px;font-family:${subFontCss};font-weight:${v.sub.fw || 500};font-size:${v.sub.fs}px;line-height:${v.sub.lh || '150%'};letter-spacing:-0.02em;color:${txtCol};text-align:center;white-space:pre-line;word-break:keep-all;`;
+    const gap = mainRendered ? Math.round((v.main ? v.main.fs : 50) * 0.42) : 0;
+    sdiv.style.cssText = `width:100%;margin-top:${gap}px;font-family:${subFontCss};font-weight:${v.sub.fw || 500};font-size:${v.sub.fs}px;line-height:${v.sub.lh || '150%'};letter-spacing:-0.02em;color:${txtCol};text-align:center;white-space:pre-line;word-break:keep-all;`;
     sdiv.innerHTML = applyPointColor(subText).replace(/\n/g, '<br>');
     box.appendChild(sdiv);
   }
