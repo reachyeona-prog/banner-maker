@@ -6375,6 +6375,7 @@ function buildBanner(v, spec) {
     const editable = !!v.img.editable;
     if (imgURL && imgSize) {
       const bg = document.createElement('div');
+      if (editable) bg.className = 'b-img-editable';   // 크기 슬라이더·상단 이미지 클립이 컨테이너를 찾는 공통 클래스
       bg.style.cssText = `position:absolute;top:0;left:0;width:${v.w}px;height:${v.h}px;overflow:hidden;z-index:0;${editable ? 'cursor:grab;user-select:none;' : ''}`;
       const srcRatio = imgSize.w / imgSize.h;
       const dstRatio = v.w / v.h;
