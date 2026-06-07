@@ -311,6 +311,10 @@ button { font-family: inherit; }
 }
 .preset-colors { display: flex; gap: 4px; flex-wrap: wrap; }
 .preset-row-break { flex-basis: 100%; height: 0; }
+/* 포인트 컬러: 색면이 패널을 지배하지 않도록 작은 '원형 색 칩 스트립'으로 정돈 (배경색=사각, 포인트=원으로 의미 구분) */
+#pt-presets { gap: 6px; }
+.pt-swatch { width: 22px; height: 22px; border-radius: 50%; }
+.pt-swatch.custom-picker::before { font-size: 15px; }
 .preset-swatch {
   width: 28px; height: 28px; border-radius: 6px;
   border: 1px solid var(--border); cursor: pointer;
@@ -514,24 +518,32 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
 
 /* ===== §13 다운로드 버튼 + 스피너 ===== */
 #dl-btn-area { display: flex; gap: 10px; }
+/* 다운로드 = 결과물 추출의 '결정적 순간' → 브랜드 Coral로 강하게. 촉각적 더블 섀도 + 화이트 sheen. */
 .dl-btn {
   width: 100%; padding: 14px 16px;
-  background: var(--ink); color: #fff;
+  background: var(--accent); color: #fff;
   font-family: var(--font); font-size: 14px; font-weight: 700;
   letter-spacing: -0.3px; border: none; border-radius: var(--radius-md);
-  cursor: pointer; transition: background var(--t-base), transform var(--t-fast);
+  cursor: pointer; transition: background var(--t-base), transform var(--t-fast), box-shadow var(--t-base);
   display: flex; align-items: center; justify-content: center; gap: 10px;
   position: relative; overflow: hidden;
+  box-shadow: 0 2px 0 var(--accent-deep), 0 8px 20px rgba(255,79,31,0.26);
 }
 .dl-btn::before {
   content: ""; position: absolute; inset: 0;
-  background: linear-gradient(135deg, transparent 40%, rgba(255,79,31,0.25) 50%, transparent 60%);
+  background: linear-gradient(135deg, transparent 38%, rgba(255,255,255,0.42) 50%, transparent 62%);
   transform: translateX(-100%);
   transition: transform var(--t-slow) var(--ease);
 }
-.dl-btn:hover:not(:disabled) { background: #000; }
+.dl-btn:hover:not(:disabled) {
+  background: var(--accent-deep);
+  box-shadow: 0 2px 0 var(--accent-deep), 0 10px 26px rgba(255,79,31,0.34);
+}
 .dl-btn:hover:not(:disabled)::before { transform: translateX(100%); }
-.dl-btn:active:not(:disabled) { transform: scale(0.99); }
+.dl-btn:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: 0 1px 0 var(--accent-deep), 0 4px 12px rgba(255,79,31,0.24);
+}
 .dl-btn:disabled { opacity: 0.6; cursor: progress; }
 .dl-btn .icon { transition: transform var(--t-base) var(--ease); }
 .dl-btn:hover:not(:disabled) .icon { transform: translateX(3px); }
