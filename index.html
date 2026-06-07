@@ -1312,10 +1312,9 @@ function applyCardNewsJSON() {
     productSel.value = 'cardnews';
     onProductChange();
   }
-  // 2) 내지 slideStates 세팅 — 같은 카피를 모든 내지 스타일(E2·E4·E5)에 일괄 채운다.
-  //    사용자는 슬롯(유형) 드롭다운에서 원하는 스타일을 골라 쓰면 됨.
-  //    (이미 같은 슬롯을 직접 편집했다면 import가 덮어쓰니 주의)
-  const INTERIOR_SLOTS = ['E2', 'E4', 'E5'];
+  // 2) 내지 slideStates 세팅 — interiors 카피를 내지(E5)에 일괄 채운다.
+  //    (이미 직접 편집했다면 import가 덮어쓰니 주의)
+  const INTERIOR_SLOTS = ['E5'];
   const interiorCount = (data.interiors && Array.isArray(data.interiors)) ? data.interiors.length : 0;
   // 모든 내지 슬롯이 lines:3 max → mainLines 3 통일 (자동 감지로 실제 렌더는 2/3 적응)
   const interiorLines = 3;
@@ -1707,55 +1706,10 @@ const SPECS = {
           // (이미지 박스 버전 삭제 — 배경 이미지 버전만 운영)
         ]
       },
-      // 내지 (카피 상단) — 메인 카피(2~3줄 자동 감지) 위 + 인포그래픽/이미지 아래
-      //   공통 패딩: 좌우 70 / 상단 100 (full·box 동일)
-      'E2': {
-        label: '내지 (카피 상단)',
-        bgFixed: null, pointColor: true, noSub: true, isLarge: true, hasSourceNote: true,
-        multiSlide: true, showMainPad: true, freeImages: true, hasSpeechBubble: true,
-        bgPresets: ['#FFFFFF', '#FDEDEF', '#F4F1EA', '#FFF8D7', '#E8F4FF', '#F4F0FF', '#EFFCE7'],
-        versions: [
-          { id: 'full', label: '배경 이미지', uploadLabel: '배경 이미지', w: 1080, h: 1440,
-            lockTextColor: true,
-            main: { top:100, left:70, right:70, fs:56, lines:3, lh:'130%', center:true, color:'#FFFFFF' },
-            img:  { top:0, left:0, w:1080, h:1440, bgFull:true, editable:true },
-            // 캔버스 전 영역 선형 그라데이션 — 상단 dim → 하단 클리어. 기본 dim 컬러 블랙.
-            fade: { strong:0, faded:1440, rgb:'0,0,0', maxAlpha:0.55 } },
-          { id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1080, h: 1440,
-            main: { top:100, left:70, right:70, fs:56, lines:3, lh:'130%', center:true, color:'#1A1A1A' },
-            // 이미지 — 캔버스 하단 풀폭 (left 0, bottom 0, w 1080). top·height는 autoSize로 카피 줄 수에 따라 동적
-            //   gapToText:70 = 메인 끝~이미지 시작 간격 (3줄 기준 imgTop=422, h=1018)
-            img:  { bottom:0, left:0, w:1080, h:1018, editable:true, autoSize:true, gapToText:70 } }
-        ]
-      },
-      // 내지 (카피 하단) — 이미지 위 + 메인 카피(2~3줄 자동 감지) 아래
-      //   공통 패딩: 좌우 70 / 상단 100 / 하단 100
-      //   E2와 동일 폰트 (fs:56 / lh:130% / 자간 -0.5px) — 상하 위치만 다름
-      'E4': {
-        label: '내지 (카피 하단)',
-        bgFixed: null, pointColor: true, noSub: true, isLarge: true, hasSourceNote: true,
-        multiSlide: true, showMainPad: true, freeImages: true, hasSpeechBubble: true,
-        bgPresets: ['#FFFFFF', '#F4F1EA', '#FDEDEF', '#E8F4FF', '#FFF8D7', '#F4F0FF', '#EFFCE7'],
-        versions: [
-          { id: 'full', label: '배경 이미지', uploadLabel: '배경 이미지', w: 1080, h: 1440,
-            lockTextColor: true,
-            img:  { top:0, left:0, w:1080, h:1440, bgFull:true, editable:true },
-            main: { bottom:100, left:70, right:70, fs:56, lines:3, lh:'130%', center:true, color:'#FFFFFF' },
-            // 그라데이션: strong(불투명) 이미지 하단 고정. 기본은 바닥쪽 짧은 dim(400px) → 슬라이더로 위로 확장.
-            //   - faded:1040 → 기본 dim 범위 y:1040~1440 (카피 영역 + 약간의 buffer)
-            //   - 슬라이더 max = strong = 1440 → 풀스팬까지 확장 가능
-            fade: { strong:1440, faded:1040, rgb:'0,0,0', maxAlpha:0.55 } },
-          { id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1080, h: 1440,
-            main: { bottom:100, left:70, right:70, fs:56, lines:3, lh:'130%', center:true, color:'#1A1A1A' },
-            // 이미지 — 캔버스 상단 풀폭 (top 0, left 0, w 1080). height는 autoSize로 카피 줄 수에 따라 동적
-            //   gapToText:70 = 이미지 하단~메인 시작 간격 (3줄 기준 h=1018, 2줄 h=1102)
-            img:  { top:0, left:0, w:1080, h:1018, editable:true, autoSize:true, gapToText:70 } }
-        ]
-      },
-      // 내지 (박스 카피) — bgFull 위에 흰 박스(블랙 테두리, 라운드 X) + 메인 카피(2~3줄 자동)
-      //   sub 라벨 없이 메인만 — 깔끔 단일 컨테이너 스타일
+      // (E2 '내지 (카피 상단)' · E4 '내지 (카피 하단)' 삭제 — 내지는 E5 단일 운영)
+      // 내지 — bgFull(배경 전체/상단) 위에 흰 박스(블랙 테두리) + 메인 헤드 + 서브 본문
       'E5': {
-        label: '내지 (박스 카피)',
+        label: '내지',
         bgFixed: null, pointColor: true, isLarge: true, hasSourceNote: true,
         multiSlide: true, freeImages: true, hasSpeechBubble: true,
         boxCopyStack: true, copyFontSelect: true,   // 흰 박스 안 1줄 헤드(메인)+다줄 본문(서브) · 폰트 선택
