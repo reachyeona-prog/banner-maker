@@ -1273,7 +1273,9 @@ function toast(msg, opts = {}) {
 }
 // ================================================
 //  Claude 프로젝트 JSON → 카드 뉴스 자동 채우기
-//   - 입력: { cover: {pill, main1, main2}, interiors: [{main1, main2}, ...] }
+//   - 입력: { cover: {pill, main1, main2}, interiors: [{main1, main2, main3}, ...] }
+//     · 박스 카피(E5)는 interiors 항목에 {head:"헤드 1줄", body:"본문1\n본문2\n…"} 형태도 지원
+//       (head 없으면 main1을 헤드로, body 없으면 sub1~3 또는 main2~3을 본문으로 사용)
 //   - 동작: cardnews 프로덕트로 전환 → 내지(E2) slideStates 일괄 세팅 → 표지(E1)로 와서 cover 카피 채움
 //   - 사용자는 마지막에 표지 화면을 보고, 내지 탭을 누르면 N장이 펼쳐져 있음
 // ================================================
@@ -1325,12 +1327,17 @@ function applyCardNewsJSON() {
     const subLines = [it.sub1, it.sub2, it.sub3].map(x => x || '');
     const hasSub = subLines.some(x => String(x).trim());
     const body = hasSub ? subLines : [it.main2 || '', it.main3 || '', ''];
+    // E5 박스 카피 본문: body(다줄 문자열·배열) 우선 → sub → sub1~3/main2~3 합침
+    let e5Body;
+    if (it.body != null) e5Body = Array.isArray(it.body) ? it.body.join('\n') : String(it.body);
+    else if (it.sub != null) e5Body = String(it.sub);
+    else e5Body = body.filter(x => String(x).trim()).join('\n');
     return {
-      // 메인 카피 블록 (E2·E4)
+      // 메인 카피 블록 (E2·E4) — 3줄 고정
       main1: (it.main1 || ''), main2: (it.main2 || ''), main3: (it.main3 || ''),
-      // E5 박스 카피: 헤드 1줄(main) + 본문(sub, 다줄 textarea — 엔터 줄바꿈)
-      main: (it.main1 || ''),
-      sub: (it.sub || body.filter(x => String(x).trim()).join('\n')),
+      // E5 박스 카피: 헤드 1줄(main = head 우선) + 본문(sub, 다줄 textarea — 엔터 줄바꿈)
+      main: (it.head || it.main1 || ''),
+      sub: e5Body,
     };
   };
   if (interiorCount > 0) {
