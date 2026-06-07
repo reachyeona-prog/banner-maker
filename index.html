@@ -4276,6 +4276,30 @@ function renderImageUploads() {
       createUploadItem(v.id, label, sizeText);
     }
   });
+  // editable 배경 이미지 크기 — 5% 단위 슬라이더 (균일 확대 · 중앙 기준). 업로드된 editable 버전에만 노출.
+  versionsToRender.forEach(v => {
+    const verEditable = spec.imageEditable || (v.img && v.img.editable);
+    if (!verEditable || !currentImages[v.id]) return;
+    const t = currentImageTransforms[v.id] || { scale: 1 };
+    const pct = Math.round((t.scale || 1) * 100);
+    const sf = document.createElement('div');
+    sf.className = 'field';
+    sf.innerHTML = `
+      <div class="field-label" style="display:flex;align-items:center;gap:10px;">
+        ${showVersionLabel ? (v.label + ' ') : ''}이미지 크기
+        <span id="imgscale-val-${v.id}" style="margin-left:auto;font-family:var(--font-mono);font-size:11px;color:var(--text-muted);">${pct}%</span>
+      </div>
+      <input id="imgscale-${v.id}" type="range" min="100" max="300" step="5" value="${Math.min(300, Math.max(100, pct))}" style="width:100%;">
+      <div class="field-spec">5% 단위로 균일하게 확대 (중앙 기준 · 좌우 대칭). 미리보기에서 드래그로 위치 조절.</div>`;
+    wrap.appendChild(sf);
+    const sl = sf.querySelector('#imgscale-' + v.id);
+    sl.addEventListener('input', () => {
+      const p = parseInt(sl.value, 10);
+      const valEl = document.getElementById('imgscale-val-' + v.id);
+      if (valEl) valEl.textContent = p + '%';
+      setImageScale(v.id, p / 100);
+    });
+  });
   // 박스 카피(E5): 배경 이미지 영역 — 전체 / 상단(카피 박스 위 70px에서 끝)
   if (spec.boxCopyStack) {
     const imf = document.createElement('div');
@@ -5272,6 +5296,16 @@ function fitEditableImage(versionId, mode) {
   currentImageTransforms[versionId] = t;
   renderPreviews();
 }
+// 배경 이미지 크기 — 슬라이더(5% 단위)로 균일 확대. 중앙(transform-origin) 기준이라 좌우 대칭으로 커짐.
+//   미리보기 img의 transform만 직접 갱신해 부드럽게 반영(렌더 재생성 없음).
+function setImageScale(versionId, scale) {
+  const t = currentImageTransforms[versionId] || (currentImageTransforms[versionId] = { scale: 1, x: 0, y: 0, rotation: 0 });
+  t.scale = scale;
+  const banner = document.getElementById('banner-' + versionId);
+  const img = banner && banner.querySelector('.b-img-editable img');
+  if (img) img.style.transform = `translate(${t.x}px, ${t.y}px) rotate(${t.rotation || 0}deg) scale(${t.scale})`;
+  else renderPreviews();
+}
 // 말풍선 (카드뉴스 표지 E1) 렌더 + 인터랙션.
 //   2가지 스타일:
 //     blur    — 흰 가로 동그라미 (458×231) + filter:blur(30px) (Figma layer blur 30 등가).
@@ -5668,6 +5702,12 @@ function attachEditableImageHandlers(container, v) {
     } else {
       const factor = e.deltaY > 0 ? 0.95 : 1.05;
       state.scale = Math.max(0.3, Math.min(8, state.scale * factor));
+      // 이미지 탭 크기 슬라이더와 동기화 (휠로 키워도 슬라이더 값/표시 갱신)
+      const p = Math.round(state.scale * 100);
+      const sl = document.getElementById('imgscale-' + v.id);
+      const lbl = document.getElementById('imgscale-val-' + v.id);
+      if (sl) sl.value = Math.min(300, Math.max(100, p));
+      if (lbl) lbl.textContent = p + '%';
     }
     apply(); updateGuide(); scheduleHideGuide();
   }, { signal, passive: false });
