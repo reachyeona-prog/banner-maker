@@ -2376,6 +2376,15 @@ function setBoxCopyOn(on) {
   updateTextColorUI();
   renderPreviews();
 }
+// 박스 카피 이미지 영역 (E5) — 'full'(배경 전체) | 'top'(카피 박스 위 70px에서 끝남). 슬라이드별 보존.
+let currentBoxImageMode = 'full';
+function setBoxImageMode(mode) {
+  const spec = SPECS[currentProduct].slots[currentSlot];
+  if (!spec || !spec.boxCopyStack) return;
+  currentBoxImageMode = mode;
+  preserveInputsAcross(renderInputs);
+  renderPreviews();
+}
 function setSpeechBubbleDirection(dir) {
   const spec = SPECS[currentProduct].slots[currentSlot];
   if (!spec || !spec.hasSpeechBubble) return;
@@ -2836,6 +2845,7 @@ function freshSlideState() {
     speechBubbles: {},
     copyFonts: freshCopyFonts(),
     boxOn: true,
+    boxImg: 'full',
   };
 }
 function snapshotActiveSlide() {
@@ -2862,6 +2872,7 @@ function snapshotActiveSlide() {
     speechBubbles: _cloneState(currentSpeechBubbles),
     copyFonts: { ...currentCopyFonts },
     boxOn: currentBoxCopyOn,
+    boxImg: currentBoxImageMode,
   };
 }
 function applySlideToCurrent(idx) {
@@ -2880,6 +2891,7 @@ function applySlideToCurrent(idx) {
   currentSpeechBubbles = _cloneState(st.speechBubbles || {});
   currentCopyFonts = { ...freshCopyFonts(), ...(st.copyFonts || {}) };
   currentBoxCopyOn = st.boxOn !== false;
+  currentBoxImageMode = st.boxImg || 'full';
   activeSlideIdx[currentSlot] = idx;
 }
 function populateDOMFromActiveSlide() {
@@ -3190,6 +3202,7 @@ function onSlotChange() {
   currentShapes = [];
   currentCopyFonts = freshCopyFonts();
   currentBoxCopyOn = true;
+  currentBoxImageMode = 'full';
   currentCoverLogo = freshCoverLogo();
   currentSubPill = { fill: false, bg: '#FF4F1F', textColor: '#FFFFFF' };
   currentCopyBox = freshCopyBox();
@@ -3956,6 +3969,19 @@ function renderInputs() {
       </div>
       <div class="field-spec">흰 박스(검정 테두리) 표시 여부. '없음'이면 배경 이미지 위에 카피만.</div>`;
     area.appendChild(bf);
+    // 이미지 영역 토글 — 배경 전체 / 상단(카피 박스 위 70px에서 끝)
+    const imf = document.createElement('div');
+    imf.className = 'field';
+    imf.innerHTML = `
+      <div class="field-label" style="display:flex;align-items:center;gap:10px;">
+        이미지 영역
+        <div class="text-color-segments" style="margin-left:auto;">
+          <div class="text-color-segment ${currentBoxImageMode === 'full' ? 'active' : ''}" onclick="setBoxImageMode('full')">배경 전체</div>
+          <div class="text-color-segment ${currentBoxImageMode === 'top' ? 'active' : ''}" onclick="setBoxImageMode('top')">상단</div>
+        </div>
+      </div>
+      <div class="field-spec">'상단'이면 이미지가 카피 박스 위 70px 지점에서 끝나고, 그 아래는 배경색.</div>`;
+    area.appendChild(imf);
   }
   // 카피 폰트 선택 (copyFontSelect 슬롯 — E5 박스 카피) — 메인/서브 각각 폰트
   if (spec.copyFontSelect) {
@@ -5101,6 +5127,8 @@ function renderPreviews() {
     }
     dlArea.appendChild(buildDownloadButton(labelText, effectiveVersions));
   }
+  // 박스 카피 '상단 이미지' 모드 — 박스 높이 실측 후 이미지 영역을 카피 박스 위 70px에서 끝나게 클립
+  adjustBoxCopyImages(spec);
   // 가이드 모드 적용
   if (guideOn) {
     document.querySelectorAll('.banner-wrap').forEach(b => b.classList.add('show-guide'));
@@ -5113,6 +5141,27 @@ function renderPreviews() {
       try { el.setSelectionRange(focusSnap.selStart, focusSnap.selEnd); } catch (e) {}
     }
   }
+}
+// 박스 카피 '상단 이미지' 모드: 렌더 후 카피 박스 높이를 실측해 이미지 컨테이너를 박스 위 70px에서 클립.
+//   박스가 CSS auto-height라 빌드 시점엔 높이를 모름 → DOM 삽입 후 offsetHeight로 측정(스케일 transform 영향 없음).
+const BOX_COPY_IMG_GAP = 70;
+function adjustBoxCopyImages(spec) {
+  if (!spec || !spec.boxCopyStack) return;
+  spec.versions.forEach(v => {
+    const banner = document.getElementById('banner-' + v.id);
+    if (!banner) return;
+    const imgC = banner.querySelector('.b-img-editable');
+    if (!imgC) return;
+    if (currentBoxImageMode === 'top') {
+      const box = banner.querySelector('.box-copy');
+      const padBottom = (v.copyBox && v.copyBox.paddingBottom) || 0;
+      const boxH = box ? box.offsetHeight : 0;
+      const imgBottom = Math.max(0, v.h - padBottom - boxH - BOX_COPY_IMG_GAP);
+      imgC.style.height = imgBottom + 'px';
+    } else {
+      imgC.style.height = v.h + 'px';   // 배경 전체 — 원복
+    }
+  });
 }
 function buildDownloadButton(labelText, versions) {
   const btn = document.createElement('button');
@@ -6150,6 +6199,7 @@ function buildBoxCopy(banner, v, spec) {
   // 박스 ON → 흰 박스 위 어두운 글자. 박스 OFF → 배경 이미지 위 카피 (기본 흰색, 토글로 검정).
   const txtCol = showBox ? '#1A1A1A' : (currentTextColorMode === 'black' ? '#1A1A1A' : '#FFFFFF');
   const box = document.createElement('div');
+  box.className = 'box-copy';   // 렌더 후 높이 측정용 (상단 이미지 모드)
   box.style.cssText = `position:absolute;left:${cb.left}px;right:${cb.right}px;bottom:${cb.paddingBottom || 0}px;background:${showBox ? (cb.bg || '#FFFFFF') : 'transparent'};border:${showBox ? (cb.border || 'none') : 'none'};border-radius:${cb.radius || 0}px;box-sizing:border-box;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:${innerPad}px;`;
   const mainText = getVal('main');
   const subText = getVal('sub');
@@ -6184,7 +6234,9 @@ function buildBanner(v, spec) {
   const banner = document.createElement('div');
   banner.className = 'banner-wrap';
   banner.id = 'banner-' + v.id;
-  const bannerBg = (v.img && v.img.bgFull) ? 'transparent' : getBgFor(v);
+  // bgFull은 보통 transparent(이미지가 전체) — 단, 박스 카피 '상단' 이미지 모드는 이미지 아래가 배경색이라 bg 채움
+  const boxTopMode = spec.boxCopyStack && currentBoxImageMode === 'top';
+  const bannerBg = (v.img && v.img.bgFull && !boxTopMode) ? 'transparent' : getBgFor(v);
   banner.style.cssText = `width:${v.w}px;height:${v.h}px;background:${bannerBg};`;
   // copyBox.autoHeight 사전 계산 (E5): 메인 카피 줄 수에 맞춰 박스 높이를 동적으로 조정
   //   - 캔버스 하단 paddingBottom만큼 떨어진 위치에 박스 바닥 고정
