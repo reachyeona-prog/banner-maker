@@ -5187,8 +5187,23 @@ function adjustBoxCopyImages(spec) {
       const boxH = box ? box.offsetHeight : 0;
       const imgBottom = Math.max(0, v.h - padBottom - boxH - BOX_COPY_IMG_GAP);
       imgC.style.height = imgBottom + 'px';
+      // 이미지 cover-fit을 상단 영역(v.w × imgBottom) 기준으로 재계산 —
+      //   buildBanner는 전체 프레임(v.h) 기준 중앙 정렬이라 클립만 하면 위가 안 참.
+      const img = imgC.querySelector('img');
+      const imgSize = currentImageSizes[v.id];
+      if (img && imgSize && imgBottom > 0) {
+        const srcRatio = imgSize.w / imgSize.h;
+        const dstRatio = v.w / imgBottom;
+        let fitW, fitH;
+        if (srcRatio > dstRatio) { fitH = imgBottom; fitW = imgBottom * srcRatio; }
+        else                     { fitW = v.w; fitH = v.w / srcRatio; }
+        img.style.width = fitW + 'px';
+        img.style.height = fitH + 'px';
+        img.style.marginLeft = (-(fitW - v.w) / 2) + 'px';
+        img.style.marginTop = (-(fitH - imgBottom) / 2) + 'px';
+      }
     } else {
-      imgC.style.height = v.h + 'px';   // 배경 전체 — 원복
+      imgC.style.height = v.h + 'px';   // 배경 전체 — buildBanner가 v.h 기준으로 이미 맞춤
     }
   });
 }
