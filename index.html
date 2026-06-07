@@ -2662,12 +2662,12 @@ function removeFreeImage(idx) {
 // 도형 (카드뉴스 내지, spec.freeImages) — 외곽선만(채움 없음). 슬라이드별.
 //   { type:'circle'|'roundrect'|'arrow', color, x, y, w, h }. 드래그=위치, 휠/슬라이더=크기.
 let currentShapes = [];
-const SHAPE_COLORS = ['#FFFFFF', '#1A1A1A', '#1D99FF', '#163BD8', '#F96C5A', '#05CC7A'];
+const SHAPE_COLORS = ['#FFFFFF', '#1A1A1A', '#0077FE', '#FFFAAB', '#FF5E3C'];   // 화이트·블랙 + 서브 박스 3색
 const SHAPE_SW = 8;   // 외곽선 두께 (1배수 고정 → 크기 조절해도 일정)
 function freshShape(type, cw, ch) {
   const w = type === 'arrow' ? 290 : 320;
   const h = type === 'arrow' ? 150 : 320;
-  return { type, color: '#1D99FF', w, h, x: Math.round((cw - w) / 2), y: Math.round((ch - h) / 2), magnify: 1 };
+  return { type, color: '#0077FE', w, h, x: Math.round((cw - w) / 2), y: Math.round((ch - h) / 2), magnify: 1 };
 }
 function addShape(type) {
   const spec = SPECS[currentProduct].slots[currentSlot];
