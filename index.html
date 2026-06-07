@@ -1689,6 +1689,7 @@ const SPECS = {
         hasSpeechBubble: true,  // 흰 말풍선(블랙 텍스트) — 위치/크기/폰트 사용자 조절
         hasSourceNote: true,    // 우측 하단 고정 출처/AI 표기 (30px Pretendard, 슬라이드별 텍스트)
         copyBoxStyle: true,     // 서브 카피 박스 on/off + 색 선택 (메인은 항상 블랙 박스 고정 → buildCoverStack)
+        coverLogoOption: true,  // 서브 자리에 텍스트 대신 로고(1개/2개+구분선) 배치 가능
         coverStack: true,       // 하단 고정 카피 스택 — 서브(위)·메인(아래), 줄별 박스 (좌우 70)
         coverPadBottom: 160,    // 하단 패딩
         coverGap: 35,           // 서브↔메인 간격
@@ -2427,6 +2428,27 @@ const SUB_BOX_PRESETS = [
 ];
 let currentCopyBox = { main: false, mainColor: '#1A1A1A', sub: false, subColor: '#0077FE', subTextColor: '#FFFFFF' };
 function freshCopyBox() { return { main: false, mainColor: '#1A1A1A', sub: false, subColor: '#0077FE', subTextColor: '#FFFFFF' }; }
+// 표지 서브 영역 모드: 'text'(서브 카피) | 'logo1'(로고 1개) | 'logo2'(로고 2개+수직 구분선). logos=base64 2칸.
+let currentCoverLogo = { mode: 'text', logos: ['', ''] };
+function freshCoverLogo() { return { mode: 'text', logos: ['', ''] }; }
+function setCoverSubMode(mode) {
+  const spec = SPECS[currentProduct].slots[currentSlot];
+  if (!spec || !spec.coverLogoOption) return;
+  currentCoverLogo.mode = mode;
+  preserveInputsAcross(renderInputs);
+  renderPreviews();
+}
+function onCoverLogoFile(idx, file) {
+  if (!file) return;
+  const r = new FileReader();
+  r.onload = e => { currentCoverLogo.logos[idx] = e.target.result; preserveInputsAcross(renderInputs); renderPreviews(); };
+  r.readAsDataURL(file);
+}
+function removeCoverLogo(idx) {
+  currentCoverLogo.logos[idx] = '';
+  preserveInputsAcross(renderInputs);
+  renderPreviews();
+}
 function setCopyBoxOn(which, on) {
   const spec = SPECS[currentProduct].slots[currentSlot];
   if (!spec || !spec.copyBoxStyle) return;
@@ -2971,6 +2993,7 @@ function captureSlotState(product, slot) {
     sourceNote: { ...currentSourceNote },
     subPill: { ...currentSubPill },
     copyBox: { ...currentCopyBox },
+    coverLogo: { mode: currentCoverLogo.mode, logos: [...currentCoverLogo.logos] },
     images: { ...currentImages },          // data URL 문자열 — 얕은 복사(메모리 절약)
     imageRaw: { ...currentImageRaw },
     imageSizes: _cloneState(currentImageSizes),
@@ -2999,6 +3022,7 @@ function restoreSlotGlobals(product, slot) {
   currentSourceNote = { ...mem.sourceNote };
   currentSubPill = { ...(mem.subPill || { fill: false, bg: '#FF4F1F', textColor: '#FFFFFF' }) };
   currentCopyBox = { ...freshCopyBox(), ...(mem.copyBox || {}) };
+  currentCoverLogo = mem.coverLogo ? { mode: mem.coverLogo.mode || 'text', logos: [...(mem.coverLogo.logos || ['', ''])] } : freshCoverLogo();
   currentImages = { ...mem.images };
   currentImageRaw = { ...mem.imageRaw };
   currentImageSizes = _cloneState(mem.imageSizes);
@@ -3166,6 +3190,7 @@ function onSlotChange() {
   currentShapes = [];
   currentCopyFonts = freshCopyFonts();
   currentBoxCopyOn = true;
+  currentCoverLogo = freshCoverLogo();
   currentSubPill = { fill: false, bg: '#FF4F1F', textColor: '#FFFFFF' };
   currentCopyBox = freshCopyBox();
   // 미리보기에 붙어있던 이전 슬롯의 마우스 핸들러 정리
@@ -3791,6 +3816,35 @@ function renderInputs() {
     }
   };
 
+  // 표지 로고 업로드 UI (서브 영역 = 로고 모드) — count개 업로드 칸
+  const appendCoverLogoUploads = (count) => {
+    for (let i = 0; i < count; i++) {
+      const has = !!currentCoverLogo.logos[i];
+      const f = document.createElement('div');
+      f.className = 'field';
+      const label = count === 1 ? '로고' : `로고 ${i + 1}`;
+      f.innerHTML = `
+        <div class="field-label">${label}</div>
+        <div class="field-spec">PNG 권장(배경 투명). 표지 서브 자리에 표시 · 높이 90px.</div>
+        <div class="logo-drop" data-logoidx="${i}" style="display:flex;align-items:center;justify-content:center;gap:10px;min-height:64px;padding:10px;border:1px dashed var(--border);border-radius:8px;background:var(--card);cursor:pointer;text-align:center;box-sizing:border-box;">
+          ${has
+            ? `<img src="${currentCoverLogo.logos[i]}" style="max-height:48px;max-width:60%;object-fit:contain;"><button type="button" data-logodel="${i}" style="font-family:var(--font-mono);font-size:11px;padding:4px 8px;border:1px solid var(--border);border-radius:5px;background:var(--bg-elev);color:var(--text-primary);cursor:pointer;">제거</button>`
+            : `<span style="font-size:12px;color:var(--text-muted);">클릭 또는 드롭하여 로고 업로드</span>`}
+        </div>
+        <input type="file" accept="image/*" data-logofile="${i}" style="display:none;">`;
+      area.appendChild(f);
+      const drop = f.querySelector('.logo-drop');
+      const fileIn = f.querySelector('[data-logofile]');
+      const delBtn = f.querySelector('[data-logodel]');
+      drop.addEventListener('click', (e) => { if (e.target.closest('[data-logodel]')) return; fileIn.click(); });
+      fileIn.addEventListener('change', () => onCoverLogoFile(i, fileIn.files[0]));
+      if (delBtn) delBtn.addEventListener('click', (e) => { e.stopPropagation(); removeCoverLogo(i); });
+      drop.addEventListener('dragover', e => { e.preventDefault(); drop.style.borderColor = 'var(--accent)'; });
+      drop.addEventListener('dragleave', () => { drop.style.borderColor = 'var(--border)'; });
+      drop.addEventListener('drop', e => { e.preventDefault(); drop.style.borderColor = 'var(--border)'; if (e.dataTransfer.files[0]) onCoverLogoFile(i, e.dataTransfer.files[0]); });
+    }
+  };
+
   const renderMainFields = () => {
     if (!v.main) return;
     const lines = spec.selectableLines ? currentMainLines : (v.main.lines || 1);
@@ -3844,6 +3898,29 @@ function renderInputs() {
     const subSpec = spec.coverStack
       ? `${fsStr('sub')}  │  Pretendard Bold · 자간 -2%<br>박스 on/off · 색 선택 (글자색 자동)`
       : `${fsStr('sub')}  │  Medium<br>행간 ${v.sub.lh || '130%'}  │  자간 -0.5px  │  컬러 ${v.sub.color}`;
+    // 표지: 서브 자리에 텍스트 / 로고 1개 / 로고 2개 선택
+    if (spec.coverStack && spec.coverLogoOption) {
+      const mode = currentCoverLogo.mode;
+      const modeField = document.createElement('div');
+      modeField.className = 'field';
+      modeField.innerHTML = `
+        <div class="field-label">서브 영역</div>
+        <div class="field-spec">서브 카피 자리에 텍스트 또는 로고(1~2개)를 배치.</div>
+        <div class="text-color-segments" style="margin-top:8px;">
+          <div class="text-color-segment ${mode === 'text' ? 'active' : ''}" data-cmode="text">텍스트</div>
+          <div class="text-color-segment ${mode === 'logo1' ? 'active' : ''}" data-cmode="logo1">로고 1개</div>
+          <div class="text-color-segment ${mode === 'logo2' ? 'active' : ''}" data-cmode="logo2">로고 2개</div>
+        </div>`;
+      area.appendChild(modeField);
+      modeField.querySelectorAll('[data-cmode]').forEach(seg => seg.addEventListener('click', () => setCoverSubMode(seg.dataset.cmode)));
+      if (mode === 'text') {
+        area.appendChild(makeField('sub', '서브 카피', subSpec, 1));
+        appendSubBoxControl();
+      } else {
+        appendCoverLogoUploads(mode === 'logo2' ? 2 : 1);
+      }
+      return;
+    }
     const subLines = v.sub.lines || 1;
     if (subLines >= 3) {
       area.appendChild(makeField('sub1', '서브 카피 1줄', subSpec, 1));
@@ -6021,8 +6098,30 @@ function buildCoverStack(banner, v, spec) {
     });
     return block;
   };
-  // 서브 카피 (위)
-  if (v.sub && !spec.noSub) {
+  // 서브 영역 (위) — 로고 모드면 로고(1~2개+구분선), 아니면 서브 카피
+  const logoMode = spec.coverLogoOption && currentCoverLogo.mode !== 'text';
+  if (logoMode) {
+    const count = currentCoverLogo.mode === 'logo2' ? 2 : 1;
+    const logos = currentCoverLogo.logos.slice(0, count).filter(Boolean);
+    if (logos.length) {
+      const LOGO_H = 90;
+      const dividerCol = resolveTextColor('#FFFFFF', v);   // 표지 글자색(다크 위 흰색)과 동일
+      const row = document.createElement('div');
+      row.style.cssText = `display:flex;align-items:center;gap:36px;max-width:100%;`;
+      logos.forEach((src, i) => {
+        if (i > 0) {
+          const divider = document.createElement('div');
+          divider.style.cssText = `width:2px;height:${LOGO_H}px;background:${dividerCol};flex:0 0 auto;`;
+          row.appendChild(divider);
+        }
+        const img = document.createElement('img');
+        img.src = src;
+        img.style.cssText = `height:${LOGO_H}px;width:auto;max-width:420px;object-fit:contain;display:block;`;
+        row.appendChild(img);
+      });
+      wrap.appendChild(row);
+    }
+  } else if (v.sub && !spec.noSub) {
     const subLines = coverCopyLines('sub', v.sub.lines || 1, '서브 카피');
     const subBoxed = spec.copyBoxStyle && currentCopyBox.sub;
     // 서브 카피 = Pretendard Bold · 자간 -2% (INNER 그대로). 박스 시 색만 덮어씀.
