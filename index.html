@@ -2336,6 +2336,24 @@ function setBoxCopyMode(mode) {
   updateTextColorUI();
   renderPreviews();
 }
+// 박스 카피 박스 색 / 텍스트 색 (E5) — 슬라이드별 보존. 폰트는 currentCopyFonts(카피 폰트)로 별도 선택.
+const BOX_COPY_COLORS = ['#FFFFFF', '#1A1A1A', '#0077FE', '#FFFAAB', '#FF5E3C'];
+let currentBoxStyle = { boxColor: '#FFFFFF', textColor: '#1A1A1A' };
+function freshBoxStyle() { return { boxColor: '#FFFFFF', textColor: '#1A1A1A' }; }
+function setBoxColor(hex, reRender) {
+  const spec = SPECS[currentProduct].slots[currentSlot];
+  if (!spec || !spec.boxCopyStack) return;
+  currentBoxStyle.boxColor = hex;
+  if (reRender) preserveInputsAcross(renderInputs);
+  renderPreviews();
+}
+function setBoxTextColor(hex, reRender) {
+  const spec = SPECS[currentProduct].slots[currentSlot];
+  if (!spec || !spec.boxCopyStack) return;
+  currentBoxStyle.textColor = hex;
+  if (reRender) preserveInputsAcross(renderInputs);
+  renderPreviews();
+}
 // 박스 카피 이미지 영역 (E5) — 'full'(배경 전체) | 'top'(카피 박스 위 70px에서 끝남). 슬라이드별 보존.
 let currentBoxImageMode = 'full';
 function setBoxImageMode(mode) {
@@ -2808,6 +2826,7 @@ function freshSlideState() {
     copyFonts: freshCopyFonts(),
     boxMode: 'box',
     boxPos: { x: 70, y: 0 },
+    boxStyle: freshBoxStyle(),
     boxImg: 'full',
   };
 }
@@ -2836,6 +2855,7 @@ function snapshotActiveSlide() {
     copyFonts: { ...currentCopyFonts },
     boxMode: currentBoxCopyMode,
     boxPos: { ...currentBoxCopyPos },
+    boxStyle: { ...currentBoxStyle },
     boxImg: currentBoxImageMode,
   };
 }
@@ -2856,6 +2876,7 @@ function applySlideToCurrent(idx) {
   currentCopyFonts = { ...freshCopyFonts(), ...(st.copyFonts || {}) };
   currentBoxCopyMode = st.boxMode || (st.boxOn === false ? 'none' : 'box');
   currentBoxCopyPos = st.boxPos ? { ...st.boxPos } : { x: 70, y: 0 };
+  currentBoxStyle = { ...freshBoxStyle(), ...(st.boxStyle || {}) };
   currentBoxImageMode = st.boxImg || 'full';
   activeSlideIdx[currentSlot] = idx;
 }
@@ -3168,6 +3189,7 @@ function onSlotChange() {
   currentCopyFonts = freshCopyFonts();
   currentBoxCopyMode = 'box';
   currentBoxCopyPos = { x: 70, y: 0 };
+  currentBoxStyle = freshBoxStyle();
   currentBoxImageMode = 'full';
   currentCoverLogo = freshCoverLogo();
   currentSubPill = { fill: false, bg: '#FF4F1F', textColor: '#FFFFFF' };
@@ -3354,9 +3376,8 @@ function updateTextColorUI() {
   const dark = spec?.perVersionBg
     ? (spec.versions || []).some(v => isDarkBg(getBgFor(v)))
     : isDarkBg(currentBg);
-  // E5 박스 카피: 박스 OFF면 배경 이미지 위에 카피만 → 흰/검 토글 노출
-  const boxOffText = spec?.boxCopyStack && currentBoxCopyMode === 'none';
-  const showToggle = dark || boxOffText;
+  // 박스 카피(E5)는 자체 텍스트 색 컨트롤(currentBoxStyle)이 있어 기본 흰/검 토글은 숨김
+  const showToggle = dark && !spec?.boxCopyStack;
   toggle.classList.toggle('show', showToggle);
   if (!showToggle) currentTextColorMode = 'auto';
   // active 세그먼트는 명시 모드(white/black) 기준으로만 표시
@@ -3937,6 +3958,32 @@ function renderInputs() {
       </div>
       <div class="field-spec">박스: 하단 고정 · 없음: 배경 위 카피만 · 자유 박스: 미리보기에서 드래그로 위치 이동(크기는 글자 수에 따라 자동).</div>`;
     area.appendChild(bf);
+    // 박스 색 / 텍스트 색 스와치 (+ 직접 선택). 박스 색은 '없음' 모드에선 숨김.
+    const colorRow = (label, current, fnName) => {
+      const f = document.createElement('div');
+      f.className = 'field';
+      const isPreset = BOX_COPY_COLORS.some(c => c.toUpperCase() === current.toUpperCase());
+      const sw = BOX_COPY_COLORS.map(c => `<span data-pick="${c}" title="${c}" style="width:24px;height:24px;border-radius:50%;background:${c};cursor:pointer;border:1px solid rgba(0,0,0,0.18);box-shadow:${current.toUpperCase() === c.toUpperCase() ? '0 0 0 2px var(--card),0 0 0 3px var(--ink)' : 'none'};"></span>`).join('');
+      f.innerHTML = `
+        <div class="field-label">${label}</div>
+        <div style="position:relative;display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:6px;">
+          ${sw}
+          <span data-custom="1" title="직접 선택 (${current.toUpperCase()})" style="width:24px;height:24px;border-radius:50%;cursor:pointer;border:1px solid var(--border);background:conic-gradient(red,#ff0,lime,cyan,blue,magenta,red);box-shadow:${!isPreset ? '0 0 0 2px var(--card),0 0 0 3px var(--ink)' : 'none'};"></span>
+          <input type="color" value="${current}" style="position:absolute;width:0;height:0;opacity:0;pointer-events:none;">
+        </div>`;
+      area.appendChild(f);
+      f.querySelectorAll('[data-pick]').forEach(s => s.addEventListener('click', () => window[fnName](s.dataset.pick, true)));
+      const picker = f.querySelector('input[type="color"]');
+      const customSw = f.querySelector('[data-custom]');
+      if (customSw && picker) customSw.addEventListener('click', () => picker.click());
+      if (picker) {
+        picker.addEventListener('input', () => window[fnName](picker.value, false));   // 드래그 중 라이브
+        picker.addEventListener('change', () => window[fnName](picker.value, true));    // 확정 시 스와치 갱신
+      }
+      return f;
+    };
+    if (currentBoxCopyMode !== 'none') colorRow('박스 색', currentBoxStyle.boxColor, 'setBoxColor');
+    colorRow('텍스트 색', currentBoxStyle.textColor, 'setBoxTextColor');
   }
   // 카피 폰트 선택 (copyFontSelect 슬롯 — E5 박스 카피) — 메인/서브 각각 폰트
   if (spec.copyFontSelect) {
@@ -6230,10 +6277,10 @@ function buildBoxCopy(banner, v, spec) {
   const mode = currentBoxCopyMode;          // 'box' | 'none' | 'free'
   const showBox = mode !== 'none';
   const free = mode === 'free';
-  // 박스/자유 → 흰 박스 위 어두운 글자. 없음 → 배경 이미지 위 카피 (기본 흰색, 토글로 검정).
-  const txtCol = showBox ? '#1A1A1A' : (currentTextColorMode === 'black' ? '#1A1A1A' : '#FFFFFF');
-  const bgCss = showBox ? (cb.bg || '#FFFFFF') : 'transparent';
-  const borderCss = showBox ? (cb.border || 'none') : 'none';
+  // 박스 색 / 텍스트 색은 사용자 선택(currentBoxStyle). 박스 테두리는 박스 색이 흰색일 때만 노출(다른 색은 면색이 곧 박스).
+  const txtCol = currentBoxStyle.textColor;
+  const bgCss = showBox ? currentBoxStyle.boxColor : 'transparent';
+  const borderCss = (showBox && currentBoxStyle.boxColor.toUpperCase() === '#FFFFFF') ? (cb.border || 'none') : 'none';
   const common = `background:${bgCss};border:${borderCss};border-radius:${cb.radius || 0}px;box-sizing:border-box;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:${innerPad}px;`;
   // 자유 박스: 글자 수에 따라 폭이 줄도록 좌우 max-width(좌우 70 여백 기준), 위치는 currentBoxCopyPos로 드래그.
   const freeMaxW = v.w - 2 * 70;
