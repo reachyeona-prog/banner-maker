@@ -2320,12 +2320,18 @@ function setCopyFont(which, id) {
   currentCopyFonts[which] = id;
   renderPreviews();
 }
-// 박스 카피 박스 유무 (E5 boxCopyStack) — 흰 박스 표시 on/off. 슬라이드별 보존.
-let currentBoxCopyOn = true;
-function setBoxCopyOn(on) {
+// 박스 카피 박스 모드 (E5 boxCopyStack) — 'box'(하단 고정 박스) | 'none'(박스 없이 카피만) | 'free'(자유 위치 + 글자수 자동 크기). 슬라이드별 보존.
+let currentBoxCopyMode = 'box';
+let currentBoxCopyPos = { x: 70, y: 0 };   // 자유 박스 위치(px, 1배수 좌표)
+function setBoxCopyMode(mode) {
   const spec = SPECS[currentProduct].slots[currentSlot];
   if (!spec || !spec.boxCopyStack) return;
-  currentBoxCopyOn = on;
+  // 자유 박스로 처음 전환 시 위치 미설정이면 하단 영역(좌측 70 · 세로 60%)으로 초기화
+  if (mode === 'free' && !currentBoxCopyPos._set) {
+    const v = spec.versions[0];
+    currentBoxCopyPos = { x: 70, y: Math.round((v ? v.h : 1440) * 0.6), _set: true };
+  }
+  currentBoxCopyMode = mode;
   preserveInputsAcross(renderInputs);
   updateTextColorUI();
   renderPreviews();
@@ -2800,7 +2806,8 @@ function freshSlideState() {
     shapes: [],
     speechBubbles: {},
     copyFonts: freshCopyFonts(),
-    boxOn: true,
+    boxMode: 'box',
+    boxPos: { x: 70, y: 0 },
     boxImg: 'full',
   };
 }
@@ -2827,7 +2834,8 @@ function snapshotActiveSlide() {
     shapes: currentShapes.map(o => ({ ...o })),
     speechBubbles: _cloneState(currentSpeechBubbles),
     copyFonts: { ...currentCopyFonts },
-    boxOn: currentBoxCopyOn,
+    boxMode: currentBoxCopyMode,
+    boxPos: { ...currentBoxCopyPos },
     boxImg: currentBoxImageMode,
   };
 }
@@ -2846,7 +2854,8 @@ function applySlideToCurrent(idx) {
   currentShapes = (st.shapes || []).map(o => ({ ...o }));
   currentSpeechBubbles = _cloneState(st.speechBubbles || {});
   currentCopyFonts = { ...freshCopyFonts(), ...(st.copyFonts || {}) };
-  currentBoxCopyOn = st.boxOn !== false;
+  currentBoxCopyMode = st.boxMode || (st.boxOn === false ? 'none' : 'box');
+  currentBoxCopyPos = st.boxPos ? { ...st.boxPos } : { x: 70, y: 0 };
   currentBoxImageMode = st.boxImg || 'full';
   activeSlideIdx[currentSlot] = idx;
 }
@@ -3157,7 +3166,8 @@ function onSlotChange() {
   currentFreeImages = [];
   currentShapes = [];
   currentCopyFonts = freshCopyFonts();
-  currentBoxCopyOn = true;
+  currentBoxCopyMode = 'box';
+  currentBoxCopyPos = { x: 70, y: 0 };
   currentBoxImageMode = 'full';
   currentCoverLogo = freshCoverLogo();
   currentSubPill = { fill: false, bg: '#FF4F1F', textColor: '#FFFFFF' };
@@ -3345,7 +3355,7 @@ function updateTextColorUI() {
     ? (spec.versions || []).some(v => isDarkBg(getBgFor(v)))
     : isDarkBg(currentBg);
   // E5 박스 카피: 박스 OFF면 배경 이미지 위에 카피만 → 흰/검 토글 노출
-  const boxOffText = spec?.boxCopyStack && !currentBoxCopyOn;
+  const boxOffText = spec?.boxCopyStack && currentBoxCopyMode === 'none';
   const showToggle = dark || boxOffText;
   toggle.classList.toggle('show', showToggle);
   if (!showToggle) currentTextColorMode = 'auto';
@@ -3911,19 +3921,21 @@ function renderInputs() {
     renderMainFields();
     renderSubFields();
   }
-  // 박스 유무 토글 (E5 박스 카피)
+  // 카피 박스 모드 토글 (E5 박스 카피) — 박스 / 없음 / 자유 박스
   if (spec.boxCopyStack) {
     const bf = document.createElement('div');
     bf.className = 'field';
+    const m = currentBoxCopyMode;
     bf.innerHTML = `
       <div class="field-label" style="display:flex;align-items:center;gap:10px;">
         카피 박스
         <div class="text-color-segments" style="margin-left:auto;">
-          <div class="text-color-segment ${currentBoxCopyOn ? 'active' : ''}" onclick="setBoxCopyOn(true)">박스</div>
-          <div class="text-color-segment ${!currentBoxCopyOn ? 'active' : ''}" onclick="setBoxCopyOn(false)">없음</div>
+          <div class="text-color-segment ${m === 'box' ? 'active' : ''}" onclick="setBoxCopyMode('box')">박스</div>
+          <div class="text-color-segment ${m === 'none' ? 'active' : ''}" onclick="setBoxCopyMode('none')">없음</div>
+          <div class="text-color-segment ${m === 'free' ? 'active' : ''}" onclick="setBoxCopyMode('free')">자유 박스</div>
         </div>
       </div>
-      <div class="field-spec">흰 박스(검정 테두리) 표시 여부. '없음'이면 배경 이미지 위에 카피만.</div>`;
+      <div class="field-spec">박스: 하단 고정 · 없음: 배경 위 카피만 · 자유 박스: 미리보기에서 드래그로 위치 이동(크기는 글자 수에 따라 자동).</div>`;
     area.appendChild(bf);
   }
   // 카피 폰트 선택 (copyFontSelect 슬롯 — E5 박스 카피) — 메인/서브 각각 폰트
@@ -5136,10 +5148,16 @@ function adjustBoxCopyImages(spec) {
     const imgC = banner.querySelector('.b-img-editable');
     if (!imgC) return;
     if (currentBoxImageMode === 'top') {
-      const box = banner.querySelector('.box-copy');
-      const padBottom = (v.copyBox && v.copyBox.paddingBottom) || 0;
-      const boxH = box ? box.offsetHeight : 0;
-      const imgBottom = Math.max(0, v.h - padBottom - boxH - BOX_COPY_IMG_GAP);
+      let imgBottom;
+      if (currentBoxCopyMode === 'free') {
+        // 자유 박스: 이미지가 박스 top 위 70px에서 끝남
+        imgBottom = Math.max(0, currentBoxCopyPos.y - BOX_COPY_IMG_GAP);
+      } else {
+        const box = banner.querySelector('.box-copy');
+        const padBottom = (v.copyBox && v.copyBox.paddingBottom) || 0;
+        const boxH = box ? box.offsetHeight : 0;
+        imgBottom = Math.max(0, v.h - padBottom - boxH - BOX_COPY_IMG_GAP);
+      }
       imgC.style.height = imgBottom + 'px';
       // 이미지 cover-fit을 상단 영역(v.w × imgBottom) 기준으로 재계산 —
       //   buildBanner는 전체 프레임(v.h) 기준 중앙 정렬이라 클립만 하면 위가 안 참.
@@ -6209,12 +6227,24 @@ function buildBoxCopy(banner, v, spec) {
   const innerPad = (cb.innerPadding !== undefined) ? cb.innerPadding : 40;
   const mainFontCss = getSpeechBubbleFontCss(currentCopyFonts.main);
   const subFontCss = getSpeechBubbleFontCss(currentCopyFonts.sub);
-  const showBox = currentBoxCopyOn;   // 박스 유무 토글
-  // 박스 ON → 흰 박스 위 어두운 글자. 박스 OFF → 배경 이미지 위 카피 (기본 흰색, 토글로 검정).
+  const mode = currentBoxCopyMode;          // 'box' | 'none' | 'free'
+  const showBox = mode !== 'none';
+  const free = mode === 'free';
+  // 박스/자유 → 흰 박스 위 어두운 글자. 없음 → 배경 이미지 위 카피 (기본 흰색, 토글로 검정).
   const txtCol = showBox ? '#1A1A1A' : (currentTextColorMode === 'black' ? '#1A1A1A' : '#FFFFFF');
+  const bgCss = showBox ? (cb.bg || '#FFFFFF') : 'transparent';
+  const borderCss = showBox ? (cb.border || 'none') : 'none';
+  const common = `background:${bgCss};border:${borderCss};border-radius:${cb.radius || 0}px;box-sizing:border-box;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:${innerPad}px;`;
+  // 자유 박스: 글자 수에 따라 폭이 줄도록 좌우 max-width(좌우 70 여백 기준), 위치는 currentBoxCopyPos로 드래그.
+  const freeMaxW = v.w - 2 * 70;
+  const childWidthCss = free ? `max-width:${freeMaxW - 2 * innerPad}px;` : 'width:100%;';
   const box = document.createElement('div');
   box.className = 'box-copy';   // 렌더 후 높이 측정용 (상단 이미지 모드)
-  box.style.cssText = `position:absolute;left:${cb.left}px;right:${cb.right}px;bottom:${cb.paddingBottom || 0}px;background:${showBox ? (cb.bg || '#FFFFFF') : 'transparent'};border:${showBox ? (cb.border || 'none') : 'none'};border-radius:${cb.radius || 0}px;box-sizing:border-box;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:${innerPad}px;`;
+  if (free) {
+    box.style.cssText = `position:absolute;left:${currentBoxCopyPos.x}px;top:${currentBoxCopyPos.y}px;max-width:${freeMaxW}px;${common}cursor:move;user-select:none;`;
+  } else {
+    box.style.cssText = `position:absolute;left:${cb.left}px;right:${cb.right}px;bottom:${cb.paddingBottom || 0}px;${common}`;
+  }
   const mainText = getVal('main');
   const subText = getVal('sub');
   // 메인 생략 가능 — 메인이 비면 메인 블록 자체를 그리지 않음(서브만). 단, 둘 다 비면 placeholder로 빈 박스 형태 유지.
@@ -6223,7 +6253,7 @@ function buildBoxCopy(banner, v, spec) {
   if (v.main && (mainText || showMainPlaceholder)) {
     const mLines = coverCopyLines('main', v.main.lines || 1, '메인 카피');
     const m = document.createElement('div');
-    m.style.cssText = `width:100%;font-family:${mainFontCss};font-weight:700;font-size:${v.main.fs}px;line-height:${v.main.lh || '130%'};letter-spacing:-0.02em;color:${txtCol};text-align:center;white-space:pre-line;word-break:keep-all;`;
+    m.style.cssText = `${childWidthCss}font-family:${mainFontCss};font-weight:700;font-size:${v.main.fs}px;line-height:${v.main.lh || '130%'};letter-spacing:-0.02em;color:${txtCol};text-align:center;white-space:pre-line;word-break:keep-all;`;
     m.innerHTML = mLines.map(l => applyPointColor(l)).join('<br>');
     box.appendChild(m);
     mainRendered = true;
@@ -6231,11 +6261,34 @@ function buildBoxCopy(banner, v, spec) {
   if (v.sub && subText) {
     const sdiv = document.createElement('div');
     const gap = mainRendered ? Math.round((v.main ? v.main.fs : 50) * 0.42) : 0;
-    sdiv.style.cssText = `width:100%;margin-top:${gap}px;font-family:${subFontCss};font-weight:${v.sub.fw || 500};font-size:${v.sub.fs}px;line-height:${v.sub.lh || '150%'};letter-spacing:-0.02em;color:${txtCol};text-align:center;white-space:pre-line;word-break:keep-all;`;
+    sdiv.style.cssText = `${childWidthCss}margin-top:${gap}px;font-family:${subFontCss};font-weight:${v.sub.fw || 500};font-size:${v.sub.fs}px;line-height:${v.sub.lh || '150%'};letter-spacing:-0.02em;color:${txtCol};text-align:center;white-space:pre-line;word-break:keep-all;`;
     sdiv.innerHTML = applyPointColor(subText).replace(/\n/g, '<br>');
     box.appendChild(sdiv);
   }
   banner.appendChild(box);
+  if (free) attachBoxCopyDrag(box, v);
+}
+// 자유 박스 드래그 — 미리보기에서 카피 박스를 마우스로 이동. previewScale(0.4) 보정.
+function attachBoxCopyDrag(box, v) {
+  if (!editableImageAbort) editableImageAbort = new AbortController();
+  const signal = editableImageAbort.signal;
+  const spec = SPECS[currentProduct].slots[currentSlot];
+  const previewScale = spec && spec.isLarge ? 0.4 : 1;
+  let dragging = false, lastX = 0, lastY = 0;
+  box.addEventListener('mousedown', e => {
+    e.preventDefault(); e.stopPropagation();
+    dragging = true; lastX = e.clientX; lastY = e.clientY; box.style.cursor = 'grabbing';
+  }, { signal });
+  window.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    currentBoxCopyPos.x += (e.clientX - lastX) / previewScale;
+    currentBoxCopyPos.y += (e.clientY - lastY) / previewScale;
+    currentBoxCopyPos._set = true;
+    lastX = e.clientX; lastY = e.clientY;
+    box.style.left = currentBoxCopyPos.x + 'px';
+    box.style.top = currentBoxCopyPos.y + 'px';
+  }, { signal });
+  window.addEventListener('mouseup', () => { if (dragging) { dragging = false; box.style.cursor = 'move'; } }, { signal });
 }
 function buildBanner(v, spec) {
   // 마지막장 브랜딩 막지 분기 (입력/가이드 없는 고정 카드)
