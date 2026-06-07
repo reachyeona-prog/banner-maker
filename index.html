@@ -1310,29 +1310,27 @@ function applyCardNewsJSON() {
     productSel.value = 'cardnews';
     onProductChange();
   }
-  // 2) 내지 slideStates 세팅 — 같은 카피를 모든 내지 스타일(E2·E4·E5·E6)에 일괄 채운다.
+  // 2) 내지 slideStates 세팅 — 같은 카피를 모든 내지 스타일(E2·E4·E5)에 일괄 채운다.
   //    사용자는 슬롯(유형) 드롭다운에서 원하는 스타일을 골라 쓰면 됨.
   //    (이미 같은 슬롯을 직접 편집했다면 import가 덮어쓰니 주의)
-  const INTERIOR_SLOTS = ['E2', 'E4', 'E5', 'E6'];
+  const INTERIOR_SLOTS = ['E2', 'E4', 'E5'];
   const interiorCount = (data.interiors && Array.isArray(data.interiors)) ? data.interiors.length : 0;
   // 모든 내지 슬롯이 lines:3 max → mainLines 3 통일 (자동 감지로 실제 렌더는 2/3 적응)
   const interiorLines = 3;
   // interiors 한 항목을 슬롯들의 입력 필드로 매핑.
-  //   슬롯마다 필드 구조가 달라(예: E2·E4·E5는 메인 블록 main1~3 / E6은 헤드 main + 본문 sub1~3),
+  //   슬롯마다 필드 구조가 달라(E2·E4 메인 블록 main1~3 / E5 헤드 main + 본문 sub textarea),
   //   변형들을 모두 담아둔다. populateDOMFromActiveSlide가 실제 존재하는 필드만 가져가므로 충돌 없음.
-  //   본문은 sub1/sub2/sub3 우선, 없으면 main2/main3을 본문으로 (멀티라인 main 스키마와도 호환).
+  //   본문은 sub1/sub2/sub3 우선, 없으면 main2/main3을 본문으로.
   const interiorInputsFor = (it) => {
     const subLines = [it.sub1, it.sub2, it.sub3].map(x => x || '');
     const hasSub = subLines.some(x => String(x).trim());
     const body = hasSub ? subLines : [it.main2 || '', it.main3 || '', ''];
     return {
-      // 메인 카피 블록 (E2·E4·E5)
+      // 메인 카피 블록 (E2·E4)
       main1: (it.main1 || ''), main2: (it.main2 || ''), main3: (it.main3 || ''),
-      // 헤드 1줄 + 본문 3줄 (E6)
+      // E5 박스 카피: 헤드 1줄(main) + 본문(sub, 다줄 textarea — 엔터 줄바꿈)
       main: (it.main1 || ''),
-      sub1: body[0], sub2: body[1], sub3: body[2],
-      // 단일 sub(레거시 / E5 라벨)
-      sub: (it.sub || subLines[0] || ''),
+      sub: (it.sub || body.filter(x => String(x).trim()).join('\n')),
     };
   };
   if (interiorCount > 0) {
@@ -1750,37 +1748,21 @@ const SPECS = {
       //   sub 라벨 없이 메인만 — 깔끔 단일 컨테이너 스타일
       'E5': {
         label: '내지 (박스 카피)',
-        bgFixed: null, pointColor: true, noSub: true, isLarge: true, hasSourceNote: true,
+        bgFixed: null, pointColor: true, isLarge: true, hasSourceNote: true,
         multiSlide: true, freeImages: true, hasSpeechBubble: true,
+        boxCopyStack: true, copyFontSelect: true,   // 흰 박스 안 1줄 헤드(메인)+다줄 본문(서브) · 폰트 선택
         bgPresets: ['#FFFFFF', '#F4F1EA', '#1A1A1A'],
         versions: [{
           id: 'full', label: 'IG', uploadLabel: '배경 이미지', w: 1080, h: 1440,
           lockTextColor: true, noDefaultOverlay: true,
           img:  { top:0, left:0, w:1080, h:1440, bgFull:true, editable:true },
-          // 공통 패딩: 좌우 70 / 하단 100. autoHeight — 박스 높이 = main 줄 수에 따라 자동.
-          // innerPadding 36 — 박스 안쪽 상/하 패딩 (좌우 인셋 50과 균형: 박스70→텍스트120)
-          copyBox: { left:70, right:70, paddingBottom:100, innerPadding:36, autoHeight:true, bg:'#FFFFFF', radius:0, border:'2px solid #1A1A1A' },
-          main: { left:120, right:120, fs:46, lines:3, lh:'130%', center:true, color:'#1A1A1A' }
+          // 흰 박스(CSS autoHeight) 안: 메인(1줄 헤드, Bold) + 서브(다줄 본문, Medium). 좌우 70 / 하단 100 / 내부 40.
+          copyBox: { left:70, right:70, paddingBottom:100, innerPadding:40, bg:'#FFFFFF', radius:0, border:'2px solid #1A1A1A' },
+          main: { fs:56, lines:1, lh:'130%', color:'#1A1A1A' },
+          sub:  { fs:38, lines:1, lh:'150%', color:'#1A1A1A', freeText:true, fw:500 }
         }]
       },
-      // 내지 (서브 카피) — 이미지(상단 풀폭) + 메인 카피(1줄, 헤드) + 서브 카피(2~3줄, 본문)
-      //   sub는 bottom 고정 → 줄 수에 따라 main과 image도 동적 조정 (subDrivesMainPos)
-      //   공통 패딩: 좌우 70 / 하단 100. main-sub gap 30 / image-main gap 70.
-      'E6': {
-        label: '내지 (서브 카피)',
-        bgFixed: null, pointColor: true, isLarge: true, hasSourceNote: true,
-        multiSlide: true, showMainPad: true, freeImages: true, hasSpeechBubble: true,
-        bgPresets: ['#FFFFFF', '#F4F1EA', '#FDEDEF', '#E8F4FF', '#FFF8D7', '#F4F0FF', '#EFFCE7'],
-        versions: [{
-          id: 'box', label: '이미지 박스', uploadLabel: '이미지 박스', w: 1080, h: 1440,
-          sub:  { bottom:100, left:70, right:70, fs:40, lines:3, lh:'130%', center:true, color:'#1A1A1A' },
-          // main.bottom은 subDrivesMainPos가 동적 산출 (3줄 sub·lh130% 기준 286)
-          main: { bottom:286, left:70, right:70, fs:66, lines:1, lh:'130%', center:true, color:'#1A1A1A' },
-          // 이미지: 상단 풀폭. autoSize + subDrivesMainPos → sub 줄 수에 맞춰 height 자동 조정
-          //   3줄 sub: imgH=998, 2줄: 1050, 1줄: 1102 (lh130%·main fs66 기준)
-          img:  { top:0, left:0, w:1080, h:998, editable:true, autoSize:true, gapToText:70, subDrivesMainPos:true, mainSubGap:30 }
-        }]
-      },
+      // (E6 '내지 (서브 카피)' 삭제 — E5 박스 카피가 헤드+본문을 대체)
       // 마지막장 (브랜딩 막지) — 흰 배경 + 가운데 페이히어 로고 + 태그라인. 입력 없는 고정 카드.
       'E7': {
         label: '막지 (브랜딩)',
@@ -2367,6 +2349,25 @@ function setSpeechBubbleBg(hex) {
   spec.versions.forEach(v => { getSpeechBubble(v).bgColor = hex; });
   renderPreviews();
 }
+// 카피 폰트 선택 (boxCopyStack 등 copyFontSelect 슬롯) — 메인/서브 각각 폰트 id. 슬라이드별 보존.
+let currentCopyFonts = { main: 'pretendard', sub: 'pretendard' };
+function freshCopyFonts() { return { main: 'pretendard', sub: 'pretendard' }; }
+function setCopyFont(which, id) {
+  const spec = SPECS[currentProduct].slots[currentSlot];
+  if (!spec || !spec.copyFontSelect) return;
+  currentCopyFonts[which] = id;
+  renderPreviews();
+}
+// 박스 카피 박스 유무 (E5 boxCopyStack) — 흰 박스 표시 on/off. 슬라이드별 보존.
+let currentBoxCopyOn = true;
+function setBoxCopyOn(on) {
+  const spec = SPECS[currentProduct].slots[currentSlot];
+  if (!spec || !spec.boxCopyStack) return;
+  currentBoxCopyOn = on;
+  preserveInputsAcross(renderInputs);
+  updateTextColorUI();
+  renderPreviews();
+}
 function setSpeechBubbleDirection(dir) {
   const spec = SPECS[currentProduct].slots[currentSlot];
   if (!spec || !spec.hasSpeechBubble) return;
@@ -2804,6 +2805,8 @@ function freshSlideState() {
     freeImages: [],
     shapes: [],
     speechBubbles: {},
+    copyFonts: freshCopyFonts(),
+    boxOn: true,
   };
 }
 function snapshotActiveSlide() {
@@ -2828,6 +2831,8 @@ function snapshotActiveSlide() {
     freeImages: currentFreeImages.map(o => ({ ...o })),
     shapes: currentShapes.map(o => ({ ...o })),
     speechBubbles: _cloneState(currentSpeechBubbles),
+    copyFonts: { ...currentCopyFonts },
+    boxOn: currentBoxCopyOn,
   };
 }
 function applySlideToCurrent(idx) {
@@ -2844,6 +2849,8 @@ function applySlideToCurrent(idx) {
   currentFreeImages = (st.freeImages || []).map(o => ({ ...o }));
   currentShapes = (st.shapes || []).map(o => ({ ...o }));
   currentSpeechBubbles = _cloneState(st.speechBubbles || {});
+  currentCopyFonts = { ...freshCopyFonts(), ...(st.copyFonts || {}) };
+  currentBoxCopyOn = st.boxOn !== false;
   activeSlideIdx[currentSlot] = idx;
 }
 function populateDOMFromActiveSlide() {
@@ -3150,6 +3157,8 @@ function onSlotChange() {
   currentSourceNote = { enabled: false, text: '' };
   currentFreeImages = [];
   currentShapes = [];
+  currentCopyFonts = freshCopyFonts();
+  currentBoxCopyOn = true;
   currentSubPill = { fill: false, bg: '#FF4F1F', textColor: '#FFFFFF' };
   currentCopyBox = freshCopyBox();
   // 미리보기에 붙어있던 이전 슬롯의 마우스 핸들러 정리
@@ -3334,8 +3343,11 @@ function updateTextColorUI() {
   const dark = spec?.perVersionBg
     ? (spec.versions || []).some(v => isDarkBg(getBgFor(v)))
     : isDarkBg(currentBg);
-  toggle.classList.toggle('show', dark);
-  if (!dark) currentTextColorMode = 'auto';
+  // E5 박스 카피: 박스 OFF면 배경 이미지 위에 카피만 → 흰/검 토글 노출
+  const boxOffText = spec?.boxCopyStack && !currentBoxCopyOn;
+  const showToggle = dark || boxOffText;
+  toggle.classList.toggle('show', showToggle);
+  if (!showToggle) currentTextColorMode = 'auto';
   // active 세그먼트는 명시 모드(white/black) 기준으로만 표시
   document.getElementById('text-seg-white').classList.toggle('active', currentTextColorMode === 'white');
   document.getElementById('text-seg-black').classList.toggle('active', currentTextColorMode === 'black');
@@ -3808,6 +3820,20 @@ function renderInputs() {
 
   const renderSubFields = () => {
     if (!v.sub || spec.noSub) return;
+    if (v.sub.freeText) {
+      // 다줄 본문 — 단일 textarea (엔터로 줄바꿈, 무제한). Medium.
+      const f = document.createElement('div');
+      f.className = 'field';
+      f.innerHTML = `
+        <div class="field-label">서브 카피 (본문)</div>
+        <div class="field-spec">${v.sub.fs}px · Medium · 폰트 선택 · 엔터로 줄바꿈 (무제한)</div>
+        <div class="field-row">
+          <textarea id="f-sub" rows="3" placeholder="서브 카피 (엔터로 줄바꿈)" style="flex:1;min-height:76px;padding:8px 10px;font-family:var(--font);font-size:13px;color:var(--text-primary);background:var(--card);border:1px solid var(--border);border-radius:6px;outline:none;resize:vertical;line-height:1.4;"></textarea>
+        </div>`;
+      area.appendChild(f);
+      f.querySelector('#f-sub').addEventListener('input', () => renderPreviews());
+      return;
+    }
     const subSpec = spec.coverStack
       ? `${fsStr('sub')}  │  Pretendard Bold · 자간 -2%<br>박스 on/off · 색 선택 (글자색 자동)`
       : `${fsStr('sub')}  │  Medium<br>행간 ${v.sub.lh || '130%'}  │  자간 -0.5px  │  컬러 ${v.sub.color}`;
@@ -3831,6 +3857,40 @@ function renderInputs() {
   } else {
     renderMainFields();
     renderSubFields();
+  }
+  // 박스 유무 토글 (E5 박스 카피)
+  if (spec.boxCopyStack) {
+    const bf = document.createElement('div');
+    bf.className = 'field';
+    bf.innerHTML = `
+      <div class="field-label" style="display:flex;align-items:center;gap:10px;">
+        카피 박스
+        <div class="text-color-segments" style="margin-left:auto;">
+          <div class="text-color-segment ${currentBoxCopyOn ? 'active' : ''}" onclick="setBoxCopyOn(true)">박스</div>
+          <div class="text-color-segment ${!currentBoxCopyOn ? 'active' : ''}" onclick="setBoxCopyOn(false)">없음</div>
+        </div>
+      </div>
+      <div class="field-spec">흰 박스(검정 테두리) 표시 여부. '없음'이면 배경 이미지 위에 카피만.</div>`;
+    area.appendChild(bf);
+  }
+  // 카피 폰트 선택 (copyFontSelect 슬롯 — E5 박스 카피) — 메인/서브 각각 폰트
+  if (spec.copyFontSelect) {
+    const opts = (sel) => SPEECH_BUBBLE_FONTS.map(f => `<option value="${f.id}" ${currentCopyFonts[sel] === f.id ? 'selected' : ''}>${f.label}</option>`).join('');
+    const ff = document.createElement('div');
+    ff.className = 'field';
+    ff.innerHTML = `
+      <div class="field-label">카피 폰트</div>
+      <div class="template-text-row" style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <label style="flex:0 0 56px;font-family:var(--font-mono);font-size:10px;color:var(--text-muted);letter-spacing:0.05em;text-transform:uppercase;">메인</label>
+        <select id="f-mainfont" style="flex:1;height:32px;padding:0 10px;font-family:var(--font);font-size:12px;color:var(--text-primary);background:var(--card);border:1px solid var(--border);border-radius:6px;outline:none;cursor:pointer;">${opts('main')}</select>
+      </div>
+      <div class="template-text-row" style="display:flex;align-items:center;gap:8px;">
+        <label style="flex:0 0 56px;font-family:var(--font-mono);font-size:10px;color:var(--text-muted);letter-spacing:0.05em;text-transform:uppercase;">서브</label>
+        <select id="f-subfont" style="flex:1;height:32px;padding:0 10px;font-family:var(--font);font-size:12px;color:var(--text-primary);background:var(--card);border:1px solid var(--border);border-radius:6px;outline:none;cursor:pointer;">${opts('sub')}</select>
+      </div>`;
+    area.appendChild(ff);
+    ff.querySelector('#f-mainfont').addEventListener('change', e => setCopyFont('main', e.target.value));
+    ff.querySelector('#f-subfont').addEventListener('change', e => setCopyFont('sub', e.target.value));
   }
   // 텍스트 필드가 전혀 없는 슬롯 (예: 웹 블로그 아이콘/실사 썸네일) — 안내 메시지 노출
   if (!v.main && (!v.sub || spec.noSub) && !spec.hasButton) {
@@ -5036,6 +5096,11 @@ function buildEditableImage(banner, v) {
     img.draggable = false;
     img.style.cssText = `width:${fitW}px;height:${fitH}px;display:block;position:absolute;left:${baseX}px;top:${baseY}px;max-width:none;transform-origin:center center;transform:translate(${state.x}px, ${state.y}px) rotate(${state.rotation || 0}deg) scale(${state.scale});pointer-events:none;`;
     container.appendChild(img);
+    // 커버리지 가이드 — 조절 중 프레임 미충족(여백) 영역을 빨간 띠로 표시 (평소 숨김)
+    const guide = document.createElement('div');
+    guide.className = 'b-img-coverguide';
+    guide.style.cssText = 'position:absolute;inset:0;pointer-events:none;display:none;z-index:3;';
+    container.appendChild(guide);
   } else {
     const ph = document.createElement('div');
     ph.style.cssText = `width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#D0D0D0;font-size:32px;font-weight:600;gap:14px;letter-spacing:-0.5px;`;
@@ -5151,7 +5216,7 @@ function shapeSVGMarkup(item) {
   if (item.type === 'circle') {
     inner = `<ellipse cx="${w / 2}" cy="${h / 2}" rx="${Math.max(1, (w - sw) / 2)}" ry="${Math.max(1, (h - sw) / 2)}" fill="none" stroke="${item.color}" stroke-width="${sw}"/>`;
   } else if (item.type === 'roundrect') {
-    inner = `<rect x="${sw / 2}" y="${sw / 2}" width="${Math.max(1, w - sw)}" height="${Math.max(1, h - sw)}" rx="${(Math.min(w, h) * 0.18).toFixed(1)}" fill="none" stroke="${item.color}" stroke-width="${sw}"/>`;
+    inner = `<rect x="${sw / 2}" y="${sw / 2}" width="${Math.max(1, w - sw)}" height="${Math.max(1, h - sw)}" rx="${Math.min(100, (Math.min(w, h) - sw) / 2).toFixed(1)}" fill="none" stroke="${item.color}" stroke-width="${sw}"/>`;
   } else { // arrow (→)
     const cy = h / 2, tip = w - sw / 2, sx = sw / 2, hl = Math.min(w * 0.5, h * 0.9), hh = h * 0.32;
     inner = `<path d="M ${sx} ${cy} L ${tip.toFixed(1)} ${cy} M ${(tip - hl).toFixed(1)} ${(cy - hh).toFixed(1)} L ${tip.toFixed(1)} ${cy} L ${(tip - hl).toFixed(1)} ${(cy + hh).toFixed(1)}" fill="none" stroke="${item.color}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"/>`;
@@ -5182,7 +5247,7 @@ function buildShapeMagnifier(banner, v, item) {
   if (!img) return;
   const z = item.magnify;
   const cx = item.x + item.w / 2, cy = item.y + item.h / 2;
-  const r = item.type === 'circle' ? '50%' : (Math.min(item.w, item.h) * 0.18).toFixed(1) + 'px';
+  const r = item.type === 'circle' ? '50%' : Math.min(100, (Math.min(item.w, item.h)) / 2).toFixed(1) + 'px';
   const lens = document.createElement('div');
   lens.className = 'b-shape-lens';
   lens.style.cssText = `position:absolute;left:${item.x}px;top:${item.y}px;width:${item.w}px;height:${item.h}px;overflow:hidden;border-radius:${r};z-index:11;pointer-events:none;`;
@@ -5399,6 +5464,38 @@ function attachEditableImageHandlers(container, v) {
   const apply = () => {
     img.style.transform = `translate(${state.x}px, ${state.y}px) rotate(${state.rotation}deg) scale(${state.scale})`;
   };
+  // 커버리지 가이드 — 이미지가 프레임을 안 덮는 여백을 빨간 띠로, 꽉 차면 초록 테두리로 표시 (조작 중에만)
+  const guide = container.querySelector('.b-img-coverguide');
+  let hideTimer = null;
+  const updateGuide = () => {
+    if (!guide || !currentImages[v.id]) return;
+    const cw = v.w, ch = v.h;
+    const rot = ((state.rotation % 360) + 360) % 360;
+    if (rot !== 0) {
+      // 회전 시 여백 계산 생략 — 프레임 점선만
+      guide.innerHTML = `<div style="position:absolute;inset:0;border:6px dashed rgba(120,120,120,0.8);box-sizing:border-box;"></div>`;
+    } else {
+      const rw = img.offsetWidth * state.scale, rh = img.offsetHeight * state.scale;
+      const cx = cw / 2 + state.x, cy = ch / 2 + state.y;
+      const gl = Math.max(0, cx - rw / 2), gt = Math.max(0, cy - rh / 2);
+      const gr = Math.max(0, cw - (cx + rw / 2)), gb = Math.max(0, ch - (cy + rh / 2));
+      const strip = 'position:absolute;background:rgba(255,55,55,0.34);';
+      let html = '';
+      if (gl > 1) html += `<div style="${strip}left:0;top:0;width:${gl}px;height:${ch}px;"></div>`;
+      if (gr > 1) html += `<div style="${strip}right:0;top:0;width:${gr}px;height:${ch}px;"></div>`;
+      if (gt > 1) html += `<div style="${strip}left:0;top:0;width:${cw}px;height:${gt}px;"></div>`;
+      if (gb > 1) html += `<div style="${strip}left:0;bottom:0;width:${cw}px;height:${gb}px;"></div>`;
+      const hasGap = gl > 1 || gr > 1 || gt > 1 || gb > 1;
+      const col = hasGap ? 'rgba(255,55,55,0.95)' : 'rgba(38,200,120,0.95)';
+      html += `<div style="position:absolute;inset:0;border:6px dashed ${col};box-sizing:border-box;"></div>`;
+      guide.innerHTML = html;
+    }
+    guide.style.display = 'block';
+  };
+  const scheduleHideGuide = () => {
+    clearTimeout(hideTimer);
+    hideTimer = setTimeout(() => { if (guide) guide.style.display = 'none'; }, 1000);
+  };
   let dragging = false, lastX = 0, lastY = 0;
   container.addEventListener('mousedown', (e) => {
     if (!currentImages[v.id]) return;
@@ -5406,18 +5503,20 @@ function attachEditableImageHandlers(container, v) {
     dragging = true;
     lastX = e.clientX; lastY = e.clientY;
     container.style.cursor = 'grabbing';
+    clearTimeout(hideTimer); updateGuide();
   }, { signal });
   window.addEventListener('mousemove', (e) => {
     if (!dragging) return;
     state.x += (e.clientX - lastX) / previewScale;
     state.y += (e.clientY - lastY) / previewScale;
     lastX = e.clientX; lastY = e.clientY;
-    apply();
+    apply(); updateGuide();
   }, { signal });
   window.addEventListener('mouseup', () => {
     if (!dragging) return;
     dragging = false;
     container.style.cursor = 'grab';
+    scheduleHideGuide();
   }, { signal });
   container.addEventListener('wheel', (e) => {
     if (!currentImages[v.id]) return;
@@ -5430,7 +5529,7 @@ function attachEditableImageHandlers(container, v) {
       const factor = e.deltaY > 0 ? 0.95 : 1.05;
       state.scale = Math.max(0.3, Math.min(8, state.scale * factor));
     }
-    apply();
+    apply(); updateGuide(); scheduleHideGuide();
   }, { signal, passive: false });
 }
 // #RRGGBB → 'r,g,b' (rgba() 안에 넣기 위해 콤마 구분 문자열). 잘못된 입력은 null 반환.
@@ -5932,6 +6031,34 @@ function buildCoverStack(banner, v, spec) {
   }
   banner.appendChild(wrap);
 }
+// 박스 카피 (E5 내지) — bg 이미지 위 흰 박스(CSS autoHeight) 안에 메인(1줄 헤드, Bold) + 서브(다줄 본문, Medium).
+//   메인/서브 폰트는 currentCopyFonts로 선택. 박스는 하단 고정, 내용에 따라 위로 자람.
+function buildBoxCopy(banner, v, spec) {
+  const cb = v.copyBox || {};
+  const innerPad = (cb.innerPadding !== undefined) ? cb.innerPadding : 40;
+  const mainFontCss = getSpeechBubbleFontCss(currentCopyFonts.main);
+  const subFontCss = getSpeechBubbleFontCss(currentCopyFonts.sub);
+  const showBox = currentBoxCopyOn;   // 박스 유무 토글
+  // 박스 ON → 흰 박스 위 어두운 글자. 박스 OFF → 배경 이미지 위 카피 (기본 흰색, 토글로 검정).
+  const txtCol = showBox ? '#1A1A1A' : (currentTextColorMode === 'black' ? '#1A1A1A' : '#FFFFFF');
+  const box = document.createElement('div');
+  box.style.cssText = `position:absolute;left:${cb.left}px;right:${cb.right}px;bottom:${cb.paddingBottom || 0}px;background:${showBox ? (cb.bg || '#FFFFFF') : 'transparent'};border:${showBox ? (cb.border || 'none') : 'none'};border-radius:${cb.radius || 0}px;box-sizing:border-box;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:${innerPad}px;`;
+  if (v.main) {
+    const mLines = coverCopyLines('main', v.main.lines || 1, '메인 카피');
+    const m = document.createElement('div');
+    m.style.cssText = `width:100%;font-family:${mainFontCss};font-weight:700;font-size:${v.main.fs}px;line-height:${v.main.lh || '130%'};letter-spacing:-0.02em;color:${txtCol};text-align:center;white-space:pre-line;word-break:keep-all;`;
+    m.innerHTML = mLines.map(l => applyPointColor(l)).join('<br>');
+    box.appendChild(m);
+  }
+  const subText = getVal('sub');
+  if (v.sub && subText) {
+    const sdiv = document.createElement('div');
+    sdiv.style.cssText = `width:100%;margin-top:${Math.round((v.main ? v.main.fs : 50) * 0.42)}px;font-family:${subFontCss};font-weight:${v.sub.fw || 500};font-size:${v.sub.fs}px;line-height:${v.sub.lh || '150%'};letter-spacing:-0.02em;color:${txtCol};text-align:center;white-space:pre-line;word-break:keep-all;`;
+    sdiv.innerHTML = applyPointColor(subText).replace(/\n/g, '<br>');
+    box.appendChild(sdiv);
+  }
+  banner.appendChild(box);
+}
 function buildBanner(v, spec) {
   // 마지막장 브랜딩 막지 분기 (입력/가이드 없는 고정 카드)
   if (spec.brandingCard) return buildBrandingCard(v, spec);
@@ -6092,7 +6219,7 @@ function buildBanner(v, spec) {
     }
   }
   // copyBox — 박스 카피 오버레이 (E5 내지). bg 이미지 위에 흰 라운드 박스 → 그 안에 sub/main 카피가 z:2로 얹힘
-  if (v.copyBox) {
+  if (v.copyBox && !spec.boxCopyStack) {
     const cb = v.copyBox;
     const box = document.createElement('div');
     let cs = 'position:absolute;';
@@ -6145,7 +6272,7 @@ function buildBanner(v, spec) {
     banner.appendChild(btn);
   }
   // 메인 카피 (표지 coverStack은 별도 렌더 → 건너뜀)
-  if (v.main && !spec.coverStack) {
+  if (v.main && !spec.coverStack && !spec.boxCopyStack) {
     const m = document.createElement('div');
     m.className = 'b-main' + (v.main.center ? ' center' : '');
     let css = `font-size:${v.main.fs}px;font-weight:${v.main.fw || 700};line-height:${v.main.lh};`;
@@ -6220,7 +6347,7 @@ function buildBanner(v, spec) {
     banner.appendChild(m);
   }
   // 서브 카피 (표지 coverStack은 별도 렌더 → 건너뜀)
-  if (v.sub && !spec.noSub && !spec.coverStack) {
+  if (v.sub && !spec.noSub && !spec.coverStack && !spec.boxCopyStack) {
     const s = document.createElement('div');
     s.className = 'b-sub' + (v.sub.center ? ' center' : '');
     const subTextColor = resolveTextColor(v.sub.color, v);
@@ -6278,6 +6405,7 @@ function buildBanner(v, spec) {
   }
   // 표지(E1) 하단 고정 카피 스택 — 서브(위)·메인(아래) 줄별 박스
   if (spec.coverStack) buildCoverStack(banner, v, spec);
+  if (spec.boxCopyStack) buildBoxCopy(banner, v, spec);
   // 이미지 (bgFull은 buildBanner 최상단에서 이미 렌더링됨)
   if (v.img && !v.img.bgFull) {
     // 컨테인드 이미지 박스 — stateId별로 별도 렌더(주: dualImage 슬롯은 v.id, v.id+'_2' 두 번 호출)
@@ -6685,6 +6813,9 @@ async function downloadVersions(btn, versions) {
       // 크롭 가이드 일시 숨김 (다운로드 결과물에 포함되지 않도록)
       const cropGuides = el.querySelectorAll('.crop-guide');
       cropGuides.forEach(g => g.style.display = 'none');
+      // 커버리지 가이드(여백 표시)도 캡처 제외
+      const coverGuides = el.querySelectorAll('.b-img-coverguide');
+      coverGuides.forEach(g => { g.dataset._d = g.style.display; g.style.display = 'none'; });
       // 말풍선 DOM 숨김 — html2canvas는 filter:blur 미지원이라 캡처 후 Canvas API로 직접 합성
       const bubbleEls = el.querySelectorAll('.b-bubble');
       bubbleEls.forEach(b => b.style.visibility = 'hidden');
@@ -6704,6 +6835,7 @@ async function downloadVersions(btn, versions) {
         if (scaler) scaler.style.transform = prevTransform;
       }
       cropGuides.forEach(g => g.style.display = '');
+      coverGuides.forEach(g => { g.style.display = g.dataset._d || 'none'; });
       bubbleEls.forEach(b => b.style.visibility = '');
       // 말풍선 합성 (blur/outline 둘 다 캔버스 API로 직접 그려야 Figma blur 60과 일치)
       drawSpeechBubbleOnCanvas(canvas, v, spec, dlScale);
