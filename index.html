@@ -1667,7 +1667,7 @@ const SPECS = {
   },
   cardnews: {
     label: '카드 뉴스',
-    // 인스타그램 카드 뉴스 4:5 (1080×1350) 기준. 카드뉴스는 2배수 추출 (getDownloadScale).
+    // 인스타그램 카드 뉴스 4:5 (1080×1350) 기준. 카드뉴스는 1배수(1080 네이티브) 추출 (getDownloadScale).
     // 다만 IG 업로드 시 1080 원본을 그대로 쓰는 경우가 많아 isLarge로 0.4× 프리뷰만 적용.
     //
     // ┌─ 카드뉴스 디자인 규격 토큰 (전 슬롯 공통, 1배수) ───────────────────────────┐
@@ -4675,8 +4675,9 @@ function copyNanoPrompt() {
 // 다운로드 추출 배수 — 슬롯에 명시값이 있으면 우선, 없으면 셀러는 2배수 / 그 외는 3배수
 function getDownloadScale(spec) {
   if (spec.downloadScale) return spec.downloadScale;
-  // seller·카드뉴스는 2배수 추출 (그 외 기본 3배)
-  return (currentProduct === 'seller' || currentProduct === 'cardnews') ? 2 : 3;
+  // 인스타그램(카드뉴스·달력)은 1080 네이티브 = 1배수 추출. seller는 2배수. 그 외 기본 3배.
+  if (currentProduct === 'cardnews' || currentProduct === 'calendar') return 1;
+  return (currentProduct === 'seller') ? 2 : 3;
 }
 function buildFilename(v, spec) {
   const productName = SPECS[currentProduct].label.replace(/ /g, '');
@@ -5120,7 +5121,7 @@ function renderPreviews() {
     }
     let labelText;
     if (spec.iconOnly) labelText = '아이콘 JPG 다운로드';
-    else if (effectiveVersions.length > 1) labelText = `3배수 JPG ${effectiveVersions.length}개 다운로드`;
+    else if (effectiveVersions.length > 1) { const ds = getDownloadScale(spec); labelText = `${Number.isInteger(ds) ? ds + '배수' : ds.toFixed(2) + '배'} JPG ${effectiveVersions.length}개 다운로드`; }
     else {
       const ext = spec.isPNG ? 'PNG' : 'JPG';
       labelText = `${effectiveVersions[0].label} ${ext} 다운로드`;
