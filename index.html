@@ -2392,8 +2392,15 @@ function setBoxCopyMode(mode) {
 }
 // 박스 카피 박스 색 / 텍스트 색 (E5) — 슬라이드별 보존. 폰트는 currentCopyFonts(카피 폰트)로 별도 선택.
 const BOX_COPY_COLORS = ['#FFFFFF', '#1A1A1A', '#0077FE', '#FFFAAB', '#FF5E3C'];
-let currentBoxStyle = { boxColor: '#FFFFFF', textColor: '#1A1A1A' };
-function freshBoxStyle() { return { boxColor: '#FFFFFF', textColor: '#1A1A1A' }; }
+let currentBoxStyle = { boxColor: '#FFFFFF', textColor: '#1A1A1A', subAlign: 'center' };
+function freshBoxStyle() { return { boxColor: '#FFFFFF', textColor: '#1A1A1A', subAlign: 'center' }; }
+function setSubAlign(align) {
+  const spec = SPECS[currentProduct].slots[currentSlot];
+  if (!spec || !spec.boxCopyStack) return;
+  currentBoxStyle.subAlign = align;
+  preserveInputsAcross(renderInputs);
+  renderPreviews();
+}
 function setBoxColor(hex, reRender) {
   const spec = SPECS[currentProduct].slots[currentSlot];
   if (!spec || !spec.boxCopyStack) return;
@@ -3947,6 +3954,22 @@ function renderInputs() {
         </div>`;
       area.appendChild(f);
       f.querySelector('#f-sub').addEventListener('input', () => renderPreviews());
+      // 본문 정렬 토글 (박스 카피) — 가운데(기본)/왼쪽. 왼쪽이어도 블록은 박스 안 가운데 배치.
+      if (spec.boxCopyStack) {
+        const al = currentBoxStyle.subAlign || 'center';
+        const af = document.createElement('div');
+        af.className = 'field';
+        af.innerHTML = `
+          <div class="field-label" style="display:flex;align-items:center;gap:10px;">
+            본문 정렬
+            <div class="text-color-segments" style="margin-left:auto;">
+              <div class="text-color-segment ${al === 'center' ? 'active' : ''}" onclick="setSubAlign('center')">가운데</div>
+              <div class="text-color-segment ${al === 'left' ? 'active' : ''}" onclick="setSubAlign('left')">왼쪽</div>
+            </div>
+          </div>
+          <div class="field-spec">'왼쪽'이면 본문 글자만 좌측 정렬되고, 텍스트 블록은 길이에 맞춰 박스 안 가운데에 배치돼요.</div>`;
+        area.appendChild(af);
+      }
       return;
     }
     const subSpec = spec.coverStack
@@ -6362,7 +6385,10 @@ function buildBoxCopy(banner, v, spec) {
   if (v.sub && subText) {
     const sdiv = document.createElement('div');
     const gap = mainRendered ? Math.round((v.main ? v.main.fs : 50) * 0.42) : 0;
-    sdiv.style.cssText = `${childWidthCss}margin-top:${gap}px;font-family:${subFontCss};font-weight:${v.sub.fw || 500};font-size:${v.sub.fs}px;line-height:${v.sub.lh || '150%'};letter-spacing:-0.02em;color:${txtCol};text-align:center;white-space:pre-line;word-break:keep-all;`;
+    // 서브 정렬: 'center'(기본) / 'left'. 좌측이면 블록을 글자 길이에 맞춰 줄여 박스 안 가운데 배치(align-items:center) + 내부 텍스트만 좌측.
+    const subAlign = currentBoxStyle.subAlign || 'center';
+    const subWidthCss = (subAlign === 'left') ? (free ? `max-width:${freeMaxW - 2 * innerPad}px;` : 'max-width:100%;') : childWidthCss;
+    sdiv.style.cssText = `${subWidthCss}margin-top:${gap}px;font-family:${subFontCss};font-weight:${v.sub.fw || 500};font-size:${v.sub.fs}px;line-height:${v.sub.lh || '150%'};letter-spacing:-0.02em;color:${txtCol};text-align:${subAlign};white-space:pre-line;word-break:keep-all;`;
     sdiv.innerHTML = applyPointColor(subText).replace(/\n/g, '<br>');
     box.appendChild(sdiv);
   }
