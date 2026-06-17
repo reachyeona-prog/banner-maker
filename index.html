@@ -5713,6 +5713,20 @@ function attachSpeechBubbleHandlers(wrap, v, bub, padL, padT) {
   const signal = editableImageAbort.signal;
   const spec = SPECS[currentProduct].slots[currentSlot];
   const previewScale = spec.isLarge ? 0.4 : 1;
+  const banner = wrap.parentElement;
+  let gridEl = null, hideTimer = null;
+  const ensureGrid = () => {
+    if (!gridEl || !gridEl.isConnected) {
+      gridEl = banner.querySelector('.b-bubble-grid');
+      if (!gridEl) {
+        gridEl = document.createElement('div');
+        gridEl.className = 'b-bubble-grid';
+        gridEl.style.cssText = 'position:absolute;inset:0;pointer-events:none;z-index:4;display:none;';
+        banner.appendChild(gridEl);
+      }
+    }
+    return gridEl;
+  };
   let dragging = false, startX = 0, startY = 0, origX = 0, origY = 0;
   wrap.addEventListener('mousedown', (e) => {
     e.preventDefault(); e.stopPropagation();
@@ -5720,23 +5734,74 @@ function attachSpeechBubbleHandlers(wrap, v, bub, padL, padT) {
     startX = e.clientX; startY = e.clientY;
     origX = bub.x; origY = bub.y;
     wrap.style.cursor = 'grabbing';
+    clearTimeout(hideTimer); ensureGrid().style.display = 'block';
   }, { signal });
   window.addEventListener('mousemove', (e) => {
     if (!dragging) return;
     bub.x = origX + (e.clientX - startX) / previewScale;
     bub.y = origY + (e.clientY - startY) / previewScale;
+    // 격자 스냅 — 말풍선 박스 중앙/양끝이 격자선·프레임 끝에 달라붙음 (이미지와 동일 격자)
+    const dims = bubbleDims(bub);
+    const cell = bannerGridCell(v), SNAP = 18;
+    const sx = snapBox1D(bub.x, dims.W, bannerGridLines(v.w, cell), SNAP);
+    const sy = snapBox1D(bub.y, dims.H, bannerGridLines(v.h, cell), SNAP);
+    if (sx) bub.x = sx.o;
+    if (sy) bub.y = sy.o;
     wrap.style.left = (bub.x - padL) + 'px';
     wrap.style.top = (bub.y - padT) + 'px';
+    drawBannerGrid(ensureGrid(), v, sx ? sx.L : null, sy ? sy.L : null);
   }, { signal });
   window.addEventListener('mouseup', () => {
     if (!dragging) return;
     dragging = false;
     wrap.style.cursor = 'move';
+    hideTimer = setTimeout(() => { if (gridEl) gridEl.style.display = 'none'; }, 800);
   }, { signal });
 }
 // 마우스 드래그 + 휠 줌 핸들러.
 //   AbortController는 renderPreviews 시작 시점에 한 번 새로 만들고
 //   한 렌더 안에서 여러 editable 이미지가 같은 signal을 공유 (E1/E2 처럼 box+full 두 버전 동시 렌더 대응)
+// ===== 배너 격자(스냅 가이드) — 이미지/말풍선 공통 =====
+function bannerGridCell(v) { return Math.max(36, Math.round(v.w / 12)); }   // 정사각 셀 한 변(px). 작을수록 촘촘.
+function bannerGridLines(frame, cell) {
+  const arr = [0, frame, frame / 2];
+  for (let p = frame / 2 - cell; p > 0.5; p -= cell) arr.push(p);
+  for (let p = frame / 2 + cell; p < frame - 0.5; p += cell) arr.push(p);
+  return arr;
+}
+// 한 축 스냅: origin=좌상단 좌표, size=폭/높이 → 중앙/양끝이 라인에 가까우면 보정된 origin과 라인 반환
+function snapBox1D(origin, size, lines, SNAP) {
+  const c = origin + size / 2, lo = origin, hi = origin + size;
+  let best = null;
+  lines.forEach(L => {
+    [{ ep: c, o: L - size / 2 }, { ep: lo, o: L }, { ep: hi, o: L - size }].forEach(cd => {
+      const d = Math.abs(cd.ep - L);
+      if (d < SNAP && (!best || d < best.d)) best = { o: cd.o, L, d };
+    });
+  });
+  return best;
+}
+// 격자 + 중앙 십자 + 코랄 스냅선을 el에 채움 (말풍선 드래그 오버레이; 이미지는 자체 updateGuide)
+function drawBannerGrid(el, v, snapX, snapY) {
+  const cw = v.w, ch = v.h, cell = bannerGridCell(v);
+  const gline = 'position:absolute;background:rgba(255,255,255,0.4);box-shadow:0 0 0 0.5px rgba(0,0,0,0.16);';
+  let html = '';
+  for (let x = cw / 2 + cell; x < cw - 1; x += cell) {
+    html += `<div style="${gline}left:${x.toFixed(1)}px;top:0;width:1px;height:100%;"></div>`;
+    html += `<div style="${gline}left:${(cw - x).toFixed(1)}px;top:0;width:1px;height:100%;"></div>`;
+  }
+  for (let y = ch / 2 + cell; y < ch - 1; y += cell) {
+    html += `<div style="${gline}top:${y.toFixed(1)}px;left:0;height:1px;width:100%;"></div>`;
+    html += `<div style="${gline}top:${(ch - y).toFixed(1)}px;left:0;height:1px;width:100%;"></div>`;
+  }
+  const cross = 'background:rgba(255,255,255,0.8);box-shadow:0 0 0 0.5px rgba(0,0,0,0.22);';
+  html += `<div style="position:absolute;left:50%;top:0;width:1px;height:100%;${cross}transform:translateX(-50%);"></div>`;
+  html += `<div style="position:absolute;top:50%;left:0;height:1px;width:100%;${cross}transform:translateY(-50%);"></div>`;
+  const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#FF4F1F';
+  if (snapX != null) html += `<div style="position:absolute;left:${snapX}px;top:0;width:2px;height:100%;background:${accent};transform:translateX(-1px);"></div>`;
+  if (snapY != null) html += `<div style="position:absolute;top:${snapY}px;left:0;height:2px;width:100%;background:${accent};transform:translateY(-1px);"></div>`;
+  el.innerHTML = html;
+}
 function attachEditableImageHandlers(container, v) {
   if (!editableImageAbort) editableImageAbort = new AbortController();
   const signal = editableImageAbort.signal;
@@ -5753,15 +5818,9 @@ function attachEditableImageHandlers(container, v) {
   const guide = container.querySelector('.b-img-coverguide');
   let hideTimer = null;
   let snapLineX = null, snapLineY = null;   // 스냅된 격자선 위치(px, 프레임 좌표) → 코랄 강조. null이면 미스냅.
-  // 격자선 좌표(프레임 끝 0·frame + 중앙 기준 정사각 셀 간격) — 스냅·렌더 공통
-  const gridCell = () => Math.max(48, Math.round(v.w / 9));
-  const gridLines = (frame) => {
-    const cell = gridCell();
-    const arr = [0, frame, frame / 2];
-    for (let p = frame / 2 - cell; p > 0.5; p -= cell) arr.push(p);
-    for (let p = frame / 2 + cell; p < frame - 0.5; p += cell) arr.push(p);
-    return arr;
-  };
+  // 격자선 좌표 — 모듈 공통 헬퍼 사용(이미지·말풍선 동일 격자)
+  const gridCell = () => bannerGridCell(v);
+  const gridLines = (frame) => bannerGridLines(frame, gridCell());
   const updateGuide = () => {
     if (!guide || !currentImages[v.id]) return;
     const cw = v.w, ch = v.h;
@@ -5783,7 +5842,7 @@ function attachEditableImageHandlers(container, v) {
       if (gb > 1) html += `<div style="${strip}left:0;bottom:0;width:100%;height:${gb}px;"></div>`;
       // 정사각형 격자 — 중앙 기준 양방향, 가로=세로 셀 크기(px) 동일하게 촘촘히
       const gline = 'position:absolute;background:rgba(255,255,255,0.4);box-shadow:0 0 0 0.5px rgba(0,0,0,0.16);';
-      const cell = Math.max(48, Math.round(cw / 9));   // 정사각형 셀 한 변(px)
+      const cell = gridCell();   // 정사각형 셀 한 변(px) — 모듈 공통
       for (let x = cw / 2 + cell; x < cw - 1; x += cell) {
         html += `<div style="${gline}left:${x.toFixed(1)}px;top:0;width:1px;height:100%;"></div>`;
         html += `<div style="${gline}left:${(cw - x).toFixed(1)}px;top:0;width:1px;height:100%;"></div>`;
@@ -7275,7 +7334,7 @@ async function downloadVersions(btn, versions) {
       const cropGuides = el.querySelectorAll('.crop-guide');
       cropGuides.forEach(g => g.style.display = 'none');
       // 커버리지 가이드(여백 표시)도 캡처 제외
-      const coverGuides = el.querySelectorAll('.b-img-coverguide');
+      const coverGuides = el.querySelectorAll('.b-img-coverguide, .b-bubble-grid');
       coverGuides.forEach(g => { g.dataset._d = g.style.display; g.style.display = 'none'; });
       // 말풍선 DOM 숨김 — html2canvas는 filter:blur 미지원이라 캡처 후 Canvas API로 직접 합성
       const bubbleEls = el.querySelectorAll('.b-bubble');
