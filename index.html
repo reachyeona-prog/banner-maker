@@ -5497,9 +5497,17 @@ function buildSourceNote(banner, v) {
   const shadow = isWhite
     ? 'text-shadow:0 1px 4px rgba(0,0,0,0.35);'
     : 'text-shadow:0 1px 3px rgba(255,255,255,0.5);';
+  const spec = SPECS[currentProduct].slots[currentSlot];
   const el = document.createElement('div');
   el.className = 'b-source-note';
-  el.style.cssText = `position:absolute;right:${SOURCE_NOTE_PAD}px;bottom:${SOURCE_NOTE_PAD}px;max-width:${v.w - SOURCE_NOTE_PAD * 2}px;font-family:'Pretendard','Noto Sans KR',sans-serif;font-weight:400;font-size:${SOURCE_NOTE_FS}px;line-height:1.3;color:${color};text-align:right;white-space:pre-line;letter-spacing:-0.01em;opacity:0.9;${shadow}pointer-events:none;z-index:6;`;
+  const baseCss = `font-family:'Pretendard','Noto Sans KR',sans-serif;font-weight:400;font-size:${SOURCE_NOTE_FS}px;line-height:1.2;color:${color};text-align:right;white-space:pre-line;letter-spacing:-0.01em;opacity:0.9;${shadow}pointer-events:none;z-index:6;`;
+  if (spec && spec.boxCopyStack && v.copyBox) {
+    // 박스 카피: 하단 패딩(카피 박스 아래 여백) 밴드의 세로 중앙에 배치 → 박스와 겹침 방지
+    const padB = v.copyBox.paddingBottom || SOURCE_NOTE_PAD;
+    el.style.cssText = `position:absolute;left:${SOURCE_NOTE_PAD}px;right:${SOURCE_NOTE_PAD}px;bottom:0;height:${padB}px;display:flex;align-items:center;justify-content:flex-end;${baseCss}`;
+  } else {
+    el.style.cssText = `position:absolute;right:${SOURCE_NOTE_PAD}px;bottom:${SOURCE_NOTE_PAD}px;max-width:${v.w - SOURCE_NOTE_PAD * 2}px;${baseCss}`;
+  }
   el.textContent = note.text;
   banner.appendChild(el);
 }
