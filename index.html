@@ -5752,7 +5752,16 @@ function attachEditableImageHandlers(container, v) {
   // 조절 가이드 — 3×3 그리드 + 중앙 십자(스냅 시 코랄) + 여백 빨간 띠 + 프레임 테두리 (조작 중에만)
   const guide = container.querySelector('.b-img-coverguide');
   let hideTimer = null;
-  let snapX = false, snapY = false;   // 중앙 스냅 여부 → 십자 강조
+  let snapLineX = null, snapLineY = null;   // 스냅된 격자선 위치(px, 프레임 좌표) → 코랄 강조. null이면 미스냅.
+  // 격자선 좌표(프레임 끝 0·frame + 중앙 기준 정사각 셀 간격) — 스냅·렌더 공통
+  const gridCell = () => Math.max(48, Math.round(v.w / 9));
+  const gridLines = (frame) => {
+    const cell = gridCell();
+    const arr = [0, frame, frame / 2];
+    for (let p = frame / 2 - cell; p > 0.5; p -= cell) arr.push(p);
+    for (let p = frame / 2 + cell; p < frame - 0.5; p += cell) arr.push(p);
+    return arr;
+  };
   const updateGuide = () => {
     if (!guide || !currentImages[v.id]) return;
     const cw = v.w, ch = v.h;
@@ -5783,12 +5792,14 @@ function attachEditableImageHandlers(container, v) {
         html += `<div style="${gline}top:${y.toFixed(1)}px;left:0;height:1px;width:100%;"></div>`;
         html += `<div style="${gline}top:${(ch - y).toFixed(1)}px;left:0;height:1px;width:100%;"></div>`;
       }
-      // 중앙 십자 — 스냅 걸리면 코랄로 강조(굵게)
+      // 중앙 십자 (항상 흰색)
+      const cross = 'background:rgba(255,255,255,0.8);box-shadow:0 0 0 0.5px rgba(0,0,0,0.22);';
+      html += `<div style="position:absolute;left:50%;top:0;width:1px;height:100%;${cross}transform:translateX(-50%);"></div>`;
+      html += `<div style="position:absolute;top:50%;left:0;height:1px;width:100%;${cross}transform:translateY(-50%);"></div>`;
+      // 스냅된 격자선 코랄 강조 (위치/크기 자석이 잡은 라인)
       const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#FF4F1F';
-      const vColor = snapX ? accent : 'rgba(255,255,255,0.8)';
-      const hColor = snapY ? accent : 'rgba(255,255,255,0.8)';
-      html += `<div style="position:absolute;left:50%;top:0;width:${snapX ? 2 : 1}px;height:100%;background:${vColor};transform:translateX(-50%);box-shadow:0 0 0 0.5px rgba(0,0,0,0.22);"></div>`;
-      html += `<div style="position:absolute;top:50%;left:0;height:${snapY ? 2 : 1}px;width:100%;background:${hColor};transform:translateY(-50%);box-shadow:0 0 0 0.5px rgba(0,0,0,0.22);"></div>`;
+      if (snapLineX != null) html += `<div style="position:absolute;left:${snapLineX}px;top:0;width:2px;height:100%;background:${accent};transform:translateX(-1px);"></div>`;
+      if (snapLineY != null) html += `<div style="position:absolute;top:${snapLineY}px;left:0;height:2px;width:100%;background:${accent};transform:translateY(-1px);"></div>`;
       // 프레임 테두리 — 여백 있으면 빨강, 꽉 차면 초록
       const hasGap = gl > 1 || gr > 1 || gt > 1 || gb > 1;
       const col = hasGap ? 'rgba(255,55,55,0.95)' : 'rgba(38,200,120,0.95)';
@@ -5806,19 +5817,14 @@ function attachEditableImageHandlers(container, v) {
     const baseW = img.offsetWidth, baseH = img.offsetHeight;
     if (!baseW || !baseH) return newScale;
     const cx = v.w / 2 + state.x, cy = v.h / 2 + state.y;
-    const cell = Math.max(48, Math.round(v.w / 9));
-    const SNAP = 22;   // 가장자리-라인 거리 임계(px)
-    const vlines = [0, v.w], hlines = [0, v.h];
-    for (let x = v.w / 2; x > 0.5; x -= cell) vlines.push(x);
-    for (let x = v.w / 2 + cell; x < v.w - 0.5; x += cell) vlines.push(x);
-    for (let y = v.h / 2; y > 0.5; y -= cell) hlines.push(y);
-    for (let y = v.h / 2 + cell; y < v.h - 0.5; y += cell) hlines.push(y);
+    const SNAP = 22;
+    const vlines = gridLines(v.w), hlines = gridLines(v.h);
     const rw = baseW * newScale, rh = baseH * newScale;
     const edges = [
-      { pos: cx - rw / 2, lines: vlines, base: baseW, center: cx, sign: -1 },
-      { pos: cx + rw / 2, lines: vlines, base: baseW, center: cx, sign: +1 },
-      { pos: cy - rh / 2, lines: hlines, base: baseH, center: cy, sign: -1 },
-      { pos: cy + rh / 2, lines: hlines, base: baseH, center: cy, sign: +1 },
+      { pos: cx - rw / 2, lines: vlines, base: baseW, center: cx, sign: -1, axis: 'x' },
+      { pos: cx + rw / 2, lines: vlines, base: baseW, center: cx, sign: +1, axis: 'x' },
+      { pos: cy - rh / 2, lines: hlines, base: baseH, center: cy, sign: -1, axis: 'y' },
+      { pos: cy + rh / 2, lines: hlines, base: baseH, center: cy, sign: +1, axis: 'y' },
     ];
     let best = null;
     edges.forEach(e => {
@@ -5827,10 +5833,33 @@ function attachEditableImageHandlers(container, v) {
         if (d >= SNAP) return;
         const ts = e.sign > 0 ? 2 * (L - e.center) / e.base : 2 * (e.center - L) / e.base;
         if (ts < 0.3 || ts > 8) return;
-        if (!best || d < best.d) best = { scale: ts, d };
+        if (!best || d < best.d) best = { scale: ts, d, axis: e.axis, L };
       });
     });
+    snapLineX = null; snapLineY = null;
+    if (best) { if (best.axis === 'x') snapLineX = best.L; else snapLineY = best.L; }
     return best ? +best.scale.toFixed(3) : newScale;
+  };
+  // 위치 자석 — 드래그 중 한 축(state 값)에서 이미지의 중앙/가장자리가 격자선·프레임 끝에 가까우면 그 선에 맞춤
+  //   반환: { sv: 보정된 state 값, L: 스냅된 라인 위치 } | null
+  const snapAxis = (val, frame, rdim, lines) => {
+    const SNAP = 20;
+    const c = frame / 2 + val;     // 현재 이미지 중심(프레임 좌표)
+    const half = rdim / 2;
+    let best = null;
+    lines.forEach(L => {
+      // 후보: 중심→L, 가까운 변→L, 먼 변→L (현재 위치에서 가장 가까운 것)
+      const cands = [
+        { ep: c, sv: L - frame / 2 },
+        { ep: c - half, sv: L + half - frame / 2 },
+        { ep: c + half, sv: L - half - frame / 2 },
+      ];
+      cands.forEach(cd => {
+        const d = Math.abs(cd.ep - L);
+        if (d < SNAP && (!best || d < best.d)) best = { sv: cd.sv, L, d };
+      });
+    });
+    return best;
   };
   let dragging = false, lastX = 0, lastY = 0;
   container.addEventListener('mousedown', (e) => {
@@ -5839,7 +5868,7 @@ function attachEditableImageHandlers(container, v) {
     dragging = true;
     lastX = e.clientX; lastY = e.clientY;
     container.style.cursor = 'grabbing';
-    snapX = false; snapY = false;
+    snapLineX = null; snapLineY = null;
     clearTimeout(hideTimer); updateGuide();
   }, { signal });
   window.addEventListener('mousemove', (e) => {
@@ -5847,17 +5876,14 @@ function attachEditableImageHandlers(container, v) {
     state.x += (e.clientX - lastX) / previewScale;
     state.y += (e.clientY - lastY) / previewScale;
     lastX = e.clientX; lastY = e.clientY;
-    // 그리드 스냅 — 중앙(x/y=0) + 모서리 flush(이미지가 프레임보다 클 때 한쪽 끝 정렬)에 자석처럼 달라붙음
-    const SNAP = 26;   // 1배수 px 임계
+    // 위치 자석 — 각 축에서 중앙/가장자리가 격자선·프레임 끝에 달라붙음 (가운데뿐 아니라 모든 그리드)
     const rw = img.offsetWidth * state.scale, rh = img.offsetHeight * state.scale;
-    const maxX = Math.max(0, (rw - v.w) / 2), maxY = Math.max(0, (rh - v.h) / 2);
-    snapX = false; snapY = false;
-    if (Math.abs(state.x) < SNAP) { state.x = 0; snapX = true; }
-    else if (maxX > 0 && Math.abs(state.x - maxX) < SNAP) state.x = maxX;
-    else if (maxX > 0 && Math.abs(state.x + maxX) < SNAP) state.x = -maxX;
-    if (Math.abs(state.y) < SNAP) { state.y = 0; snapY = true; }
-    else if (maxY > 0 && Math.abs(state.y - maxY) < SNAP) state.y = maxY;
-    else if (maxY > 0 && Math.abs(state.y + maxY) < SNAP) state.y = -maxY;
+    const sx = snapAxis(state.x, v.w, rw, gridLines(v.w));
+    const sy = snapAxis(state.y, v.h, rh, gridLines(v.h));
+    snapLineX = sx ? sx.L : null;
+    snapLineY = sy ? sy.L : null;
+    if (sx) state.x = sx.sv;
+    if (sy) state.y = sy.sv;
     apply(); updateGuide();
   }, { signal });
   window.addEventListener('mouseup', () => {
