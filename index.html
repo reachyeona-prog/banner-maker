@@ -4379,7 +4379,7 @@ function renderImageUploads() {
         ${showVersionLabel ? (v.label + ' ') : ''}이미지 크기
         <span id="imgscale-val-${v.id}" style="margin-left:auto;font-family:var(--font-mono);font-size:11px;color:var(--text-muted);">${pct}%</span>
       </div>
-      <input id="imgscale-${v.id}" type="range" min="100" max="300" step="5" value="${Math.min(300, Math.max(100, pct))}" style="width:100%;">
+      <input id="imgscale-${v.id}" type="range" min="100" max="500" step="5" value="${Math.min(500, Math.max(100, pct))}" style="width:100%;">
       <div class="field-spec">5% 단위로 균일하게 확대 (중앙 기준 · 좌우 대칭). 미리보기에서 드래그로 위치 조절.</div>`;
     wrap.appendChild(sf);
     const sl = sf.querySelector('#imgscale-' + v.id);
@@ -5772,12 +5772,17 @@ function attachEditableImageHandlers(container, v) {
       if (gr > 1) html += `<div style="${strip}right:0;top:0;width:${gr}px;height:100%;"></div>`;
       if (gt > 1) html += `<div style="${strip}left:0;top:0;width:100%;height:${gt}px;"></div>`;
       if (gb > 1) html += `<div style="${strip}left:0;bottom:0;width:100%;height:${gb}px;"></div>`;
-      // 3×3 그리드(thirds) — 위치 가늠용 옅은 라인
-      const gline = 'position:absolute;background:rgba(255,255,255,0.45);box-shadow:0 0 0 0.5px rgba(0,0,0,0.18);';
-      html += `<div style="${gline}left:33.33%;top:0;width:1px;height:100%;"></div>`;
-      html += `<div style="${gline}left:66.66%;top:0;width:1px;height:100%;"></div>`;
-      html += `<div style="${gline}top:33.33%;left:0;height:1px;width:100%;"></div>`;
-      html += `<div style="${gline}top:66.66%;left:0;height:1px;width:100%;"></div>`;
+      // 정사각형 격자 — 중앙 기준 양방향, 가로=세로 셀 크기(px) 동일하게 촘촘히
+      const gline = 'position:absolute;background:rgba(255,255,255,0.4);box-shadow:0 0 0 0.5px rgba(0,0,0,0.16);';
+      const cell = Math.max(48, Math.round(cw / 9));   // 정사각형 셀 한 변(px)
+      for (let x = cw / 2 + cell; x < cw - 1; x += cell) {
+        html += `<div style="${gline}left:${x.toFixed(1)}px;top:0;width:1px;height:100%;"></div>`;
+        html += `<div style="${gline}left:${(cw - x).toFixed(1)}px;top:0;width:1px;height:100%;"></div>`;
+      }
+      for (let y = ch / 2 + cell; y < ch - 1; y += cell) {
+        html += `<div style="${gline}top:${y.toFixed(1)}px;left:0;height:1px;width:100%;"></div>`;
+        html += `<div style="${gline}top:${(ch - y).toFixed(1)}px;left:0;height:1px;width:100%;"></div>`;
+      }
       // 중앙 십자 — 스냅 걸리면 코랄로 강조(굵게)
       const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#FF4F1F';
       const vColor = snapX ? accent : 'rgba(255,255,255,0.8)';
@@ -5838,14 +5843,15 @@ function attachEditableImageHandlers(container, v) {
       const delta = Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
       state.rotation += delta > 0 ? -3 : 3;
     } else {
-      const factor = e.deltaY > 0 ? 0.95 : 1.05;
-      state.scale = Math.max(0.3, Math.min(8, state.scale * factor));
-      state.scale = Math.round(state.scale / 0.05) * 0.05;   // 5% 격자에 맞춤 (슬라이더와 동일 단위)
+      // 5% 격자 스텝 — 현재 배율을 5% 격자에 올린 뒤 한 칸 이동(항상 확대/축소 모두 반응, 반올림 멈춤 없음)
+      const dir = e.deltaY > 0 ? -1 : 1;
+      const snapped = Math.round(state.scale / 0.05) * 0.05;
+      state.scale = Math.max(0.3, Math.min(8, +(snapped + dir * 0.05).toFixed(2)));
       // 이미지 탭 크기 슬라이더와 동기화 (휠로 키워도 슬라이더 값/표시 갱신)
       const p = Math.round(state.scale * 100);
       const sl = document.getElementById('imgscale-' + v.id);
       const lbl = document.getElementById('imgscale-val-' + v.id);
-      if (sl) sl.value = Math.min(300, Math.max(100, p));
+      if (sl) sl.value = Math.min(500, Math.max(100, p));
       if (lbl) lbl.textContent = p + '%';
     }
     apply(); updateGuide(); scheduleHideGuide();
