@@ -4855,12 +4855,17 @@ function getDownloadScale(spec) {
   return (currentProduct === 'seller') ? 2 : 3;
 }
 function buildFilename(v, spec) {
-  const productName = SPECS[currentProduct].label.replace(/ /g, '');
-  const slotName = spec.label.replace(/ /g, '');
   const company = getVal('company') || '업체명';
+  const ext = spec.isPNG ? 'png' : 'jpg';
+  const slotName = spec.label.replace(/ /g, '');
+  // 카드뉴스: 캐러셀_{슬롯}{슬라이드번호}_{업체명} (예: 캐러셀_표지_업체명 / 캐러셀_내지1_업체명)
+  if (currentProduct === 'cardnews') {
+    const slideNum = spec.multiSlide ? ((activeSlideIdx[currentSlot] || 0) + 1) : '';
+    return `캐러셀_${slotName}${slideNum}_${company}.${ext}`;
+  }
+  const productName = SPECS[currentProduct].label.replace(/ /g, '');
   const device = v.label.replace(/ /g, '');
   const bgHex = getBgFor(v).replace('#', '');
-  const ext = spec.isPNG ? 'png' : 'jpg';
   return `${productName}_${slotName}_${company}_${device}_${bgHex}.${ext}`;
 }
 function updateFilenames() {
