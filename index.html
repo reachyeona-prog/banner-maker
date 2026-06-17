@@ -5801,6 +5801,37 @@ function attachEditableImageHandlers(container, v) {
     clearTimeout(hideTimer);
     hideTimer = setTimeout(() => { if (guide) guide.style.display = 'none'; }, 1000);
   };
+  // 크기 자석 — 조절된 배율에서 이미지 가장자리가 격자선/프레임 끝 근처면, 그 선에 딱 맞는 배율로 보정
+  const snapScaleToGrid = (newScale) => {
+    const baseW = img.offsetWidth, baseH = img.offsetHeight;
+    if (!baseW || !baseH) return newScale;
+    const cx = v.w / 2 + state.x, cy = v.h / 2 + state.y;
+    const cell = Math.max(48, Math.round(v.w / 9));
+    const SNAP = 22;   // 가장자리-라인 거리 임계(px)
+    const vlines = [0, v.w], hlines = [0, v.h];
+    for (let x = v.w / 2; x > 0.5; x -= cell) vlines.push(x);
+    for (let x = v.w / 2 + cell; x < v.w - 0.5; x += cell) vlines.push(x);
+    for (let y = v.h / 2; y > 0.5; y -= cell) hlines.push(y);
+    for (let y = v.h / 2 + cell; y < v.h - 0.5; y += cell) hlines.push(y);
+    const rw = baseW * newScale, rh = baseH * newScale;
+    const edges = [
+      { pos: cx - rw / 2, lines: vlines, base: baseW, center: cx, sign: -1 },
+      { pos: cx + rw / 2, lines: vlines, base: baseW, center: cx, sign: +1 },
+      { pos: cy - rh / 2, lines: hlines, base: baseH, center: cy, sign: -1 },
+      { pos: cy + rh / 2, lines: hlines, base: baseH, center: cy, sign: +1 },
+    ];
+    let best = null;
+    edges.forEach(e => {
+      e.lines.forEach(L => {
+        const d = Math.abs(e.pos - L);
+        if (d >= SNAP) return;
+        const ts = e.sign > 0 ? 2 * (L - e.center) / e.base : 2 * (e.center - L) / e.base;
+        if (ts < 0.3 || ts > 8) return;
+        if (!best || d < best.d) best = { scale: ts, d };
+      });
+    });
+    return best ? +best.scale.toFixed(3) : newScale;
+  };
   let dragging = false, lastX = 0, lastY = 0;
   container.addEventListener('mousedown', (e) => {
     if (!currentImages[v.id]) return;
@@ -5846,7 +5877,9 @@ function attachEditableImageHandlers(container, v) {
       // 5% 격자 스텝 — 현재 배율을 5% 격자에 올린 뒤 한 칸 이동(항상 확대/축소 모두 반응, 반올림 멈춤 없음)
       const dir = e.deltaY > 0 ? -1 : 1;
       const snapped = Math.round(state.scale / 0.05) * 0.05;
-      state.scale = Math.max(0.3, Math.min(8, +(snapped + dir * 0.05).toFixed(2)));
+      let ns = Math.max(0.3, Math.min(8, +(snapped + dir * 0.05).toFixed(2)));
+      ns = snapScaleToGrid(ns);   // 가이드라인/프레임 끝 자석
+      state.scale = ns;
       // 이미지 탭 크기 슬라이더와 동기화 (휠로 키워도 슬라이더 값/표시 갱신)
       const p = Math.round(state.scale * 100);
       const sl = document.getElementById('imgscale-' + v.id);
