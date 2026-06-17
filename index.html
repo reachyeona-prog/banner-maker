@@ -2392,8 +2392,8 @@ function setBoxCopyMode(mode) {
 }
 // 박스 카피 박스 색 / 텍스트 색 (E5) — 슬라이드별 보존. 폰트는 currentCopyFonts(카피 폰트)로 별도 선택.
 const BOX_COPY_COLORS = ['#FFFFFF', '#1A1A1A', '#0077FE', '#FFFAAB', '#FF5E3C'];
-let currentBoxStyle = { boxColor: '#FFFFFF', textColor: '#1A1A1A', subAlign: 'center', subLh: 1.5 };
-function freshBoxStyle() { return { boxColor: '#FFFFFF', textColor: '#1A1A1A', subAlign: 'center', subLh: 1.5 }; }
+let currentBoxStyle = { boxColor: '#FFFFFF', textColor: '#1A1A1A', subAlign: 'center', subLh: 1.5, imgTopPad: false };
+function freshBoxStyle() { return { boxColor: '#FFFFFF', textColor: '#1A1A1A', subAlign: 'center', subLh: 1.5, imgTopPad: false }; }
 function setSubAlign(align) {
   const spec = SPECS[currentProduct].slots[currentSlot];
   if (!spec || !spec.boxCopyStack) return;
@@ -4904,8 +4904,9 @@ function renderPreviews() {
         return b;
       };
       // 가로/세로 꽉 채우기 — 이미지 전체 너비/높이가 프레임에 딱 맞도록 scale 자동 설정
-      btnRow.appendChild(makeBtn('⇿ 가로 꽉차게', () => fitEditableImage(v.id, 'width')));
-      btnRow.appendChild(makeBtn('⇳ 세로 꽉차게', () => fitEditableImage(v.id, 'height')));
+      const clearTopPad = () => { if (spec.boxCopyStack) currentBoxStyle.imgTopPad = false; };
+      btnRow.appendChild(makeBtn('⇿ 가로 꽉차게', () => { clearTopPad(); fitEditableImage(v.id, 'width'); }));
+      btnRow.appendChild(makeBtn('⇳ 세로 꽉차게', () => { clearTopPad(); fitEditableImage(v.id, 'height'); }));
       // 좌우 가운데 정렬 — state.x = 0 (scale 유지)
       btnRow.appendChild(makeBtn('↔ 좌우 가운데', () => {
         const t = currentImageTransforms[v.id] || { scale:1, x:0, y:0, rotation:0 };
@@ -4913,15 +4914,17 @@ function renderPreviews() {
         currentImageTransforms[v.id] = t;
         renderPreviews();
       }));
-      // 상하 가운데 정렬 — state.y = 0 (scale 유지)
+      // 상하 가운데 정렬 — state.y = 0. 박스 카피 상단 이미지 모드에선 상단 패딩도 30(아래와 동일) 적용
       btnRow.appendChild(makeBtn('↕ 상하 가운데', () => {
         const t = currentImageTransforms[v.id] || { scale:1, x:0, y:0, rotation:0 };
         t.y = 0;
         currentImageTransforms[v.id] = t;
+        if (spec.boxCopyStack && currentBoxImageMode === 'top') currentBoxStyle.imgTopPad = true;
         renderPreviews();
       }));
       // 위치/크기 전체 초기화
       btnRow.appendChild(makeBtn('↺ 위치 · 크기 초기화', () => {
+        clearTopPad();
         currentImageTransforms[v.id] = { scale: 1, x: 0, y: 0, rotation: 0 };
         renderPreviews();
       }));
@@ -5311,23 +5314,28 @@ function adjustBoxCopyImages(spec) {
         const boxH = box ? box.offsetHeight : 0;
         imgBottom = Math.max(0, v.h - padBottom - boxH - BOX_COPY_IMG_GAP);
       }
-      imgC.style.height = imgBottom + 'px';
-      // 이미지 cover-fit을 상단 영역(v.w × imgBottom) 기준으로 재계산 —
+      // imgTopPad: '상하 가운데' 누른 경우 상단에도 동일 간격(BOX_COPY_IMG_GAP)을 둬 위·아래 대칭
+      const topPad = currentBoxStyle.imgTopPad ? BOX_COPY_IMG_GAP : 0;
+      const regionH = Math.max(0, imgBottom - topPad);
+      imgC.style.top = topPad + 'px';
+      imgC.style.height = regionH + 'px';
+      // 이미지 cover-fit을 상단 영역(v.w × regionH) 기준으로 재계산 —
       //   buildBanner는 전체 프레임(v.h) 기준 중앙 정렬이라 클립만 하면 위가 안 참.
       const img = imgC.querySelector('img');
       const imgSize = currentImageSizes[v.id];
-      if (img && imgSize && imgBottom > 0) {
+      if (img && imgSize && regionH > 0) {
         const srcRatio = imgSize.w / imgSize.h;
-        const dstRatio = v.w / imgBottom;
+        const dstRatio = v.w / regionH;
         let fitW, fitH;
-        if (srcRatio > dstRatio) { fitH = imgBottom; fitW = imgBottom * srcRatio; }
+        if (srcRatio > dstRatio) { fitH = regionH; fitW = regionH * srcRatio; }
         else                     { fitW = v.w; fitH = v.w / srcRatio; }
         img.style.width = fitW + 'px';
         img.style.height = fitH + 'px';
         img.style.marginLeft = (-(fitW - v.w) / 2) + 'px';
-        img.style.marginTop = (-(fitH - imgBottom) / 2) + 'px';
+        img.style.marginTop = (-(fitH - regionH) / 2) + 'px';
       }
     } else {
+      imgC.style.top = '0px';
       imgC.style.height = v.h + 'px';   // 배경 전체 — buildBanner가 v.h 기준으로 이미 맞춤
     }
   });
