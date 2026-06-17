@@ -2432,6 +2432,19 @@ function setBoxImageMode(mode) {
   const seg = id => document.getElementById(id);
   if (seg('boximg-seg-full')) seg('boximg-seg-full').classList.toggle('active', mode === 'full');
   if (seg('boximg-seg-top')) seg('boximg-seg-top').classList.toggle('active', mode === 'top');
+  // 상단 여백 토글은 '상단' 모드에서만 노출
+  const tpField = document.getElementById('boxtoppad-field');
+  if (tpField) tpField.style.display = (mode === 'top') ? '' : 'none';
+  renderPreviews();
+}
+// 상단 이미지 위 30px 여백(아래 카피 박스 간격과 동일) 온/오프
+function setBoxImgTopPad(on) {
+  const spec = SPECS[currentProduct].slots[currentSlot];
+  if (!spec || !spec.boxCopyStack) return;
+  currentBoxStyle.imgTopPad = on;
+  const seg = id => document.getElementById(id);
+  if (seg('boxtoppad-on')) seg('boxtoppad-on').classList.toggle('active', on);
+  if (seg('boxtoppad-off')) seg('boxtoppad-off').classList.toggle('active', !on);
   renderPreviews();
 }
 function setSpeechBubbleDirection(dir) {
@@ -4433,6 +4446,21 @@ function renderImageUploads() {
       </div>
       <div class="field-spec">'상단'이면 배경 이미지가 카피 박스 위 30px 지점에서 끝나고, 그 아래는 배경색.</div>`;
     wrap.appendChild(imf);
+    // 상단 여백 토글 (상단 모드에서만 노출) — 이미지 위에도 아래와 동일한 30px 여백
+    const tpf = document.createElement('div');
+    tpf.className = 'field';
+    tpf.id = 'boxtoppad-field';
+    tpf.style.display = (currentBoxImageMode === 'top') ? '' : 'none';
+    tpf.innerHTML = `
+      <div class="field-label" style="display:flex;align-items:center;gap:10px;">
+        상단 여백
+        <div class="text-color-segments" style="margin-left:auto;">
+          <div class="text-color-segment ${currentBoxStyle.imgTopPad ? 'active' : ''}" id="boxtoppad-on" onclick="setBoxImgTopPad(true)">30px</div>
+          <div class="text-color-segment ${!currentBoxStyle.imgTopPad ? 'active' : ''}" id="boxtoppad-off" onclick="setBoxImgTopPad(false)">없음</div>
+        </div>
+      </div>
+      <div class="field-spec">'30px'이면 이미지 위에도 아래(카피 박스) 간격과 동일한 30px 여백을 둬 위·아래 대칭.</div>`;
+    wrap.appendChild(tpf);
   }
   // 추가 이미지 (자유 배치 · 최대 2) — 카드뉴스 내지. 슬라이드별. 드래그=위치, 휠/슬라이더=크기, 누끼 토글.
   if (spec.freeImages) renderFreeImageUI(wrap, spec.versions[0]);
@@ -4904,9 +4932,8 @@ function renderPreviews() {
         return b;
       };
       // 가로/세로 꽉 채우기 — 이미지 전체 너비/높이가 프레임에 딱 맞도록 scale 자동 설정
-      const clearTopPad = () => { if (spec.boxCopyStack) currentBoxStyle.imgTopPad = false; };
-      btnRow.appendChild(makeBtn('⇿ 가로 꽉차게', () => { clearTopPad(); fitEditableImage(v.id, 'width'); }));
-      btnRow.appendChild(makeBtn('⇳ 세로 꽉차게', () => { clearTopPad(); fitEditableImage(v.id, 'height'); }));
+      btnRow.appendChild(makeBtn('⇿ 가로 꽉차게', () => fitEditableImage(v.id, 'width')));
+      btnRow.appendChild(makeBtn('⇳ 세로 꽉차게', () => fitEditableImage(v.id, 'height')));
       // 좌우 가운데 정렬 — state.x = 0 (scale 유지)
       btnRow.appendChild(makeBtn('↔ 좌우 가운데', () => {
         const t = currentImageTransforms[v.id] || { scale:1, x:0, y:0, rotation:0 };
@@ -4914,17 +4941,15 @@ function renderPreviews() {
         currentImageTransforms[v.id] = t;
         renderPreviews();
       }));
-      // 상하 가운데 정렬 — state.y = 0. 박스 카피 상단 이미지 모드에선 상단 패딩도 30(아래와 동일) 적용
+      // 상하 가운데 정렬 — state.y = 0 (scale 유지)
       btnRow.appendChild(makeBtn('↕ 상하 가운데', () => {
         const t = currentImageTransforms[v.id] || { scale:1, x:0, y:0, rotation:0 };
         t.y = 0;
         currentImageTransforms[v.id] = t;
-        if (spec.boxCopyStack && currentBoxImageMode === 'top') currentBoxStyle.imgTopPad = true;
         renderPreviews();
       }));
       // 위치/크기 전체 초기화
       btnRow.appendChild(makeBtn('↺ 위치 · 크기 초기화', () => {
-        clearTopPad();
         currentImageTransforms[v.id] = { scale: 1, x: 0, y: 0, rotation: 0 };
         renderPreviews();
       }));
