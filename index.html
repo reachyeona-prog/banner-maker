@@ -2392,12 +2392,20 @@ function setBoxCopyMode(mode) {
 }
 // 박스 카피 박스 색 / 텍스트 색 (E5) — 슬라이드별 보존. 폰트는 currentCopyFonts(카피 폰트)로 별도 선택.
 const BOX_COPY_COLORS = ['#FFFFFF', '#1A1A1A', '#0077FE', '#FFFAAB', '#FF5E3C'];
-let currentBoxStyle = { boxColor: '#FFFFFF', textColor: '#1A1A1A', subAlign: 'center' };
-function freshBoxStyle() { return { boxColor: '#FFFFFF', textColor: '#1A1A1A', subAlign: 'center' }; }
+let currentBoxStyle = { boxColor: '#FFFFFF', textColor: '#1A1A1A', subAlign: 'center', subLh: 1.5 };
+function freshBoxStyle() { return { boxColor: '#FFFFFF', textColor: '#1A1A1A', subAlign: 'center', subLh: 1.5 }; }
 function setSubAlign(align) {
   const spec = SPECS[currentProduct].slots[currentSlot];
   if (!spec || !spec.boxCopyStack) return;
   currentBoxStyle.subAlign = align;
+  preserveInputsAcross(renderInputs);
+  renderPreviews();
+}
+// 본문 줄 간격(line-height) — 한 줄 띄우기보단 약간씩 넓히는 단계
+function setSubLineHeight(lh) {
+  const spec = SPECS[currentProduct].slots[currentSlot];
+  if (!spec || !spec.boxCopyStack) return;
+  currentBoxStyle.subLh = lh;
   preserveInputsAcross(renderInputs);
   renderPreviews();
 }
@@ -3969,6 +3977,20 @@ function renderInputs() {
           </div>
           <div class="field-spec">'왼쪽'이면 본문 글자만 좌측 정렬되고, 텍스트 블록은 길이에 맞춰 박스 안 가운데에 배치돼요.</div>`;
         area.appendChild(af);
+        // 본문 줄 간격 — 한 줄 띄우기보단 약간씩 넓히는 spacing 단계
+        const curLh = currentBoxStyle.subLh || 1.5;
+        const LH_OPTS = [{ v: 1.5, t: '기본' }, { v: 1.7, t: '살짝' }, { v: 1.95, t: '넓게' }, { v: 2.2, t: '많이' }];
+        const lf = document.createElement('div');
+        lf.className = 'field';
+        lf.innerHTML = `
+          <div class="field-label" style="display:flex;align-items:center;gap:10px;">
+            본문 줄 간격
+            <div class="text-color-segments" style="margin-left:auto;">
+              ${LH_OPTS.map(o => `<div class="text-color-segment ${Math.abs(curLh - o.v) < 0.001 ? 'active' : ''}" onclick="setSubLineHeight(${o.v})">${o.t}</div>`).join('')}
+            </div>
+          </div>
+          <div class="field-spec">줄 사이 간격(line-height). '살짝'부터 한 줄 띄우기 전까지 단계별로 넓어져요.</div>`;
+        area.appendChild(lf);
       }
       return;
     }
@@ -6540,7 +6562,8 @@ function buildBoxCopy(banner, v, spec) {
     // 서브 정렬: 'center'(기본) / 'left'. 좌측이면 블록을 글자 길이에 맞춰 줄여 박스 안 가운데 배치(align-items:center) + 내부 텍스트만 좌측.
     const subAlign = currentBoxStyle.subAlign || 'center';
     const subWidthCss = (subAlign === 'left') ? (free ? `max-width:${freeMaxW - 2 * innerPad}px;` : 'max-width:100%;') : childWidthCss;
-    sdiv.style.cssText = `${subWidthCss}margin-top:${gap}px;font-family:${subFontCss};font-weight:${v.sub.fw || 500};font-size:${v.sub.fs}px;line-height:${v.sub.lh || '150%'};letter-spacing:-0.02em;color:${txtCol};text-align:${subAlign};white-space:pre-line;word-break:keep-all;`;
+    const subLh = currentBoxStyle.subLh || 1.5;
+    sdiv.style.cssText = `${subWidthCss}margin-top:${gap}px;font-family:${subFontCss};font-weight:${v.sub.fw || 500};font-size:${v.sub.fs}px;line-height:${subLh};letter-spacing:-0.02em;color:${txtCol};text-align:${subAlign};white-space:pre-line;word-break:keep-all;`;
     sdiv.innerHTML = applyPointColor(subText).replace(/\n/g, '<br>');
     box.appendChild(sdiv);
   }
