@@ -4431,7 +4431,7 @@ function renderImageUploads() {
           <div class="text-color-segment ${currentBoxImageMode === 'top' ? 'active' : ''}" id="boximg-seg-top" onclick="setBoxImageMode('top')">상단</div>
         </div>
       </div>
-      <div class="field-spec">'상단'이면 배경 이미지가 카피 박스 위 70px 지점에서 끝나고, 그 아래는 배경색.</div>`;
+      <div class="field-spec">'상단'이면 배경 이미지가 카피 박스 위 30px 지점에서 끝나고, 그 아래는 배경색.</div>`;
     wrap.appendChild(imf);
   }
   // 추가 이미지 (자유 배치 · 최대 2) — 카드뉴스 내지. 슬라이드별. 드래그=위치, 휠/슬라이더=크기, 누끼 토글.
@@ -5292,7 +5292,7 @@ function renderPreviews() {
 }
 // 박스 카피 '상단 이미지' 모드: 렌더 후 카피 박스 높이를 실측해 이미지 컨테이너를 박스 위 70px에서 클립.
 //   박스가 CSS auto-height라 빌드 시점엔 높이를 모름 → DOM 삽입 후 offsetHeight로 측정(스케일 transform 영향 없음).
-const BOX_COPY_IMG_GAP = 70;
+const BOX_COPY_IMG_GAP = 30;
 function adjustBoxCopyImages(spec) {
   if (!spec || !spec.boxCopyStack) return;
   spec.versions.forEach(v => {
