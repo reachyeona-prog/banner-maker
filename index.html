@@ -3784,7 +3784,7 @@ function renderCalendarInputs(area) {
   const hint = document.createElement('div');
   hint.className = 'field-spec';
   hint.style.cssText = 'margin-bottom:8px;';
-  hint.textContent = '이벤트·종료일(~6/14)·이모지/이미지·공휴일(빨강)을 채우세요. 빈 칸은 날짜만 표시돼요.';
+  hint.innerHTML = '이벤트·종료일(~6/14)·이모지/이미지·공휴일(빨강)을 채우세요. 빈 칸은 날짜만 표시돼요.<br>줄바꿈 대신 <b>^^50^^</b>만 한 줄에 넣으면 폰트 50% 높이의 좁은 간격(숫자=%, 0~100).';
   area.appendChild(hint);
 
   for (let d = 1; d <= daysIn; d++) {
@@ -6433,9 +6433,17 @@ function buildCalendarCard(v, spec) {
         //   z-index:2로 미디어 위에 올려 첫 줄 가독성 확보(날짜 숫자 z-index:3은 그대로 위).
         tw.style.cssText = `position:absolute;left:9px;right:9px;bottom:9px;height:${LINE * 4}px;overflow:hidden;text-align:left;z-index:2;`;
         if (cc.text) {
+          const FS = 26, LH = 1.2;
           const tx = document.createElement('div');
-          tx.style.cssText = `font-weight:600;font-size:26px;line-height:1.2;letter-spacing:-1px;text-align:left;color:${eventColor};word-break:keep-all;white-space:pre-line;`;
-          tx.textContent = cc.text;
+          tx.style.cssText = `font-weight:600;font-size:${FS}px;letter-spacing:-1px;text-align:left;color:${eventColor};word-break:keep-all;`;
+          // 줄 단위 렌더 — '^^N^^' 한 줄은 폰트의 N%(기본 50%) 높이의 부분 간격(엔터 줄바꿈보다 좁게 조절)
+          tx.innerHTML = cc.text.split('\n').map(line => {
+            const t = line.trim();
+            const sm = t.match(/^\^\^(\d{0,3})\^\^$/);
+            if (sm) { const pct = sm[1] ? parseInt(sm[1], 10) : 50; return `<div style="height:${Math.round(FS * pct / 100)}px;"></div>`; }
+            if (t === '') return `<div style="height:${Math.round(FS * LH)}px;"></div>`;   // 빈 줄 = 한 줄 높이
+            return `<div style="line-height:${LH};">${applyPointColor(line)}</div>`;
+          }).join('');
           tw.appendChild(tx);
         }
         if (cc.end) {
