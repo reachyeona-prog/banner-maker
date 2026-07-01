@@ -1464,8 +1464,9 @@ const SPECS = {
             img:  { left:30, w:150, h:80, vcenter:true } }
         ]
       },
+      // 홈 메인 — MO/PC 구분 없이 단일 사이즈(317×348). A/B(이미지 상/하) 유지.
       'A3': {
-        label: '홈 탑 배너',
+        label: '홈 메인',
         bgFixed: null,
         pointColor: true,
         noSub: true,
@@ -1473,16 +1474,14 @@ const SPECS = {
         abMirror: 'vertical',
         dualImage: true,
         versions: [
-          { id: 'mo', label: 'MO', w: 400, h: 420,
-            main: { top:289, left:25, right:25, fs:32, lines:2, lh:'150%', center:true, color:'#000000' },
-            img:  { top:25, left:25, w:350, h:230 } },
-          { id: 'pc', label: 'PC', w: 323, h: 408,
-            main: { top:288, left:20, right:20, fs:27, lines:2, lh:'150%', center:true, color:'#000000' },
-            img:  { top:25, left:20, w:283, h:225 } }
+          { id: 'web', label: 'WEB', w: 317, h: 348,
+            main: { top:246, left:20, right:20, fs:23, lines:2, lh:'150%', center:true, color:'#000000' },
+            img:  { top:21, left:20, w:277, h:192 } }
         ]
       },
+      // 홈 서브 — MO/PC 구분 없이 단일 사이즈(317×134). A/B(이미지 좌/우) 유지.
       'A4': {
-        label: '홈 바텀 배너',
+        label: '홈 서브',
         bgFixed: '#EBEBEB',
         noPointColor: true,
         noSub: true,
@@ -1490,10 +1489,7 @@ const SPECS = {
         abMirror: 'horizontal',
         dualImage: true,
         versions: [
-          { id: 'mo', label: 'MO', w: 400, h: 152,
-            main: { left:164, right:30, fs:22, lines:2, lh:'150%', vcenter:true, color:'#000000' },
-            img:  { left:30, w:104, h:104, vcenter:true } },
-          { id: 'pc', label: 'PC', w: 323, h: 128,
+          { id: 'web', label: 'WEB', w: 317, h: 134,
             main: { left:128, right:24, fs:19, lines:2, lh:'150%', vcenter:true, color:'#000000' },
             img:  { left:24, w:80, h:80, vcenter:true } }
         ]
