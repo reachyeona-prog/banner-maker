@@ -1587,7 +1587,7 @@ const SPECS = {
       },
       'B7': {
         label: '혜택 바텀 배너',
-        bgFixed: null, noPointColor: true,
+        bgFixed: null, defaultBg: '#F0F0F0', noPointColor: true,  // 기본 배경 F0F0F0 (변경 가능)
         abMirror: 'horizontal',
         dualImage: true,
         optionalMicroSub: true,  // 메인 아래 작은 서브 카피(9px·#000 40%) 유무 선택 → 켜면 메인+서브 세로 중앙
@@ -3317,6 +3317,9 @@ function onSlotChange() {
     const upper = (currentBg || '').toUpperCase();
     const inList = slotSpec.bgPresets.some(c => c.toUpperCase() === upper);
     if (!inList) currentBg = slotSpec.bgPresets[0];
+  } else if (slotSpec.defaultBg && !slotSpec.bgFixed) {
+    // 팔레트는 전체 유지하되 슬롯 기본 배경만 지정 (메모리 있으면 restoreSlotGlobals가 덮어씀)
+    currentBg = slotSpec.defaultBg;
   }
   // multiSlide 슬롯이면 슬라이드 상태 초기화/복원 (활성 슬라이드 데이터를 globals로 swap-in)
   if (slotSpec.multiSlide) {
