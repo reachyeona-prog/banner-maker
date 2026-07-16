@@ -1400,7 +1400,7 @@ function applyCardNewsJSON() {
         transforms: {}, fadeOverrides: {},
         inputs: interiorInputsFor(it),
         mainLines: interiorLines,
-        sourceNote: { enabled: false, text: '' },
+        sourceNote: { enabled: false, text: '', color: 'auto' },
       }));
       activeSlideIdx[sl] = 0;
     });
@@ -2761,7 +2761,7 @@ function setShapeMagnify(idx, z) {
   const s = currentShapes[idx]; if (!s) return;
   s.magnify = z; renderPreviews();
 }
-let currentSourceNote = { enabled: false, text: '' };
+let currentSourceNote = { enabled: false, text: '', color: 'auto' };  // color: 'auto' | '#FFFFFF' | '#1A1A1A'
 const SOURCE_NOTE_FS = 30;     // 고정 폰트 크기 (px, 1배수)
 const SOURCE_NOTE_PAD = 40;    // 우/하단 여백 (px)
 function setSourceNoteEnabled(on) {
@@ -2769,6 +2769,14 @@ function setSourceNoteEnabled(on) {
   if (!spec || !spec.hasSourceNote) return;
   currentSourceNote.enabled = on;
   preserveInputsAcross(renderInputs);
+  renderPreviews();
+}
+// 출처/AI 표기 폰트 컬러 — 자동(배경 명도 기반) / 화이트 / 블랙 수동 선택
+function setSourceNoteColor(c) {
+  const spec = SPECS[currentProduct].slots[currentSlot];
+  if (!spec || !spec.hasSourceNote) return;
+  currentSourceNote.color = c;
+  preserveInputsAcross(renderInputs);   // active 세그먼트 갱신
   renderPreviews();
 }
 // carouselExtras[slotKey] = { [baseId]: extraCount } — 슬롯의 베이스별 추가된 카드 개수
@@ -2919,7 +2927,7 @@ function freshSlideState() {
     images: {}, imageSizes: {}, imageRaw: {},
     transforms: {}, fadeOverrides: {},
     inputs: {}, mainLines: 2,
-    sourceNote: { enabled: false, text: '' },
+    sourceNote: { enabled: false, text: '', color: 'auto' },
     freeImages: [],
     shapes: [],
     speechBubbles: {},
@@ -2969,7 +2977,7 @@ function applySlideToCurrent(idx) {
   currentImageTransforms = { ...st.transforms };
   currentFadeOverrides = { ...st.fadeOverrides };
   currentMainLines = st.mainLines || 2;
-  currentSourceNote = { ...(st.sourceNote || { enabled: false, text: '' }) };
+  currentSourceNote = { color: 'auto', ...(st.sourceNote || { enabled: false, text: '' }) };
   currentFreeImages = (st.freeImages || []).map(o => ({ ...o }));
   currentShapes = (st.shapes || []).map(o => ({ ...o }));
   currentSpeechBubbles = _cloneState(st.speechBubbles || {});
@@ -3286,7 +3294,7 @@ function onSlotChange() {
   currentShowButton = true;
   currentShowMicroSub = false;
   currentMainLines = 3;
-  currentSourceNote = { enabled: false, text: '' };
+  currentSourceNote = { enabled: false, text: '', color: 'auto' };
   currentFreeImages = [];
   currentShapes = [];
   currentCopyFonts = freshCopyFonts();
@@ -4323,6 +4331,14 @@ function renderInputs() {
         <div class="field-spec">우측 하단 고정 · 30px · Pretendard · 슬라이드별 입력</div>
         <div class="field-row">
           <textarea id="f-source-note" rows="2" placeholder="예: 출처 ○○○  ·  AI 생성 이미지" style="flex:1;min-height:54px;padding:8px 10px;font-family:var(--font);font-size:13px;color:var(--text-primary);background:var(--card);border:1px solid var(--border);border-radius:6px;outline:none;resize:vertical;line-height:1.4;">${escaped}</textarea>
+        </div>
+        <div class="template-text-row" style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+          <span style="flex:0 0 44px;font-family:var(--font-mono);font-size:10px;color:var(--text-muted);letter-spacing:0.05em;text-transform:uppercase;">컬러</span>
+          <div class="text-color-segments" style="flex:1;">
+            <div class="text-color-segment ${(!note.color || note.color === 'auto') ? 'active' : ''}" onclick="setSourceNoteColor('auto')">자동</div>
+            <div class="text-color-segment ${note.color === '#FFFFFF' ? 'active' : ''}" onclick="setSourceNoteColor('#FFFFFF')">화이트</div>
+            <div class="text-color-segment ${note.color === '#1A1A1A' ? 'active' : ''}" onclick="setSourceNoteColor('#1A1A1A')">블랙</div>
+          </div>
         </div>
       </div>`;
     area.appendChild(snField);
@@ -5576,7 +5592,9 @@ function setImageScale(versionId, scale) {
 function buildSourceNote(banner, v) {
   const note = currentSourceNote;
   if (!note || !note.enabled || !note.text.trim()) return;
-  const color = resolveTextColor((v.main && v.main.color) || null, v);
+  // 수동 색(화이트/블랙) 선택 시 우선, 아니면 배경 명도 기반 자동
+  const manual = (note.color && note.color !== 'auto') ? note.color : null;
+  const color = manual || resolveTextColor((v.main && v.main.color) || null, v);
   const isWhite = (color || '').toUpperCase() === '#FFFFFF';
   // 이미지 위에 얹힐 수 있어 가독성 보강 — 흰 텍스트엔 어두운 그림자, 어두운 텍스트엔 옅은 흰 halo.
   const shadow = isWhite
