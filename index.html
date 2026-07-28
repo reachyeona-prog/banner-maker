@@ -5022,6 +5022,9 @@ function renderPreviews() {
         b.onclick = handler;
         return b;
       };
+      // 확대/축소 버튼 (트랙패드 휠이 안 잡히는 환경 대비) — 한 번에 10%씩
+      btnRow.appendChild(makeBtn('－ 축소', () => zoomEditableImage(v.id, -0.1)));
+      btnRow.appendChild(makeBtn('＋ 확대', () => zoomEditableImage(v.id, 0.1)));
       // 가로/세로 꽉 채우기 — 이미지 전체 너비/높이가 프레임에 딱 맞도록 scale 자동 설정
       btnRow.appendChild(makeBtn('⇿ 가로 꽉차게', () => fitEditableImage(v.id, 'width')));
       btnRow.appendChild(makeBtn('⇳ 세로 꽉차게', () => fitEditableImage(v.id, 'height')));
@@ -5568,6 +5571,20 @@ function fitEditableImage(versionId, mode) {
   t.x = 0; t.y = 0;   // 가운데 정렬로 시작 (이후 드래그로 미세 조정 가능)
   t.rotation = t.rotation || 0;
   currentImageTransforms[versionId] = t;
+  renderPreviews();
+}
+// 편집 이미지 확대/축소 (버튼) — 트랙패드 휠 제스처가 안 잡히는 환경 대비한 확실한 컨트롤
+function zoomEditableImage(versionId, delta) {
+  if (!currentImages[versionId]) { toast('먼저 이미지를 업로드해 주세요.', { danger: true }); return; }
+  const t = currentImageTransforms[versionId] || { scale: 1, x: 0, y: 0, rotation: 0 };
+  t.scale = Math.max(0.3, Math.min(8, +(((t.scale || 1) + delta)).toFixed(2)));
+  t.rotation = t.rotation || 0;
+  currentImageTransforms[versionId] = t;
+  const p = Math.round(t.scale * 100);   // 이미지 탭 크기 슬라이더 동기화
+  const sl = document.getElementById('imgscale-' + versionId);
+  const lbl = document.getElementById('imgscale-val-' + versionId);
+  if (sl) sl.value = Math.min(500, Math.max(100, p));
+  if (lbl) lbl.textContent = p + '%';
   renderPreviews();
 }
 // 배경 이미지 크기 — 슬라이더(5% 단위)로 균일 확대. 중앙(transform-origin) 기준이라 좌우 대칭으로 커짐.
