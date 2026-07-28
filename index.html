@@ -7184,7 +7184,8 @@ function buildBanner(v, spec) {
         }
         img.style.cssText = imgCSS;
         iw.appendChild(img);
-        if (editable) attachEditableImageHandlers(iw, { id: stateId });
+        // 프레임(박스) 크기를 함께 전달해야 스냅·휠 스케일 계산이 정상 (누락 시 v.w/v.h undefined → NaN)
+        if (editable) attachEditableImageHandlers(iw, { id: stateId, w: imgW, h: imgH });
       } else {
         const ph = document.createElement('div');
         ph.className = 'ph';
