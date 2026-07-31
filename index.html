@@ -404,6 +404,47 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
 .markup-chip:hover { border-color: var(--ink); border-style: solid; }
 .markup-chip:active { transform: translateY(1px); }
 
+/* 스타일별 컬러 지정 — 마크업마다 다른 포인트 컬러를 붙일 수 있음 */
+.markup-rows { display: flex; flex-direction: column; gap: 5px; margin-top: 8px; }
+.markup-row { display: flex; align-items: center; gap: 8px; }
+.markup-row .markup-chip { min-width: 88px; text-align: center; }
+.style-color-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 2px 9px 2px 4px; border-radius: 999px;
+  border: 1px solid transparent; background: transparent;
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.02em;
+  color: var(--text-muted); cursor: pointer;
+  transition: border-color var(--t-base), color var(--t-base), background var(--t-base);
+}
+.style-color-btn:hover { border-color: var(--border); background: var(--bg-elev); color: var(--ink); }
+.style-color-btn.active { border-color: var(--ink); background: var(--bg-elev); color: var(--ink); }
+.style-color-btn.custom { color: var(--ink); font-weight: 600; }
+.style-color-dot {
+  width: 15px; height: 15px; border-radius: 50%;
+  border: 1px solid var(--border); flex-shrink: 0;
+}
+.style-color-na {
+  font-family: var(--font-mono); font-size: 10px;
+  color: var(--text-muted); padding-left: 5px;
+}
+/* 팔레트가 지금 어떤 스타일의 컬러를 바꾸는 중인지 알려주는 헤더 */
+.pt-edit-bar {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin: 12px 0 8px;
+  font-family: var(--font-mono); font-size: 10px;
+  text-transform: uppercase; letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+.pt-edit-bar strong { color: var(--ink); font-weight: 600; }
+.pt-reset-btn {
+  padding: 2px 7px; border-radius: 4px;
+  border: 1px dashed var(--border); background: var(--bg-elev);
+  font-family: var(--font-mono); font-size: 10px; color: var(--text-secondary);
+  cursor: pointer; text-transform: none; letter-spacing: 0;
+  transition: border-color var(--t-base), color var(--t-base);
+}
+.pt-reset-btn:hover { border-color: var(--ink); border-style: solid; color: var(--ink); }
+
 /* ===== §9 텍스트 컬러 토글 (세그먼트) ===== */
 .text-color-toggle {
   display: none; margin-top: 10px;
@@ -1175,19 +1216,39 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
     <div class="field" id="pt-field" style="display:none;">
       <div class="field-label">포인트 컬러</div>
       <div class="field-spec pt-guide">
-        <span>카피에 감싼 키워드에 포인트 스타일 적용</span>
+        <span>카피에 감싼 키워드에 포인트 스타일 적용 · 스타일마다 컬러를 따로 지정할 수 있어요</span>
         <button type="button" class="copy-chip" id="pt-snippet-chip" onclick="copyPointSnippet()" title="클립보드에 복사">
           <span class="copy-chip-text">{중괄호 복사}</span>
           <svg class="icon copy-chip-icon"><use href="#i-copy"/></svg>
         </button>
       </div>
-      <!-- 마크업 칩 — 클릭으로 클립보드 복사 -->
-      <div class="markup-chips">
-        <span class="markup-chip" onclick="copyMarkup('##컬러##')" title="포인트 컬러 텍스트">##컬러##</span>
-        <span class="markup-chip" onclick="copyMarkup('/밑줄/')" title="포인트 컬러 + 밑줄">/밑줄/</span>
-        <span class="markup-chip" onclick="copyMarkup('==형광펜==')" title="포인트 컬러 배경 (형광펜)">==형광펜==</span>
-        <span class="markup-chip" onclick="copyMarkup('[[박스]]')" title="포인트 컬러 보더 박스">[[박스]]</span>
-        <span class="markup-chip" onclick="copyMarkup('((볼드))')" title="프리텐다드 Bold 굵기">((볼드))</span>
+      <!-- 마크업 칩(클릭=클립보드 복사) + 스타일별 컬러 도트(클릭=팔레트 편집 대상 전환) -->
+      <div class="markup-rows">
+        <div class="markup-row">
+          <span class="markup-chip" onclick="copyMarkup('##컬러##')" title="컬러 텍스트">##컬러##</span>
+          <button type="button" class="style-color-btn" id="sc-btn-color" onclick="selectStyleTarget('color')" title="컬러 텍스트에 쓸 색 고르기"><span class="style-color-dot" id="sc-dot-color"></span><span id="sc-tag-color">기본</span></button>
+        </div>
+        <div class="markup-row">
+          <span class="markup-chip" onclick="copyMarkup('/밑줄/')" title="밑줄">/밑줄/</span>
+          <button type="button" class="style-color-btn" id="sc-btn-underline" onclick="selectStyleTarget('underline')" title="밑줄에 쓸 색 고르기"><span class="style-color-dot" id="sc-dot-underline"></span><span id="sc-tag-underline">기본</span></button>
+        </div>
+        <div class="markup-row">
+          <span class="markup-chip" onclick="copyMarkup('==형광펜==')" title="형광펜 하이라이트">==형광펜==</span>
+          <button type="button" class="style-color-btn" id="sc-btn-marker" onclick="selectStyleTarget('marker')" title="형광펜에 쓸 색 고르기"><span class="style-color-dot" id="sc-dot-marker"></span><span id="sc-tag-marker">기본</span></button>
+        </div>
+        <div class="markup-row">
+          <span class="markup-chip" onclick="copyMarkup('[[박스]]')" title="박스 배경">[[박스]]</span>
+          <button type="button" class="style-color-btn" id="sc-btn-box" onclick="selectStyleTarget('box')" title="박스 배경에 쓸 색 고르기"><span class="style-color-dot" id="sc-dot-box"></span><span id="sc-tag-box">기본</span></button>
+        </div>
+        <div class="markup-row">
+          <span class="markup-chip" onclick="copyMarkup('((볼드))')" title="프리텐다드 Bold 굵기">((볼드))</span>
+          <span class="style-color-na">컬러 없음</span>
+        </div>
+      </div>
+      <!-- 팔레트가 지금 어떤 스타일을 바꾸는 중인지 -->
+      <div class="pt-edit-bar">
+        <span id="pt-edit-label"><strong>전체 기본</strong> 컬러 선택 중</span>
+        <button type="button" class="pt-reset-btn" id="pt-reset-btn" style="display:none;" onclick="resetStyleColor()">기본으로 되돌리기</button>
       </div>
       <!-- 추천 컬러 영역 (배경색에 따라 자동 갱신) -->
       <div id="pt-recommend-wrap" style="display:none;"></div>
@@ -2274,6 +2335,16 @@ function getBgFor(v) {
   return currentBg;
 }
 let currentPointColor = '#1D99FF';
+// 마크업 스타일별 컬러 오버라이드 — null이면 currentPointColor(전체 기본)를 따라감.
+// ((볼드))는 굵기만 바꾸므로 컬러 개념이 없어 목록에서 제외.
+let currentStyleColors = { color: null, underline: null, marker: null, box: null };
+// 팔레트가 지금 어떤 대상의 컬러를 고르는 중인지: 'base' | 'color' | 'underline' | 'marker' | 'box'
+let ptEditTarget = 'base';
+const STYLE_TARGET_LABELS = { color: '##컬러##', underline: '/밑줄/', marker: '==형광펜==', box: '[[박스]]' };
+// 해당 스타일에 실제로 적용될 색 (오버라이드 없으면 전체 기본)
+function getStyleColor(key) {
+  return currentStyleColors[key] || currentPointColor || '#1D99FF';
+}
 let currentImages = {};      // { mo: dataURL, pc: dataURL, ... }
 let currentImageSizes = {};  // { mo: {w, h}, pc: {w, h}, ... } — 누끼 처리 후 원본 사이즈 (비율 계산용)
 let currentImageRaw = {};    // { mo: dataURL, ... } — 원본 데이터(누끼 적용 전) — 토글 변경 시 재처리용
@@ -3466,7 +3537,7 @@ function updatePointRecommendations() {
   }
   const recs = recommendPointColors(currentBg, 5);
   if (!recs.length) { wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
-  const cur = currentPointColor.toUpperCase();
+  const cur = getEditingColor().toUpperCase();
   wrap.style.cssText = 'display:flex;flex-direction:column;gap:6px;margin-bottom:10px;padding:10px 12px;background:var(--bg-elev);border:1px dashed var(--border);border-radius:var(--radius-sm);';
   wrap.innerHTML = `
     <div class="field-spec" style="font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.04em;">현재 배경색에 어울리는 컬러</div>
@@ -3621,23 +3692,67 @@ function onColorChangeForVersion(versionId, color) {
   updateTextColorUI();
   renderPreviews();
 }
-function selectPointColor(color) {
-  currentPointColor = color;
-  document.getElementById('pt-swatch').style.background = color;
-  document.getElementById('pt-hex').textContent = color.toUpperCase();
-  document.getElementById('pt-picker').value = color;
-  updatePtPresetActive();
+// 팔레트가 지금 편집 중인 대상의 색 (base면 전체 기본, 그 외는 그 스타일에 적용될 색)
+function getEditingColor() {
+  return ptEditTarget === 'base' ? currentPointColor : getStyleColor(ptEditTarget);
+}
+// 팔레트 클릭 결과를 현재 편집 대상에 반영
+function applyEditingColor(color) {
+  if (ptEditTarget === 'base') currentPointColor = color;
+  else currentStyleColors[ptEditTarget] = color;
+  updateStyleColorUI();
   renderPreviews();
+}
+function selectPointColor(color) {
+  applyEditingColor(color);
 }
 function onPointColorChange() {
-  currentPointColor = document.getElementById('pt-picker').value;
-  document.getElementById('pt-swatch').style.background = currentPointColor;
-  document.getElementById('pt-hex').textContent = currentPointColor.toUpperCase();
-  updatePtPresetActive();
+  applyEditingColor(document.getElementById('pt-picker').value);
+}
+// 마크업 칩 옆 도트를 눌러 팔레트의 편집 대상을 전환 (같은 대상을 다시 누르면 전체 기본으로 복귀)
+function selectStyleTarget(key) {
+  ptEditTarget = (ptEditTarget === key) ? 'base' : key;
+  updateStyleColorUI();
+}
+// 현재 편집 중인 스타일의 오버라이드를 지워 전체 기본을 다시 따라가게 함
+function resetStyleColor() {
+  if (ptEditTarget === 'base') return;
+  currentStyleColors[ptEditTarget] = null;
+  updateStyleColorUI();
   renderPreviews();
 }
+// 스타일별 도트·태그, 편집 대상 표시, 스와치/hex/픽커를 한 번에 동기화
+function updateStyleColorUI() {
+  Object.keys(STYLE_TARGET_LABELS).forEach(key => {
+    const dot = document.getElementById('sc-dot-' + key);
+    const tag = document.getElementById('sc-tag-' + key);
+    const btn = document.getElementById('sc-btn-' + key);
+    if (!dot || !tag || !btn) return;
+    const custom = !!currentStyleColors[key];
+    dot.style.background = getStyleColor(key);
+    tag.textContent = custom ? currentStyleColors[key].toUpperCase() : '기본';
+    btn.classList.toggle('custom', custom);
+    btn.classList.toggle('active', ptEditTarget === key);
+  });
+  const label = document.getElementById('pt-edit-label');
+  const reset = document.getElementById('pt-reset-btn');
+  if (label) {
+    label.innerHTML = ptEditTarget === 'base'
+      ? '<strong>전체 기본</strong> 컬러 선택 중'
+      : `<strong>${STYLE_TARGET_LABELS[ptEditTarget]}</strong> 컬러 선택 중`;
+  }
+  if (reset) reset.style.display = (ptEditTarget !== 'base' && currentStyleColors[ptEditTarget]) ? '' : 'none';
+  const cur = getEditingColor();
+  const sw = document.getElementById('pt-swatch');
+  const hex = document.getElementById('pt-hex');
+  const picker = document.getElementById('pt-picker');
+  if (sw) sw.style.background = cur;
+  if (hex) hex.textContent = cur.toUpperCase();
+  if (picker) picker.value = cur;
+  updatePtPresetActive();
+}
 function updatePtPresetActive() {
-  const cur = currentPointColor.toUpperCase();
+  const cur = getEditingColor().toUpperCase();
   document.querySelectorAll('.pt-swatch').forEach(s => {
     const rgb = getComputedStyle(s).backgroundColor;
     const m = rgb.match(/\d+/g);
@@ -3653,9 +3768,7 @@ function updatePointColorUI() {
   const hasCopy = (spec.versions || []).some(v => v.main || (v.sub && !spec.noSub));
   if (hasCopy) {
     ptField.style.display = '';
-    document.getElementById('pt-swatch').style.background = currentPointColor;
-    document.getElementById('pt-hex').textContent = currentPointColor.toUpperCase();
-    updatePtPresetActive();
+    updateStyleColorUI();
     updatePointRecommendations();
   } else {
     ptField.style.display = 'none';
@@ -3671,7 +3784,11 @@ function applyPointColor(text) {
   //   ##text##   — 포인트 컬러 텍스트
   //   /text/     — 밑줄만 (text 컬러 유지, underline만 point color)
   //   {text}     — 포인트 컬러 (기존 호환)
-  const pc = currentPointColor || '#1D99FF';
+  // 컬러는 스타일별로 따로 지정 가능 — 지정이 없으면 전체 기본(currentPointColor)을 따라감
+  const cBox = getStyleColor('box');
+  const cMarker = getStyleColor('marker');
+  const cText = getStyleColor('color');
+  const cUnder = getStyleColor('underline');
   let html = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   // 마크업 결과를 플레이스홀더로 보관해 후속 regex가 자신의 출력을 재매치하지 못하도록 격리
   const placeholders = [];
@@ -3682,11 +3799,11 @@ function applyPointColor(text) {
   };
   // 패턴별 적용 — 더블 delimiter (((,[[,==,##) 먼저 처리해 single이 partial 매칭하지 않도록
   html = html.replace(/\(\(([^)]+)\)\)/g, (_, c) => reserve(`<span style="font-weight:700">${c}</span>`));
-  html = html.replace(/\[\[([^\]]+)\]\]/g, (_, c) => reserve(`<span style="background:${pc};padding:0 12px;">${c}</span>`));
-  html = html.replace(/==([^=]+)==/g, (_, c) => reserve(`<span style="background:linear-gradient(180deg,transparent 55%,${pc} 55%);padding:0 4px;">${c}</span>`));
-  html = html.replace(/##([^#]+)##/g, (_, c) => reserve(`<span style="color:${pc}">${c}</span>`));
-  html = html.replace(/\/([^/\n<>]+)\//g, (_, c) => reserve(`<span style="text-decoration:underline ${pc};text-decoration-thickness:3px;text-underline-offset:6px;">${c}</span>`));
-  html = html.replace(/\{([^}]+)\}/g, (_, c) => reserve(`<span style="color:${pc}">${c}</span>`));
+  html = html.replace(/\[\[([^\]]+)\]\]/g, (_, c) => reserve(`<span style="background:${cBox};padding:0 12px;">${c}</span>`));
+  html = html.replace(/==([^=]+)==/g, (_, c) => reserve(`<span style="background:linear-gradient(180deg,transparent 55%,${cMarker} 55%);padding:0 4px;">${c}</span>`));
+  html = html.replace(/##([^#]+)##/g, (_, c) => reserve(`<span style="color:${cText}">${c}</span>`));
+  html = html.replace(/\/([^/\n<>]+)\//g, (_, c) => reserve(`<span style="text-decoration:underline ${cUnder};text-decoration-thickness:3px;text-underline-offset:6px;">${c}</span>`));
+  html = html.replace(/\{([^}]+)\}/g, (_, c) => reserve(`<span style="color:${cText}">${c}</span>`));
   // 플레이스홀더를 실제 HTML로 치환 (중첩 케이스를 위해 변화가 없을 때까지 반복)
   let prev;
   do {
