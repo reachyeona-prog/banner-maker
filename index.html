@@ -6897,8 +6897,8 @@ function buildChecklistCard(v, spec) {
     });
     return list;
   };
-  // 남은 높이를 채우는 가장 큰 배율을 찾는다 (1.25 → 0.62).
-  //   항목이 많으면 줄여서 넘치지 않게, 적으면 키워서 여백이 뜨지 않게.
+  // 남은 높이에 들어가는 가장 큰 배율을 찾는다 (1.25 → 0.62).
+  //   항목이 많으면 줄여서 넘치지 않게. 적으면 1.25 그대로 두고 아래 여백을 남긴다(이미지 자리).
   let k = 1.25, list = null;
   const innerAvail = availH - INNER_PAD * 2;
   for (let i = 0; i < 20; i++) {
@@ -6907,13 +6907,14 @@ function buildChecklistCard(v, spec) {
     k = Math.round((k - 0.035) * 1000) / 1000;
   }
 
+  // 항목은 위에서부터 쌓는다 (가운데 정렬 X) — 개수가 적으면 아래 여백이 남아 자유 이미지를 넣을 수 있게
   const holder = document.createElement('div');
   if (cl.card) {
     holder.style.cssText = `position:absolute;left:${PAD_X}px;right:${PAD_X}px;top:${listTop}px;bottom:${BOT}px;`
-      + `background:#FFFFFF;padding:${INNER_PAD}px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;z-index:1;`;
+      + `background:#FFFFFF;padding:${INNER_PAD}px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:flex-start;z-index:1;`;
   } else {
     holder.style.cssText = `position:absolute;left:${listSideInset}px;right:${listSideInset}px;top:${listTop}px;bottom:${BOT}px;`
-      + `display:flex;flex-direction:column;justify-content:center;z-index:1;`;
+      + `display:flex;flex-direction:column;justify-content:flex-start;z-index:1;`;
   }
   holder.appendChild(list);
   banner.appendChild(holder);
