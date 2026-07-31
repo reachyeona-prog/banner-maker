@@ -1250,8 +1250,6 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
         <span id="pt-edit-label"><strong>전체 기본</strong> 컬러 선택 중</span>
         <button type="button" class="pt-reset-btn" id="pt-reset-btn" style="display:none;" onclick="resetStyleColor()">기본으로 되돌리기</button>
       </div>
-      <!-- 추천 컬러 영역 (배경색에 따라 자동 갱신) -->
-      <div id="pt-recommend-wrap" style="display:none;"></div>
       <!-- 채도↑ + 유사색 그룹 순서로 나열, 줄바꿈은 flex-wrap에 맡김 -->
       <div class="preset-colors" id="pt-presets">
         <div class="preset-swatch pt-swatch" style="background:#008CFF" onclick="selectPointColor('#008CFF')"></div>
@@ -3510,7 +3508,6 @@ function selectPreset(color) {
   updateFilenames();
   updatePresetActive();
   updateTextColorUI();
-  updatePointRecommendations();
   renderPreviews();
 }
 // 배경 luminance 계산 (WCAG 표준)
@@ -3526,88 +3523,6 @@ function getBgLuminance(hex) {
 // 어두운 배경 여부 (WCAG 표준 0.5 threshold)
 function isDarkBg(hex) {
   return getBgLuminance(hex) < 0.5;
-}
-// HSL 변환 (포인트 컬러 추천에 사용)
-function hexToRgbArr(hex) {
-  const m = hex.replace('#','').match(/.{2}/g);
-  return m ? m.map(v => parseInt(v, 16)) : [0,0,0];
-}
-function rgbToHsl([r, g, b]) {
-  r /= 255; g /= 255; b /= 255;
-  const max = Math.max(r, g, b), min = Math.min(r, g, b);
-  let h = 0, s = 0; const l = (max + min) / 2;
-  if (max !== min) {
-    const d = max - min;
-    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-    if (max === r)      h = ((g - b) / d + (g < b ? 6 : 0));
-    else if (max === g) h = (b - r) / d + 2;
-    else                h = (r - g) / d + 4;
-    h *= 60;
-  }
-  return { h, s: s * 100, l: l * 100 };
-}
-// 배경색 기준으로 포인트 컬러 후보를 점수화
-//   1) 컨트라스트(WCAG luminance ratio)가 너무 낮으면 제외 (가독성)
-//   2) 무채색 배경: 채도 높은 컬러 가산
-//   3) 유채색 배경: 보색(180°) > 트라이애드(120°) > 유사색(<30°) 가산
-//   4) 페일 배경 + 비비드 포인트 추가 가산 (대비 강조)
-function recommendPointColors(bgHex, count = 5) {
-  const bgLum = getBgLuminance(bgHex);
-  const bgHsl = rgbToHsl(hexToRgbArr(bgHex));
-  const swatches = Array.from(document.querySelectorAll('#pt-presets .pt-swatch'));
-  const scored = swatches.map(el => {
-    const m = el.getAttribute('style').match(/#[0-9A-Fa-f]{6}/);
-    if (!m) return null;
-    const hex = m[0].toUpperCase();
-    const lum = getBgLuminance(hex);
-    const contrast = (Math.max(lum, bgLum) + 0.05) / (Math.min(lum, bgLum) + 0.05);
-    if (contrast < 2.2) return null; // 너무 낮은 대비 컷
-    const hsl = rgbToHsl(hexToRgbArr(hex));
-    let score = Math.min(contrast, 8); // 컨트라스트 가산 (상한 8)
-    if (bgHsl.s < 12) {
-      // 무채색/거의 무채색 배경: 채도 높은 포인트 컬러 가산
-      score += hsl.s / 18;
-    } else {
-      let hueDiff = Math.abs(hsl.h - bgHsl.h);
-      hueDiff = Math.min(hueDiff, 360 - hueDiff);
-      if (Math.abs(hueDiff - 180) < 30)      score += 4; // 보색
-      else if (Math.abs(hueDiff - 120) < 30) score += 2.5; // 트라이애드
-      else if (hueDiff < 25)                 score += 1.5; // 유사색
-    }
-    if (bgHsl.s < 35 && hsl.s > 60) score += 1.5; // 페일 배경에 비비드 가산
-    return { hex, score };
-  }).filter(Boolean);
-  scored.sort((a, b) => b.score - a.score);
-  // 동일 hex 중복 제거 (혹시 2번 매칭된 경우)
-  const seen = new Set();
-  const out = [];
-  for (const c of scored) {
-    if (seen.has(c.hex)) continue;
-    seen.add(c.hex);
-    out.push(c);
-    if (out.length >= count) break;
-  }
-  return out;
-}
-function updatePointRecommendations() {
-  const wrap = document.getElementById('pt-recommend-wrap');
-  if (!wrap) return;
-  const ptField = document.getElementById('pt-field');
-  if (!ptField || ptField.style.display === 'none') {
-    wrap.style.display = 'none';
-    wrap.innerHTML = '';
-    return;
-  }
-  const recs = recommendPointColors(currentBg, 5);
-  if (!recs.length) { wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
-  const cur = getEditingColor().toUpperCase();
-  wrap.style.cssText = 'display:flex;flex-direction:column;gap:6px;margin-bottom:10px;padding:10px 12px;background:var(--bg-elev);border:1px dashed var(--border);border-radius:var(--radius-sm);';
-  wrap.innerHTML = `
-    <div class="field-spec" style="font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.04em;">현재 배경색에 어울리는 컬러</div>
-    <div class="preset-colors">
-      ${recs.map(r => `<div class="preset-swatch pt-swatch ${r.hex === cur ? 'active' : ''}" style="background:${r.hex}" onclick="selectPointColor('${r.hex}')" title="${r.hex}"></div>`).join('')}
-    </div>
-  `;
 }
 // 현재 적용해야 할 텍스트 컬러 결정
 // 'auto' → 배경 기준 자동, 'white'/'black' → 강제
@@ -3832,10 +3747,8 @@ function updatePointColorUI() {
   if (hasCopy) {
     ptField.style.display = '';
     updateStyleColorUI();
-    updatePointRecommendations();
   } else {
     ptField.style.display = 'none';
-    updatePointRecommendations(); // 영역 비우기
   }
 }
 function applyPointColor(text) {
@@ -3927,7 +3840,6 @@ function onColorChange() {
   updateFilenames();
   updatePresetActive();
   updateTextColorUI();
-  updatePointRecommendations();
   renderPreviews();
 }
 function applyBgToBanners() {
