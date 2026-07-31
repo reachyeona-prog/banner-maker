@@ -2762,8 +2762,10 @@ function applyCalendarJSON(raw, hintEl) {
 //   드래그/리사이즈 없음 · 일반 텍스트 DOM이라 html2canvas가 그대로 캡처 (말풍선과 달리 post-process 불필요).
 // 체크리스트 (카드뉴스 E8, spec.checklistCard) — 박스 타이틀 2줄 + 체크 항목 리스트.
 //   items[i] = { text(항목 제목), desc(설명 — 엔터로 여러 줄) }. 마크업(##·==·((…)) 등) 그대로 사용 가능.
-//   슬라이드별로 보존 (multiSlide 스냅샷에 포함).
+//   titleImgs = { left, right } — 타이틀 양 끝 장식 이미지. 각 { raw(원본), src(표시용), w, h(원본 px), size(표시 높이), knockout }.
+//   슬라이드별로 보존 (multiSlide 스냅샷에 포함 — dataURL은 _cloneChecklist에서 얕은 복사).
 let currentChecklist = freshChecklist();
+const CL_TITLE_IMG_SIZE = 140;   // 기본 표시 높이 (1배수 px · 타이틀 한 줄 높이와 비슷한 크기)
 function freshChecklist() {
   return {
     title1: '',
@@ -2773,7 +2775,21 @@ function freshChecklist() {
     numbered: true,         // 항목 앞 번호
     startNo: 1,             // 시작 번호 — 6~10처럼 이어지는 두 번째 장에 사용
     items: [{ text: '', desc: '' }, { text: '', desc: '' }, { text: '', desc: '' }],
+    titleImgs: { left: null, right: null },
   };
+}
+// 스냅샷용 복사 — items 등은 깊은 복사, titleImgs의 dataURL은 얕은 복사 (슬라이드마다 복제되면 무거움)
+function _cloneChecklist(cl) {
+  const src = cl || {};
+  const rest = {};
+  Object.keys(src).forEach(k => { if (k !== 'titleImgs') rest[k] = src[k]; });
+  const out = _cloneState(rest);
+  out.titleImgs = { left: null, right: null };
+  ['left', 'right'].forEach(side => {
+    const im = (src.titleImgs || {})[side];
+    if (im) out.titleImgs[side] = { ...im };
+  });
+  return out;
 }
 function setChecklistField(key, val) {
   currentChecklist[key] = val;
@@ -2806,6 +2822,51 @@ function moveChecklistItem(idx, dir) {
   const to = idx + dir;
   if (to < 0 || to >= arr.length) return;
   [arr[idx], arr[to]] = [arr[to], arr[idx]];
+  preserveInputsAcross(renderInputs);
+  renderPreviews();
+}
+// 타이틀 양 끝 이미지 (left/right) — 원본 비율 유지, size(높이)로만 크기 조절
+function clTitleImgs() {
+  if (!currentChecklist.titleImgs) currentChecklist.titleImgs = { left: null, right: null };
+  return currentChecklist.titleImgs;
+}
+function applyChecklistTitleImgKnockout(im, done) {
+  if (im.knockout) knockoutWhiteBg(im.raw, (cut) => { im.src = cut; done && done(); });
+  else { im.src = im.raw; done && done(); }
+}
+function setChecklistTitleImg(side, rawDataURL) {
+  const probe = new Image();
+  probe.onload = () => {
+    const prev = clTitleImgs()[side];
+    const im = {
+      raw: rawDataURL, src: rawDataURL,
+      w: probe.width, h: probe.height,
+      size: (prev && prev.size) || CL_TITLE_IMG_SIZE,
+      knockout: true,
+    };
+    clTitleImgs()[side] = im;
+    applyChecklistTitleImgKnockout(im, () => { preserveInputsAcross(renderInputs); renderPreviews(); });
+  };
+  probe.src = rawDataURL;
+}
+function onChecklistTitleImgFile(side, file) {
+  if (!file) return;
+  const r = new FileReader();
+  r.onload = e => setChecklistTitleImg(side, e.target.result);
+  r.readAsDataURL(file);
+}
+function setChecklistTitleImgSize(side, px) {
+  const im = clTitleImgs()[side]; if (!im) return;
+  im.size = px;
+  renderPreviews();
+}
+function setChecklistTitleImgKnockout(side, on) {
+  const im = clTitleImgs()[side]; if (!im) return;
+  im.knockout = on;
+  applyChecklistTitleImgKnockout(im, () => { preserveInputsAcross(renderInputs); renderPreviews(); });
+}
+function removeChecklistTitleImg(side) {
+  clTitleImgs()[side] = null;
   preserveInputsAcross(renderInputs);
   renderPreviews();
 }
@@ -3095,7 +3156,7 @@ function snapshotActiveSlide() {
     boxPos: { ...currentBoxCopyPos },
     boxStyle: { ...currentBoxStyle },
     boxImg: currentBoxImageMode,
-    checklist: _cloneState(currentChecklist),
+    checklist: _cloneChecklist(currentChecklist),
   };
 }
 function applySlideToCurrent(idx) {
@@ -3117,7 +3178,7 @@ function applySlideToCurrent(idx) {
   currentBoxCopyPos = st.boxPos ? { ...st.boxPos } : { x: 70, y: 0 };
   currentBoxStyle = { ...freshBoxStyle(), ...(st.boxStyle || {}) };
   currentBoxImageMode = st.boxImg || 'full';
-  currentChecklist = { ...freshChecklist(), ..._cloneState(st.checklist || {}) };
+  currentChecklist = { ...freshChecklist(), ..._cloneChecklist(st.checklist || {}) };
   activeSlideIdx[currentSlot] = idx;
 }
 function populateDOMFromActiveSlide() {
@@ -3333,7 +3394,10 @@ function collectDraft(includeImages) {
   };
   if (!includeImages) {
     Object.values(draft.slotMemory).forEach(m => { m.images = {}; m.imageRaw = {}; m.imageSizes = {}; m.transforms = {}; });
-    Object.values(draft.slideStates).forEach(arr => (arr || []).forEach(s => { s.images = {}; s.imageRaw = {}; s.imageSizes = {}; s.transforms = {}; s.freeImages = []; }));
+    Object.values(draft.slideStates).forEach(arr => (arr || []).forEach(s => {
+      s.images = {}; s.imageRaw = {}; s.imageSizes = {}; s.transforms = {}; s.freeImages = [];
+      if (s.checklist) s.checklist.titleImgs = { left: null, right: null };   // 타이틀 양 끝 이미지도 dataURL
+    }));
   }
   return draft;
 }
@@ -3878,6 +3942,49 @@ function renderChecklistInputs(area) {
   area.appendChild(t);
   t.querySelector('#cl-title1').addEventListener('input', e => setChecklistField('title1', e.target.value));
   t.querySelector('#cl-title2').addEventListener('input', e => setChecklistField('title2', e.target.value));
+
+  // 타이틀 양 끝 이미지 — 좌/우 각각 업로드 + 크기(높이) 슬라이더 + 누끼 토글
+  const ti = document.createElement('div');
+  ti.className = 'field';
+  const imgs = cl.titleImgs || {};
+  const sideCol = (side, label) => {
+    const im = imgs[side];
+    return `
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;">
+        <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted);">${label}</div>
+        <div class="cl-ti-drop" data-side="${side}" style="display:flex;align-items:center;justify-content:center;gap:8px;min-height:60px;padding:8px;border:1px dashed var(--border);border-radius:8px;background:var(--card);cursor:pointer;text-align:center;box-sizing:border-box;">
+          ${im
+            ? `<img src="${im.src}" style="max-height:44px;max-width:60%;object-fit:contain;"><button type="button" data-act="del" data-side="${side}" style="font-family:var(--font-mono);font-size:11px;padding:4px 8px;border:1px solid var(--border);border-radius:5px;background:var(--bg-elev);color:var(--text-primary);cursor:pointer;">제거</button>`
+            : `<span style="font-size:12px;color:var(--text-muted);">클릭 · 드롭</span>`}
+        </div>
+        ${im ? `
+        <input data-act="size" data-side="${side}" type="range" min="60" max="360" step="4" value="${im.size}" style="width:100%;">
+        <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted);cursor:pointer;user-select:none;white-space:nowrap;">
+          <input data-act="ko" data-side="${side}" type="checkbox" ${im.knockout ? 'checked' : ''} style="cursor:pointer;"> 흰 배경 누끼
+        </label>` : ''}
+        <input type="file" accept="image/*" data-act="file" data-side="${side}" style="display:none;">
+      </div>`;
+  };
+  ti.innerHTML = `
+    <div class="field-label">타이틀 양 끝 이미지 (선택)</div>
+    <div class="field-spec" style="margin-bottom:8px;">타이틀 좌·우에 붙는 장식 이미지. 한쪽만 넣어도 돼요 · 비율 고정, 슬라이더로 높이만 조절.</div>
+    <div style="display:flex;gap:10px;">${sideCol('left', '왼쪽')}${sideCol('right', '오른쪽')}</div>`;
+  area.appendChild(ti);
+  ti.querySelectorAll('.cl-ti-drop').forEach(drop => {
+    const side = drop.dataset.side;
+    const fileIn = ti.querySelector(`[data-act="file"][data-side="${side}"]`);
+    drop.addEventListener('click', (e) => { if (e.target.closest('[data-act="del"]')) return; fileIn.click(); });
+    fileIn.addEventListener('change', () => onChecklistTitleImgFile(side, fileIn.files[0]));
+    drop.addEventListener('dragover', e => { e.preventDefault(); drop.style.borderColor = 'var(--accent)'; });
+    drop.addEventListener('dragleave', () => { drop.style.borderColor = 'var(--border)'; });
+    drop.addEventListener('drop', e => {
+      e.preventDefault(); drop.style.borderColor = 'var(--border)';
+      if (e.dataTransfer.files[0]) onChecklistTitleImgFile(side, e.dataTransfer.files[0]);
+    });
+  });
+  ti.querySelectorAll('[data-act="del"]').forEach(b => b.addEventListener('click', (e) => { e.stopPropagation(); removeChecklistTitleImg(b.dataset.side); }));
+  ti.querySelectorAll('[data-act="size"]').forEach(r => r.addEventListener('input', e => setChecklistTitleImgSize(r.dataset.side, parseInt(e.target.value, 10))));
+  ti.querySelectorAll('[data-act="ko"]').forEach(c => c.addEventListener('change', e => setChecklistTitleImgKnockout(c.dataset.side, e.target.checked)));
 
   // 스타일 토글 3종
   const seg = (label, spec, key, opts) => {
@@ -6676,11 +6783,20 @@ function buildChecklistCard(v, spec) {
   const cl = currentChecklist;
   const pc = currentPointColor || '#1D99FF';
   const F = "font-family:'Pretendard','Noto Sans KR',sans-serif;";
-  const PAD_X = 60, TOP = 72, BOT = 60, TITLE_GAP = 44;
+  const PAD_X = 60, TOP = 72, BOT = 60, TITLE_GAP = 44, TITLE_IMG_GAP = 20;
 
-  // ── 타이틀 (줄별 박스, 가운데 정렬) ──────────────────────────
+  // ── 타이틀 (줄별 박스, 가운데 정렬 · 양 끝 이미지 선택) ──────
   const titles = [cl.title1, cl.title2].map(t => (t || '').trim()).filter(Boolean);
-  const titleMaxW = v.w - PAD_X * 2;
+  // 양 끝 이미지가 차지하는 폭만큼 타이틀이 쓸 수 있는 가로가 줄어든다
+  const tImg = (side) => {
+    const im = (cl.titleImgs || {})[side];
+    return (im && im.src && im.w && im.h) ? im : null;
+  };
+  const tImgH = (side) => { const im = tImg(side); return im ? im.size : 0; };
+  const tImgW = (side) => { const im = tImg(side); return im ? Math.round(im.size * (im.w / im.h)) : 0; };
+  const titleMaxW = Math.max(160, v.w - PAD_X * 2      // 이미지가 너무 크면 폭이 0 이하 → 하한 확보
+    - (tImgW('left') ? tImgW('left') + TITLE_IMG_GAP : 0)
+    - (tImgW('right') ? tImgW('right') + TITLE_IMG_GAP : 0));
   const titleColors = (i) => {
     if (cl.titleStyle === 'point') return { bg: '#1A1A1A', fg: pc };
     return i === 0 ? { bg: '#FFFFFF', fg: '#1A1A1A' } : { bg: '#1A1A1A', fg: '#FFFFFF' };
@@ -6704,25 +6820,39 @@ function buildChecklistCard(v, spec) {
       titleFs -= 2;
     }
   }
-  let titleH = 0;
-  if (titles.length) {
+  let titleH = 0, headH = 0;
+  if (titles.length || tImgW('left') || tImgW('right')) {
     const titleWrap = document.createElement('div');
-    titleWrap.style.cssText = `display:flex;flex-direction:column;align-items:center;gap:${Math.round(titleFs * 0.24)}px;`;
+    titleWrap.style.cssText = `flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:${Math.round(titleFs * 0.24)}px;`;
     titles.forEach((t, i) => {
       const line = document.createElement('div');
       line.style.cssText = titleLineCss(titleFs, titleColors(i), false);
       line.innerHTML = applyPointColor(t);
       titleWrap.appendChild(line);
     });
-    titleH = _probeMeasure(titleWrap, titleMaxW).h;
-    const pos = document.createElement('div');
-    pos.style.cssText = `position:absolute;left:${PAD_X}px;right:${PAD_X}px;top:${TOP}px;z-index:2;`;
-    pos.appendChild(titleWrap);
-    banner.appendChild(pos);
+    titleH = titles.length ? _probeMeasure(titleWrap, titleMaxW).h : 0;
+    // 타이틀 양 끝 이미지 — 타이틀 블록을 가운데 두고 좌/우에 배치 (CCTV 체크리스트 패턴)
+    const row = document.createElement('div');
+    row.style.cssText = `position:absolute;left:${PAD_X}px;right:${PAD_X}px;top:${TOP}px;`
+      + `display:flex;align-items:center;justify-content:center;gap:${TITLE_IMG_GAP}px;z-index:2;`;
+    const sideImg = (side) => {
+      const im = (cl.titleImgs || {})[side];
+      if (!im || !im.src) return null;
+      const el = document.createElement('img');
+      el.src = im.src;
+      el.style.cssText = `height:${im.size}px;width:auto;object-fit:contain;display:block;flex:0 0 auto;`;
+      return el;
+    };
+    const l = sideImg('left'), r = sideImg('right');
+    if (l) row.appendChild(l);
+    row.appendChild(titleWrap);
+    if (r) row.appendChild(r);
+    banner.appendChild(row);
+    headH = Math.max(titleH, tImgH('left'), tImgH('right'));
   }
 
   // ── 리스트 영역 ─────────────────────────────────────────────
-  const listTop = TOP + titleH + (titles.length ? TITLE_GAP : 0);
+  const listTop = TOP + headH + (headH ? TITLE_GAP : 0);
   const availH = v.h - BOT - listTop;
   const INNER_PAD = cl.card ? 54 : 0;
   const listSideInset = cl.card ? PAD_X : 84;
