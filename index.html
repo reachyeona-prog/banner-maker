@@ -339,13 +339,35 @@ button { font-family: inherit; }
   width: 28px; height: 28px; border-radius: 6px;
   border: 1px solid var(--border); flex-shrink: 0;
 }
-.bg-hex-display {
-  flex: 1; padding: 9px 12px;
+/* 한 줄 팔레트 — [HEX 입력][현재색][대표색 스트립][+ 직접선택][더보기].
+   HEX를 맨 앞에 두는 이유: OS/브라우저 기본 컬러 대화상자는 RGB·HEX 순서를 제어할 수 없어,
+   hex를 쓸 땐 대화상자를 열 필요 자체를 없앤다. */
+.palette-row { display: flex; align-items: center; gap: 6px; }
+.hex-input {
+  flex: 0 0 auto; width: 84px; padding: 6px 8px;
   border: 1px solid var(--border); border-radius: var(--radius-sm);
-  font-family: var(--font); font-size: 14px; font-weight: 600;
-  letter-spacing: -0.3px; color: var(--text-primary);
-  background: var(--bg-elev);
+  font-family: var(--font-mono); font-size: 12px; font-weight: 600;
+  letter-spacing: 0.02em; color: var(--text-primary);
+  background: var(--bg-elev); outline: none; text-transform: uppercase;
+  transition: border-color var(--t-base), background var(--t-base), box-shadow var(--t-base);
 }
+.hex-input:focus { border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px var(--accent-light); }
+.hex-input:disabled { opacity: 0.45; cursor: not-allowed; }
+.hex-input.invalid { border-color: var(--accent); }
+/* 한 줄에 들어가도록 개수를 맞춰뒀지만, 폰트/확대 배율 차이로 넘치면 잘리지 말고 줄바꿈되게 둔다 */
+.palette-strip { flex: 1; min-width: 0; }
+.palette-more { margin-top: 6px; }
+.palette-more.hidden { display: none; }
+.more-chip {
+  flex: 0 0 auto; padding: 4px 6px; border-radius: 4px;
+  border: 1px dashed var(--border); background: var(--bg-elev);
+  font-family: var(--font-mono); font-size: 10px; font-weight: 500;
+  color: var(--text-secondary); cursor: pointer; line-height: 1;
+  transition: border-color var(--t-base), color var(--t-base);
+}
+.more-chip:hover { border-color: var(--ink); border-style: solid; color: var(--ink); }
+.palette-row .bg-swatch, .palette-row .preset-swatch { width: 24px; height: 24px; }
+.palette-row .pt-swatch, .palette-more .pt-swatch { width: 22px; height: 22px; }
 .preset-colors { display: flex; gap: 4px; flex-wrap: wrap; }
 .preset-row-break { flex-basis: 100%; height: 0; }
 /* 포인트 컬러: 색면이 패널을 지배하지 않도록 작은 '원형 색 칩 스트립'으로 정돈 (배경색=사각, 포인트=원으로 의미 구분) */
@@ -373,22 +395,7 @@ button { font-family: inherit; }
 }
 .preset-swatch.custom-picker:hover::before { color: var(--ink); }
 input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; pointer-events: none; }
-/* 포인트 컬러 안내문 + 복사 가능한 스니펫 칩 */
 .pt-guide { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.copy-chip {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 3px 8px; border-radius: 4px;
-  border: 1px dashed var(--border); background: var(--bg-elev);
-  font-family: var(--font-mono); font-size: 11px; font-weight: 500;
-  color: var(--ink); cursor: pointer;
-  transition: border-color var(--t-base), color var(--t-base), background var(--t-base);
-}
-.copy-chip:hover { border-color: var(--ink); border-style: solid; }
-.copy-chip:active { transform: translateY(1px); }
-.copy-chip .icon { width: 12px; height: 12px; opacity: 0.6; }
-.copy-chip:hover .icon { opacity: 1; }
-.copy-chip.copied { border-color: var(--accent); border-style: solid; color: var(--accent); }
-.copy-chip.copied .icon { opacity: 1; }
 
 /* 마크업 칩 — 포인트 스타일 단축어. 클릭으로 클립보드 복사 */
 .markup-chips {
@@ -451,7 +458,7 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
   align-items: center; gap: 10px;
 }
 .text-color-toggle.show { display: flex; }
-.text-color-toggle-label { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+/* 라벨은 .field-label을 그대로 써서 배경색·포인트 컬러와 같은 코랄 틱(카테고리 표식)을 갖는다 */
 .text-color-segments {
   display: flex; background: var(--bg); border-radius: 8px; padding: 2px;
   border: 1px solid var(--border);
@@ -1161,51 +1168,20 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
     <div class="field" id="bg-field">
       <div class="field-label">배경색</div>
       <div class="field-spec" id="bg-locked" style="display:none;">변경 불가</div>
-      <!-- 채도↑ + 유사색 그룹 순서로 나열, 줄바꿈은 flex-wrap에 맡김 -->
-      <div class="preset-colors" id="preset-colors">
-        <div class="preset-swatch" style="background:#F8F8F8" onclick="selectPreset('#F8F8F8')"></div>
-        <div class="preset-swatch" style="background:#E3F2FF" onclick="selectPreset('#E3F2FF')"></div>
-        <div class="preset-swatch" style="background:#D1F6F8" onclick="selectPreset('#D1F6F8')"></div>
-        <div class="preset-swatch" style="background:#E0E0FF" onclick="selectPreset('#E0E0FF')"></div>
-        <div class="preset-swatch" style="background:#F3E8FF" onclick="selectPreset('#F3E8FF')"></div>
-        <div class="preset-swatch" style="background:#EBFCCA" onclick="selectPreset('#EBFCCA')"></div>
-        <div class="preset-swatch" style="background:#FEF9C3" onclick="selectPreset('#FEF9C3')"></div>
-        <div class="preset-swatch" style="background:#FFE4D1" onclick="selectPreset('#FFE4D1')"></div>
-        <div class="preset-swatch" style="background:#FEE1E2" onclick="selectPreset('#FEE1E2')"></div>
-        <div class="preset-swatch" style="background:#EBEBEB" onclick="selectPreset('#EBEBEB')"></div>
-        <div class="preset-swatch" style="background:#212121" onclick="selectPreset('#212121')"></div>
-        <div class="preset-swatch" style="background:#2B3648" onclick="selectPreset('#2B3648')"></div>
-        <div class="preset-swatch" style="background:#FFF7E2" onclick="selectPreset('#FFF7E2')"></div>
-        <div class="preset-swatch" style="background:#FFEDF3" onclick="selectPreset('#FFEDF3')"></div>
-        <div class="preset-swatch" style="background:#ECEFFF" onclick="selectPreset('#ECEFFF')"></div>
-        <div class="preset-swatch" style="background:#FEF397" onclick="selectPreset('#FEF397')"></div>
-        <div class="preset-swatch" style="background:#F3FE84" onclick="selectPreset('#F3FE84')"></div>
-        <div class="preset-swatch" style="background:#D1FFE3" onclick="selectPreset('#D1FFE3')"></div>
-        <div class="preset-swatch" style="background:#99FADB" onclick="selectPreset('#99FADB')"></div>
-        <div class="preset-swatch" style="background:#A6E6FF" onclick="selectPreset('#A6E6FF')"></div>
-        <div class="preset-swatch" style="background:#FFC989" onclick="selectPreset('#FFC989')"></div>
-        <div class="preset-swatch" style="background:#FE8336" onclick="selectPreset('#FE8336')"></div>
-        <div class="preset-swatch" style="background:#FF7865" onclick="selectPreset('#FF7865')"></div>
-        <div class="preset-swatch" style="background:#361F00" onclick="selectPreset('#361F00')"></div>
-        <div class="preset-swatch" style="background:#00BB9A" onclick="selectPreset('#00BB9A')"></div>
-        <div class="preset-swatch" style="background:#00BCB8" onclick="selectPreset('#00BCB8')"></div>
-        <div class="preset-swatch" style="background:#01B7FF" onclick="selectPreset('#01B7FF')"></div>
-        <div class="preset-swatch" style="background:#0177FF" onclick="selectPreset('#0177FF')"></div>
-        <div class="preset-swatch" style="background:#0059FF" onclick="selectPreset('#0059FF')"></div>
-        <div class="preset-swatch" style="background:#0035D3" onclick="selectPreset('#0035D3')"></div>
-        <div class="preset-swatch" style="background:#6052FF" onclick="selectPreset('#6052FF')"></div>
-        <div class="preset-swatch custom-picker" title="직접 선택" onclick="openColorPicker()"></div>
-      </div>
-      <div class="field-row" id="bg-swatch-row">
+      <!-- 한 줄 팔레트: HEX 입력 + 현재색 + 대표색 스트립(+더보기). 스와치는 renderBgPresets가 채움 -->
+      <div class="palette-row" id="bg-swatch-row">
+        <input type="text" class="hex-input" id="bg-hex" value="#D1F6F8" maxlength="7" spellcheck="false"
+               placeholder="#FFFFFF" title="HEX 코드 직접 입력 (붙여넣기 가능)" oninput="onHexInput('bg', this)">
         <div class="bg-swatch" id="bg-swatch"></div>
-        <input type="color" id="color-picker" oninput="onColorChange()">
-        <div class="bg-hex-display" id="bg-hex">#D1F6F8</div>
+        <div class="preset-colors palette-strip" id="preset-colors"></div>
       </div>
+      <div class="preset-colors palette-more hidden" id="preset-colors-more"></div>
+      <input type="color" id="color-picker" oninput="onColorChange()">
       <!-- perVersionBg 슬롯에서 버전별 배경색 컨테이너 -->
       <div id="bg-per-version" style="display:none; flex-direction:column; gap:20px;"></div>
       <!-- 텍스트 컬러 토글 (어두운 배경에서만 노출) -->
       <div class="text-color-toggle" id="text-color-toggle">
-        <div class="text-color-toggle-label">텍스트 컬러</div>
+        <div class="field-label">텍스트 컬러</div>
         <div class="text-color-segments">
           <div class="text-color-segment" id="text-seg-white" onclick="setTextColor('white')">흰색</div>
           <div class="text-color-segment" id="text-seg-black" onclick="setTextColor('black')">검정</div>
@@ -1216,16 +1192,12 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
     <div class="field" id="pt-field" style="display:none;">
       <div class="field-label">포인트 컬러</div>
       <div class="field-spec pt-guide">
-        <span>카피에 감싼 키워드에 포인트 스타일 적용 · 스타일마다 컬러를 따로 지정할 수 있어요</span>
-        <button type="button" class="copy-chip" id="pt-snippet-chip" onclick="copyPointSnippet()" title="클립보드에 복사">
-          <span class="copy-chip-text">{중괄호 복사}</span>
-          <svg class="icon copy-chip-icon"><use href="#i-copy"/></svg>
-        </button>
+        <span>카피에 감싼 키워드에 포인트 스타일 적용 · <b>스타일 이름을 클릭하면 복사</b>돼요 · 스타일마다 컬러를 따로 지정할 수 있어요</span>
       </div>
       <!-- 마크업 칩(클릭=클립보드 복사) + 스타일별 컬러 도트(클릭=팔레트 편집 대상 전환) -->
       <div class="markup-rows">
         <div class="markup-row">
-          <span class="markup-chip" onclick="copyMarkup('##컬러##')" title="컬러 텍스트">##컬러##</span>
+          <span class="markup-chip" onclick="copyMarkup('##컬러##')" title="컬러 텍스트 — 예전 {중괄호}도 같은 스타일로 동작">##컬러##</span>
           <button type="button" class="style-color-btn" id="sc-btn-color" onclick="selectStyleTarget('color')" title="컬러 텍스트에 쓸 색 고르기"><span class="style-color-dot" id="sc-dot-color"></span><span id="sc-tag-color">기본</span></button>
         </div>
         <div class="markup-row">
@@ -1244,53 +1216,26 @@ input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; point
           <span class="markup-chip" onclick="copyMarkup('((볼드))')" title="프리텐다드 Bold 굵기">((볼드))</span>
           <span class="style-color-na">컬러 없음</span>
         </div>
+        <div class="markup-row">
+          <span class="markup-chip" onclick="copyMarkup('^^50^^')" title="줄 사이 부분 간격 — 단독 줄로 넣으면 폰트의 N% 높이만큼 띄움">^^50^^</span>
+          <span class="style-color-na">본문 전용 · 컬러 없음</span>
+        </div>
       </div>
+      <div class="field-spec" style="margin-top:4px;">예전 문법 <b>{중괄호}</b>는 <b>##컬러##</b>와 같은 스타일이라 목록에서 합쳤어요 (기존 카피는 그대로 동작).</div>
       <!-- 팔레트가 지금 어떤 스타일을 바꾸는 중인지 -->
       <div class="pt-edit-bar">
         <span id="pt-edit-label"><strong>전체 기본</strong> 컬러 선택 중</span>
         <button type="button" class="pt-reset-btn" id="pt-reset-btn" style="display:none;" onclick="resetStyleColor()">기본으로 되돌리기</button>
       </div>
-      <!-- 채도↑ + 유사색 그룹 순서로 나열, 줄바꿈은 flex-wrap에 맡김 -->
-      <div class="preset-colors" id="pt-presets">
-        <div class="preset-swatch pt-swatch" style="background:#008CFF" onclick="selectPointColor('#008CFF')"></div>
-        <div class="preset-swatch pt-swatch" style="background:#1D99FF" onclick="selectPointColor('#1D99FF')"></div>
-        <div class="preset-swatch pt-swatch" style="background:#163BD8" onclick="selectPointColor('#163BD8')"></div>
-        <div class="preset-swatch pt-swatch" style="background:#A164F9" onclick="selectPointColor('#A164F9')"></div>
-        <div class="preset-swatch pt-swatch" style="background:#05CC7A" onclick="selectPointColor('#05CC7A')"></div>
-        <div class="preset-swatch pt-swatch" style="background:#00B894" onclick="selectPointColor('#00B894')"></div>
-        <div class="preset-swatch pt-swatch" style="background:#D6AA74" onclick="selectPointColor('#D6AA74')"></div>
-        <div class="preset-swatch pt-swatch" style="background:#F39C12" onclick="selectPointColor('#F39C12')"></div>
-        <div class="preset-swatch pt-swatch" style="background:#F96C5A" onclick="selectPointColor('#F96C5A')"></div>
-        <div class="preset-swatch pt-swatch" style="background:#FF3B30" onclick="selectPointColor('#FF3B30')"></div>
-        <div class="preset-swatch pt-swatch" style="background:#F96EAE" onclick="selectPointColor('#F96EAE')"></div>
-        <div class="preset-swatch pt-swatch" style="background:#FED79E" onclick="selectPointColor('#FED79E')"></div>
-        <div class="preset-swatch pt-swatch" style="background:#FFFB81" onclick="selectPointColor('#FFFB81')"></div>
-        <div class="preset-swatch pt-swatch" style="background:#F6FF86" onclick="selectPointColor('#F6FF86')"></div>
-        <div class="preset-swatch pt-swatch" style="background:#E1FD82" onclick="selectPointColor('#E1FD82')"></div>
-        <div class="preset-swatch pt-swatch" style="background:#B9FFC1" onclick="selectPointColor('#B9FFC1')"></div>
-        <div class="preset-swatch pt-swatch" style="background:#01854D" onclick="selectPointColor('#01854D')"></div>
-        <div class="preset-swatch pt-swatch" style="background:#BAFF0E" onclick="selectPointColor('#BAFF0E')"></div>
-        <div class="preset-swatch pt-swatch" style="background:#00FEFC" onclick="selectPointColor('#00FEFC')"></div>
-        <div class="preset-swatch pt-swatch" style="background:#008DFF" onclick="selectPointColor('#008DFF')"></div>
-        <div class="preset-swatch pt-swatch" style="background:#1189EA" onclick="selectPointColor('#1189EA')"></div>
-        <div class="preset-swatch pt-swatch" style="background:#0163FF" onclick="selectPointColor('#0163FF')"></div>
-        <div class="preset-swatch pt-swatch" style="background:#005EFE" onclick="selectPointColor('#005EFE')"></div>
-        <div class="preset-swatch pt-swatch" style="background:#0048F2" onclick="selectPointColor('#0048F2')"></div>
-        <div class="preset-swatch pt-swatch" style="background:#3A59FF" onclick="selectPointColor('#3A59FF')"></div>
-        <div class="preset-swatch pt-swatch" style="background:#573DFF" onclick="selectPointColor('#573DFF')"></div>
-        <div class="preset-swatch pt-swatch" style="background:#8800FF" onclick="selectPointColor('#8800FF')"></div>
-        <div class="preset-swatch pt-swatch" style="background:#FF3BFF" onclick="selectPointColor('#FF3BFF')"></div>
-        <div class="preset-swatch pt-swatch" style="background:#FF44C7" onclick="selectPointColor('#FF44C7')"></div>
-        <div class="preset-swatch pt-swatch" style="background:#F90C2A" onclick="selectPointColor('#F90C2A')"></div>
-        <div class="preset-swatch pt-swatch" style="background:#F01100" onclick="selectPointColor('#F01100')"></div>
-        <div class="preset-swatch pt-swatch" style="background:#FF6F08" onclick="selectPointColor('#FF6F08')"></div>
-        <div class="preset-swatch custom-picker" title="직접 선택" onclick="document.getElementById('pt-picker').click()"></div>
-      </div>
-      <div class="field-row">
+      <!-- 한 줄 팔레트: HEX 입력 + 현재색 + 대표색 스트립(+더보기). 스와치는 renderPtPresets가 채움 -->
+      <div class="palette-row">
+        <input type="text" class="hex-input" id="pt-hex" value="#1D99FF" maxlength="7" spellcheck="false"
+               placeholder="#FFFFFF" title="HEX 코드 직접 입력 (붙여넣기 가능)" oninput="onHexInput('pt', this)">
         <div class="bg-swatch" id="pt-swatch"></div>
-        <input type="color" id="pt-picker" value="#1D99FF" oninput="onPointColorChange()">
-        <div class="bg-hex-display" id="pt-hex">#1D99FF</div>
+        <div class="preset-colors palette-strip" id="pt-presets"></div>
       </div>
+      <div class="preset-colors palette-more hidden" id="pt-presets-more"></div>
+      <input type="color" id="pt-picker" value="#1D99FF" oninput="onPointColorChange()">
     </div>
     <!-- 동적 필드 영역 -->
     <div id="fields-area"></div>
@@ -2324,18 +2269,33 @@ function mirrorVersion(v, mode) {
 // ================================================
 let currentBg = '#F8F8F8';
 let currentBgPerVersion = {}; // perVersionBg 슬롯에서 버전별 배경색 저장 (key: version.id)
+// 앞 PALETTE_STRIP_COUNT개가 한 줄 스트립에 노출되는 '대표색'. 나머지는 '더보기'로 접힘.
+//   → 순서를 바꾸면 노출되는 대표색이 바뀐다.
 const BG_PRESETS = [
+  // 대표색 (한 줄 노출) — 밝은 뉴트럴 / 블루 / 민트 / 크림 / 피치 / 블랙
+  '#F8F8F8', '#E3F2FF', '#D1F6F8', '#FEF9C3', '#FFE4D1', '#212121',
   // 기존 파스텔
-  '#F8F8F8', '#E3F2FF', '#D1F6F8', '#E0E0FF', '#F3E8FF', '#EBFCCA', '#FEF9C3', '#FFE4D1', '#FEE1E2',
-  // 추가: 뉴트럴/다크
-  '#EBEBEB', '#212121', '#2B3648',
-  // 추가: 페일 톤
+  '#E0E0FF', '#F3E8FF', '#EBFCCA', '#FEE1E2',
+  // 뉴트럴/다크
+  '#EBEBEB', '#2B3648',
+  // 페일 톤
   '#FFF7E2', '#FFEDF3', '#ECEFFF', '#FEF397', '#F3FE84', '#D1FFE3', '#99FADB', '#A6E6FF',
-  // 추가: 웜 비비드
+  // 웜 비비드
   '#FFC989', '#FE8336', '#FF7865', '#361F00',
-  // 추가: 쿨 비비드
+  // 쿨 비비드
   '#00BB9A', '#00BCB8', '#01B7FF', '#0177FF', '#0059FF', '#0035D3', '#6052FF'
 ];
+// 포인트 컬러 프리셋 — 앞 6개가 대표색
+const PT_PRESETS = [
+  // 대표색 (한 줄 노출) — 브랜드 블루 / 딥블루 / 퍼플 / 그린 / 오렌지 / 레드
+  '#008CFF', '#163BD8', '#A164F9', '#05CC7A', '#F39C12', '#FF3B30',
+  '#1D99FF', '#00B894', '#D6AA74', '#F96C5A', '#F96EAE', '#FED79E',
+  '#FFFB81', '#F6FF86', '#E1FD82', '#B9FFC1', '#01854D', '#BAFF0E',
+  '#00FEFC', '#008DFF', '#1189EA', '#0163FF', '#005EFE', '#0048F2',
+  '#3A59FF', '#573DFF', '#8800FF', '#FF3BFF', '#FF44C7', '#F90C2A',
+  '#F01100', '#FF6F08'
+];
+const PALETTE_STRIP_COUNT = 6;   // 한 줄에 노출할 대표색 수 (나머지는 '더보기'로 접힘)
 function getBgFor(v) {
   const spec = SPECS[currentProduct]?.slots[currentSlot];
   if (!spec || !v) return currentBg;
@@ -2914,6 +2874,19 @@ function arrangeChecklistZone(extra) {
   });
   return true;
 }
+// 자유 이미지 가운데 정렬 — axis 'h'(좌우) / 'v'(상하). 크기는 그대로 두고 위치만 옮긴다.
+//   기준 영역: 체크리스트 슬롯이면 리스트 아래 여백, 그 외에는 배너 전체.
+function alignFreeImage(idx, axis) {
+  const item = currentFreeImages[idx]; if (!item) return;
+  const spec = SPECS[currentProduct].slots[currentSlot];
+  if (!spec || !spec.freeImages) return;
+  const v = spec.versions[0];
+  const z = _clZoneUsable();
+  const box = z ? z : { left: 0, top: 0, w: v.w, h: v.h };
+  if (axis === 'h') item.x = Math.round(box.left + (box.w - item.w * item.scale) / 2);
+  else item.y = Math.round(box.top + (box.h - item.h * item.scale) / 2);
+  renderPreviews();
+}
 // 이미 올린 이미지를 현재 여백에 다시 맞춤 (항목을 늘리거나 줄인 뒤 사용)
 function snapFreeImageToChecklistZone(idx) {
   const item = currentFreeImages[idx]; if (!item) return;
@@ -3135,6 +3108,7 @@ let currentSlot = 'A1';
 //  초기화
 // ================================================
 window.onload = () => {
+  renderPtPresets();   // 포인트 컬러 스와치(한 줄 + 더보기) 생성 — 배경색은 updateBgUI가 렌더
   onProductChange();
   updateDraftUI();   // 임시본 있으면 불러오기 버튼 tooltip에 마지막 저장 시각 표시
   // Gulim 폰트 사전 로드 — 말풍선 첫 다운로드 시 html2canvas가 font fallback으로 떨어지는 것 방지
@@ -3608,7 +3582,7 @@ function onSlotChange() {
 function selectPreset(color) {
   currentBg = color;
   document.getElementById('bg-swatch').style.background = currentBg;
-  document.getElementById('bg-hex').textContent = currentBg.toUpperCase();
+  document.getElementById('bg-hex').value = currentBg.toUpperCase();
   document.getElementById('color-picker').value = currentBg;
   applyBgToBanners();
   updateFilenames();
@@ -3672,22 +3646,81 @@ function updatePresetActive() {
     s.classList.toggle('active', hex === cur);
   });
 }
-// 기본 배경 프리셋 (인덱스 페이지의 정적 HTML과 동일 — 슬롯에 bgPresets 미지정 시 사용)
-const DEFAULT_BG_PRESETS = [
-  '#F8F8F8','#E3F2FF','#D1F6F8','#E0E0FF','#F3E8FF','#EBFCCA','#FEF9C3','#FFE4D1','#FEE1E2',
-  '#EBEBEB','#212121','#2B3648',
-  '#FFF7E2','#FFEDF3','#ECEFFF','#FEF397','#F3FE84','#D1FFE3','#99FADB','#A6E6FF',
-  '#FFC989','#FE8336','#FF7865','#361F00',
-  '#00BB9A','#00BCB8','#01B7FF','#0177FF','#0059FF','#0035D3','#6052FF'
-];
-// 배경 프리셋 스와치 동적 렌더 (custom-picker는 마지막에 자동 추가)
+// 슬롯에 bgPresets 미지정 시 쓰는 기본 배경 프리셋 (BG_PRESETS와 동일 목록)
+const DEFAULT_BG_PRESETS = BG_PRESETS;
+// 한 줄 팔레트 렌더 — 대표색 스트립(+ 직접선택 + 더보기)과 접힌 나머지를 함께 그린다.
+//   swatchCls: 'preset-swatch'(배경, 사각) / 'preset-swatch pt-swatch'(포인트, 원)
+//   onclickFor(c): 스와치 onclick 문자열, pickerHTML: '+' 직접선택 스와치
+function renderPalette(stripEl, moreEl, colors, swatchCls, onclickFor, pickerHTML) {
+  if (!stripEl) return;
+  const sw = (c) => `<div class="${swatchCls}" style="background:${c}" onclick="${onclickFor(c)}"></div>`;
+  const head = colors.slice(0, PALETTE_STRIP_COUNT);
+  const rest = colors.slice(PALETTE_STRIP_COUNT);
+  const moreId = moreEl ? moreEl.id : '';
+  const open = moreEl && !moreEl.classList.contains('hidden');
+  stripEl.innerHTML = head.map(sw).join('') + pickerHTML
+    + ((rest.length && moreId)
+      ? `<button type="button" class="more-chip" data-count="${rest.length}" onclick="togglePalette('${moreId}', this)"
+           title="색 ${rest.length}개 더 보기">${open ? '접기' : '+' + rest.length}</button>`
+      : '');
+  if (moreEl) moreEl.innerHTML = rest.map(sw).join('');
+}
+// '더보기' 토글 — 접힌 팔레트를 펼치고 칩 라벨을 바꾼다
+function togglePalette(moreId, chip) {
+  const more = document.getElementById(moreId);
+  if (!more) return;
+  const nowHidden = more.classList.toggle('hidden');
+  if (chip) chip.textContent = nowHidden ? '+' + (chip.dataset.count || '') : '접기';
+}
+// 배경 프리셋 스와치 동적 렌더 (custom-picker는 스트립 끝에 자동 추가)
 function renderBgPresets(colors) {
-  const list = colors || DEFAULT_BG_PRESETS;
-  const wrap = document.getElementById('preset-colors');
-  wrap.innerHTML = list.map(c =>
-    `<div class="preset-swatch" style="background:${c}" onclick="selectPreset('${c}')"></div>`
-  ).join('') +
-    `<div class="preset-swatch custom-picker" title="직접 선택" onclick="openColorPicker()"></div>`;
+  renderPalette(
+    document.getElementById('preset-colors'),
+    document.getElementById('preset-colors-more'),
+    colors || DEFAULT_BG_PRESETS,
+    'preset-swatch',
+    (c) => `selectPreset('${c}')`,
+    `<div class="preset-swatch custom-picker" title="직접 선택" onclick="openColorPicker()"></div>`
+  );
+  updatePresetActive();
+}
+// 포인트 컬러 프리셋 스와치 렌더 (배경색과 동일한 한 줄 + 더보기 구조)
+function renderPtPresets() {
+  renderPalette(
+    document.getElementById('pt-presets'),
+    document.getElementById('pt-presets-more'),
+    PT_PRESETS,
+    'preset-swatch pt-swatch',
+    (c) => `selectPointColor('${c}')`,
+    `<div class="preset-swatch pt-swatch custom-picker" title="직접 선택" onclick="document.getElementById('pt-picker').click()"></div>`
+  );
+  updatePtPresetActive();
+}
+// HEX 입력칸 — 타이핑/붙여넣기로 색 지정. '#' 없이 6자리, 3자리 축약(#ABC)도 허용.
+//   유효할 때만 반영하고, 입력 중인 값은 다시 쓰지 않는다(커서 튐 방지).
+function normalizeHex(raw) {
+  let v = (raw || '').trim().replace(/^#/, '');
+  if (/^[0-9a-fA-F]{3}$/.test(v)) v = v.split('').map(ch => ch + ch).join('');
+  return /^[0-9a-fA-F]{6}$/.test(v) ? '#' + v.toUpperCase() : null;
+}
+function onHexInput(which, el) {
+  const hex = normalizeHex(el.value);
+  el.classList.toggle('invalid', !hex && el.value.trim() !== '');
+  if (!hex) return;
+  if (which === 'bg') {
+    const spec = SPECS[currentProduct].slots[currentSlot];
+    if (spec.bgFixed) return;
+    currentBg = hex;
+    document.getElementById('bg-swatch').style.background = hex;
+    document.getElementById('color-picker').value = hex;
+    applyBgToBanners();
+    updateFilenames();
+    updatePresetActive();
+    updateTextColorUI();
+    renderPreviews();
+  } else {
+    applyEditingColorKeepHex(hex);
+  }
 }
 function updateBgUI() {
   const spec = SPECS[currentProduct].slots[currentSlot];
@@ -3718,6 +3751,7 @@ function updateBgUI() {
     locked.style.display = 'block';
     picker.style.display = 'none';
     presets.style.display = 'none';
+    hex.disabled = true;
     textToggle.classList.remove('show'); // fixed 배경에서는 토글 숨김
   } else {
     // 스와치 동적 교체만 수행. currentBg 검증/리셋은 onSlotChange에서만 (custom picker 보존).
@@ -3731,9 +3765,11 @@ function updateBgUI() {
     picker.style.display = 'none';
     picker.value = currentBg;
     presets.style.display = 'flex';
+    hex.disabled = false;
   }
   swatch.style.background = currentBg;
-  hex.textContent = currentBg.toUpperCase();
+  hex.value = currentBg.toUpperCase();
+  hex.classList.remove('invalid');
   applyBgToBanners();
   updatePresetActive();
 }
@@ -3744,17 +3780,25 @@ function renderPerVersionBgUI(spec) {
     const cur = (currentBgPerVersion[v.id] || '#FFFFFF').toUpperCase();
     const block = document.createElement('div');
     block.style.cssText = 'display:flex; flex-direction:column; gap:8px;';
+    // 배경색 필드와 동일한 한 줄 구조 — [HEX 입력][현재색][대표색 스트립 + 더보기]
+    const moreId = `bg-pv-more-${v.id}`;
+    const head = BG_PRESETS.slice(0, PALETTE_STRIP_COUNT);
+    const rest = BG_PRESETS.slice(PALETTE_STRIP_COUNT);
+    const sw = (c) => `<div class="preset-swatch ${c.toUpperCase() === cur ? 'active' : ''}" style="background:${c}" onclick="selectPresetForVersion('${v.id}', '${c}')"></div>`;
     block.innerHTML = `
       <div class="field-spec" style="font-weight:700; color:var(--ink);">${v.label}</div>
-      <div class="preset-colors" data-version="${v.id}">
-        ${BG_PRESETS.map(c => `<div class="preset-swatch ${c.toUpperCase() === cur ? 'active' : ''}" style="background:${c}" onclick="selectPresetForVersion('${v.id}', '${c}')"></div>`).join('')}
-        <div class="preset-swatch custom-picker" title="직접 선택" onclick="openColorPickerForVersion('${v.id}')"></div>
-      </div>
-      <div class="field-row">
+      <div class="palette-row">
+        <input type="text" class="hex-input" value="${cur}" maxlength="7" spellcheck="false"
+               placeholder="#FFFFFF" title="HEX 코드 직접 입력" oninput="onHexInputForVersion('${v.id}', this)">
         <div class="bg-swatch" style="background:${cur};"></div>
-        <input type="color" class="hidden-color-picker" data-version="${v.id}" value="${cur}" oninput="onColorChangeForVersion('${v.id}', this.value)" style="display:none;">
-        <div class="bg-hex-display">${cur}</div>
-      </div>`;
+        <div class="preset-colors palette-strip" data-version="${v.id}">
+          ${head.map(sw).join('')}
+          <div class="preset-swatch custom-picker" title="직접 선택" onclick="openColorPickerForVersion('${v.id}')"></div>
+          ${rest.length ? `<button type="button" class="more-chip" data-count="${rest.length}" onclick="togglePalette('${moreId}', this)" title="색 ${rest.length}개 더 보기">+${rest.length}</button>` : ''}
+        </div>
+      </div>
+      <div class="preset-colors palette-more hidden" id="${moreId}">${rest.map(sw).join('')}</div>
+      <input type="color" class="hidden-color-picker" data-version="${v.id}" value="${cur}" oninput="onColorChangeForVersion('${v.id}', this.value)" style="display:none;">`;
     wrap.appendChild(block);
   });
 }
@@ -3776,6 +3820,22 @@ function onColorChangeForVersion(versionId, color) {
   updateTextColorUI();
   renderPreviews();
 }
+// 버전별 배경 HEX 입력 — 유효할 때만 반영. updateBgUI가 블록을 다시 그리면 커서가 튀므로 여기선 미리보기만 갱신.
+function onHexInputForVersion(versionId, el) {
+  const hex = normalizeHex(el.value);
+  el.classList.toggle('invalid', !hex && el.value.trim() !== '');
+  if (!hex) return;
+  currentBgPerVersion[versionId] = hex;
+  const row = el.closest('.palette-row');
+  const sw = row && row.querySelector('.bg-swatch');
+  if (sw) sw.style.background = hex;
+  const picker = document.querySelector(`#bg-per-version input[type="color"][data-version="${versionId}"]`);
+  if (picker) picker.value = hex;
+  applyBgToBanners();
+  updateFilenames();
+  updateTextColorUI();
+  renderPreviews();
+}
 // 팔레트가 지금 편집 중인 대상의 색 (base면 전체 기본, 그 외는 그 스타일에 적용될 색)
 function getEditingColor() {
   return ptEditTarget === 'base' ? currentPointColor : getStyleColor(ptEditTarget);
@@ -3789,6 +3849,13 @@ function applyEditingColor(color) {
 }
 function selectPointColor(color) {
   applyEditingColor(color);
+}
+// HEX 입력칸으로 지정한 경우 — 입력 중인 칸은 건드리지 않는다
+function applyEditingColorKeepHex(color) {
+  if (ptEditTarget === 'base') currentPointColor = color;
+  else currentStyleColors[ptEditTarget] = color;
+  updateStyleColorUI(true);
+  renderPreviews();
 }
 function onPointColorChange() {
   applyEditingColor(document.getElementById('pt-picker').value);
@@ -3806,7 +3873,8 @@ function resetStyleColor() {
   renderPreviews();
 }
 // 스타일별 도트·태그, 편집 대상 표시, 스와치/hex/픽커를 한 번에 동기화
-function updateStyleColorUI() {
+//   skipHex: HEX 입력칸에 타이핑 중일 때 값을 덮어쓰지 않기 위한 플래그
+function updateStyleColorUI(skipHex) {
   Object.keys(STYLE_TARGET_LABELS).forEach(key => {
     const dot = document.getElementById('sc-dot-' + key);
     const tag = document.getElementById('sc-tag-' + key);
@@ -3831,7 +3899,7 @@ function updateStyleColorUI() {
   const hex = document.getElementById('pt-hex');
   const picker = document.getElementById('pt-picker');
   if (sw) sw.style.background = cur;
-  if (hex) hex.textContent = cur.toUpperCase();
+  if (hex && !skipHex) hex.value = cur.toUpperCase();
   if (picker) picker.value = cur;
   updatePtPresetActive();
 }
@@ -3902,19 +3970,7 @@ function copyMarkup(snippet) {
     toast('클립보드 복사 실패. 직접 입력해 주세요.', { danger: true });
   });
 }
-function copyPointSnippet() {
-  const snippet = '{중괄호 복사}';
-  const chip = document.getElementById('pt-snippet-chip');
-  navigator.clipboard.writeText(snippet).then(() => {
-    if (chip) {
-      chip.classList.add('copied');
-      setTimeout(() => chip.classList.remove('copied'), 1200);
-    }
-    toast('"' + snippet + '" 복사 완료');
-  }).catch(() => {
-    toast('클립보드 복사 실패. 직접 입력해 주세요.', { danger: true });
-  });
-}
+// ({중괄호 복사} 전용 버튼은 제거 — 마크업 칩 이름을 클릭하면 그 자리에서 복사된다)
 // spec 컬러가 black/white 계열이면 배경에 따른 자동 색상으로 교체, 그 외(회색 등)는 유지
 // v 인자가 있으면 해당 버전의 배경 기준으로 판단 (perVersionBg 슬롯 대응)
 function resolveTextColor(specColor, v) {
@@ -3941,7 +3997,7 @@ function onColorChange() {
   if (spec.bgFixed) return;
   currentBg = document.getElementById('color-picker').value;
   document.getElementById('bg-swatch').style.background = currentBg;
-  document.getElementById('bg-hex').textContent = currentBg.toUpperCase();
+  document.getElementById('bg-hex').value = currentBg.toUpperCase();
   applyBgToBanners();
   updateFilenames();
   updatePresetActive();
@@ -4946,8 +5002,9 @@ function renderFreeImageUI(wrap, v) {
   sec.style.cssText = 'margin-top:18px;';
   sec.innerHTML = `
     <div class="field-label" style="margin-bottom:6px;">추가 이미지 (자유 배치 · 최대 2)</div>
-    <div class="field-spec" style="margin-bottom:8px;">미리보기에서 드래그로 위치, 휠/슬라이더로 크기. 흰 배경 누끼 토글 가능.${
-      isChecklist ? '<br>올리면 <b>체크 항목 아래 남은 여백</b>에 자동으로 맞춰 들어가요. 항목을 바꾼 뒤엔 ⤓ 버튼으로 다시 맞추세요.' : ''}</div>`;
+    <div class="field-spec" style="margin-bottom:8px;">미리보기에서 드래그로 위치, 휠/슬라이더로 크기. 흰 배경 누끼 토글 가능.<br>가운데 정렬 버튼은 ${
+      isChecklist ? '<b>체크 항목 아래 여백</b>' : '<b>배너 전체</b>'} 기준이에요.${
+      isChecklist ? '<br>올리면 그 여백에 자동으로 맞춰 들어가요. 항목을 바꾼 뒤엔 ⤓ 버튼으로 다시 맞추세요.' : ''}</div>`;
   currentFreeImages.forEach((item, idx) => {
     const dispW = Math.round(item.w * item.scale);
     const row = document.createElement('div');
@@ -4956,6 +5013,10 @@ function renderFreeImageUI(wrap, v) {
       <img src="${item.src}" style="width:44px;height:44px;object-fit:contain;border:1px solid var(--border);border-radius:6px;background:${fieldBg};flex:0 0 auto;">
       <div style="flex:1;display:flex;flex-direction:column;gap:6px;min-width:0;">
         <input data-act="size" type="range" min="60" max="${v.w}" step="4" value="${dispW}" style="width:100%;">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          <button type="button" class="markup-chip" data-act="align-h" title="좌우 가운데로">⇔ 좌우 가운데</button>
+          <button type="button" class="markup-chip" data-act="align-v" title="상하 가운데로">⇕ 상하 가운데</button>
+        </div>
         <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted);cursor:pointer;user-select:none;white-space:nowrap;">
           <input data-act="ko" type="checkbox" ${item.knockout ? 'checked' : ''} style="cursor:pointer;"> 흰 배경 누끼
         </label>
@@ -4967,6 +5028,8 @@ function renderFreeImageUI(wrap, v) {
     sec.appendChild(row);
     row.querySelector('[data-act="size"]').addEventListener('input', e => setFreeImageScale(idx, parseFloat(e.target.value) / item.w));
     row.querySelector('[data-act="ko"]').addEventListener('change', e => setFreeImageKnockout(idx, e.target.checked));
+    row.querySelector('[data-act="align-h"]').addEventListener('click', () => alignFreeImage(idx, 'h'));
+    row.querySelector('[data-act="align-v"]').addEventListener('click', () => alignFreeImage(idx, 'v'));
     const snapBtn = row.querySelector('[data-act="snap"]');
     if (snapBtn) snapBtn.addEventListener('click', () => snapFreeImageToChecklistZone(idx));
     row.querySelector('[data-act="del"]').addEventListener('click', () => removeFreeImage(idx));
