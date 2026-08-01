@@ -1397,7 +1397,45 @@ function applyCardNewsJSON() {
       sub: e5Body,
     };
   };
-  if (interiorCount > 0) {
+  // 체크리스트 세트 여부 — interiorSlot이 'E8'이거나, 항목 배열(items)을 가진 내지면 체크리스트로 본다.
+  const first = (data.interiors && data.interiors[0]) || null;
+  const isChecklistSet = data.interiorSlot === 'E8'
+    || (first && (first.type === 'E8' || Array.isArray(first.items)));
+  // interiors 한 항목 → 체크리스트 상태. items는 문자열/객체 둘 다 받고, desc는 배열이면 줄바꿈으로 합침.
+  //   startNo를 안 주면 앞 슬라이드에서 이어지는 번호를 자동으로 매긴다 (1~5 / 6~10 …).
+  const checklistFor = (it, nextNo) => {
+    const items = (Array.isArray(it.items) ? it.items : []).map(x => {
+      if (typeof x === 'string') return { text: x, desc: '' };
+      const d = (x && x.desc != null) ? x.desc : '';
+      return {
+        text: String((x && (x.text || x.title)) || ''),
+        desc: Array.isArray(d) ? d.join('\n') : String(d),
+      };
+    }).filter(o => o.text.trim() || o.desc.trim());
+    const explicit = parseInt(it.startNo, 10);
+    const startNo = (!isNaN(explicit) && explicit > 0) ? explicit : nextNo;
+    const cl = {
+      ...freshChecklist(),
+      title1: String(it.title1 || it.title || ''),
+      title2: String(it.title2 || ''),
+      titleStyle: it.titleStyle === 'point' ? 'point' : 'invert',
+      card: it.card !== false,
+      numbered: it.numbered !== false,
+      startNo,
+      items: items.length ? items : freshChecklist().items,
+    };
+    return { cl, nextNo: startNo + cl.items.length };
+  };
+  if (interiorCount > 0 && isChecklistSet) {
+    // 체크리스트 내지(E8) — 입력 필드가 아니라 checklist 상태로 들어간다
+    let nextNo = 1;
+    slideStates['E8'] = data.interiors.map(it => {
+      const r = checklistFor(it, nextNo);
+      nextNo = r.nextNo;
+      return { ...freshSlideState(), checklist: r.cl };
+    });
+    activeSlideIdx['E8'] = 0;
+  } else if (interiorCount > 0) {
     INTERIOR_SLOTS.forEach(sl => {
       slideStates[sl] = data.interiors.map(it => ({
         images: {}, imageSizes: {}, imageRaw: {},
@@ -1409,9 +1447,10 @@ function applyCardNewsJSON() {
       activeSlideIdx[sl] = 0;
     });
   }
-  // 3) 표지(E1)로 와서 cover 카피 입력 (사용자가 가장 먼저 보는 화면)
+  // 3) 표지(E1)로 와서 cover 카피 입력 (사용자가 가장 먼저 보는 화면).
+  //    표지가 없는 세트면 채워 넣은 내지 슬롯으로 바로 이동.
+  const slotSel = document.getElementById('sel-slot');
   if (data.cover) {
-    const slotSel = document.getElementById('sel-slot');
     slotSel.value = 'E1';
     onSlotChange();
     const fillIfExists = (id, val) => {
@@ -1422,10 +1461,17 @@ function applyCardNewsJSON() {
     fillIfExists('main1', data.cover.main1);
     fillIfExists('main2', data.cover.main2);
     renderPreviews();
+  } else if (interiorCount > 0) {
+    slotSel.value = isChecklistSet ? 'E8' : INTERIOR_SLOTS[0];
+    onSlotChange();
   }
   hint.className = 'json-import-hint is-success';
-  hint.textContent = `완료 — 표지 + 내지 ${interiorCount}장 (모든 스타일에 채움, 유형에서 선택)`;
-  toast(`카피가 채워졌어요 — 내지 ${interiorCount}장이 모든 스타일에 적용됐어요. 유형 드롭다운에서 골라 쓰세요.`, { duration: 4000 });
+  const where = isChecklistSet ? '체크리스트(E8)' : '내지';
+  hint.textContent = `완료 — ${data.cover ? '표지 + ' : ''}${where} ${interiorCount}장`;
+  toast(isChecklistSet
+    ? `체크리스트 ${interiorCount}장이 E8에 채워졌어요. 슬롯 드롭다운에서 '체크리스트'를 선택하세요.`
+    : `카피가 채워졌어요 — 내지 ${interiorCount}장이 모든 스타일에 적용됐어요. 유형 드롭다운에서 골라 쓰세요.`,
+    { duration: 4000 });
 }
 // ================================================
 //  배너 스펙 데이터
