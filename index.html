@@ -4012,6 +4012,22 @@ function updatePointColorUI() {
     ptField.style.display = 'none';
   }
 }
+// 곧은 따옴표(" ')를 굽은 따옴표(“ ” ‘ ’)로 치환 — 복붙한 카피가 일자 따옴표 그대로 찍히는 걸 방지.
+//   쌍따옴표: 줄 단위로 여는 것 → 닫는 것을 번갈아 매긴다. 앞 글자에 바로 붙어도(한글"이렇게") 올바르게 나옴.
+//   홑따옴표: 앞이 공백·여는 괄호면 여는 쪽, 그 외는 닫는 쪽. 낱말 사이의 '는 어포스트로피(’)가 되어 그대로 자연스럽다.
+//     (홑따옴표는 어포스트로피와 구분이 안 돼 번갈아 매기면 don't 같은 표현이 깨지므로 문맥 규칙 유지)
+//   ※ applyPointColor에서는 반드시 마크업 치환 '전'에 적용할 것 (뒤에 하면 생성된 태그의 속성 따옴표까지 바뀜)
+const SQ_OPEN_PREV = '(^|[\\s(\\[{‘“«‹—–（「『\\-])';
+function smartQuotes(t) {
+  if (t == null || t === '') return t;
+  return String(t).split('\n').map(line => {
+    let expectOpen = true;
+    return line
+      .replace(/"/g, () => { const ch = expectOpen ? '“' : '”'; expectOpen = !expectOpen; return ch; })
+      .replace(new RegExp(SQ_OPEN_PREV + "'", 'g'), '$1‘')
+      .replace(/'/g, '’');
+  }).join('\n');
+}
 function applyPointColor(text) {
   // 모든 구좌에서 사용 가능 — HTML 특수문자를 먼저 escape해야 사용자 입력이 HTML로 해석되지 않음
   // 마크업 시리즈:
@@ -4027,6 +4043,7 @@ function applyPointColor(text) {
   const cText = getStyleColor('color');
   const cUnder = getStyleColor('underline');
   let html = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  html = smartQuotes(html);   // 마크업 치환 전에 — 아래에서 만들어지는 태그 속성이 영향받지 않도록
   // 마크업 결과를 플레이스홀더로 보관해 후속 regex가 자신의 출력을 재매치하지 못하도록 격리
   const placeholders = [];
   const reserve = (innerHtml) => {
@@ -6135,7 +6152,7 @@ function buildSourceNote(banner, v) {
   } else {
     el.style.cssText = `position:absolute;right:${SOURCE_NOTE_PAD}px;bottom:${SOURCE_NOTE_PAD}px;max-width:${v.w - SOURCE_NOTE_PAD * 2}px;${baseCss}`;
   }
-  el.textContent = note.text;
+  el.textContent = smartQuotes(note.text);
   banner.appendChild(el);
 }
 // 자유 배치 추가 이미지 — currentFreeImages를 banner 위에 절대배치(드래그=위치, 휠=크기)
@@ -6302,7 +6319,7 @@ function bubbleTextColor(bub) {
 function measureBubbleText(bub) {
   const m = document.createElement('div');
   m.style.cssText = `position:absolute;left:-9999px;top:-9999px;visibility:hidden;font-family:${getSpeechBubbleFontCss(bub.font)};font-weight:400;font-size:${SPEECH_BUBBLE_FS}px;line-height:1.35;letter-spacing:-0.09em;white-space:pre;`;
-  m.textContent = bub.text || '말풍선';
+  m.textContent = smartQuotes(bub.text || '말풍선');   // 실제 렌더와 같은 글자로 재야 크기가 맞음
   document.body.appendChild(m);
   const tw = m.offsetWidth, th = m.offsetHeight;
   document.body.removeChild(m);
@@ -6327,7 +6344,7 @@ function buildSpeechBubble(banner, v, bub) {
 function buildBubbleTextDiv(offsetX, offsetY, W, H, fontCss, text, color) {
   const txt = document.createElement('div');
   txt.style.cssText = `position:absolute;left:${offsetX}px;top:${offsetY}px;width:${W}px;height:${H}px;display:flex;align-items:center;justify-content:center;font-family:${fontCss};font-weight:400;font-size:${SPEECH_BUBBLE_FS}px;line-height:1.35;color:${color};text-align:center;letter-spacing:-0.09em;white-space:pre-line;pointer-events:none;padding:0 6px;box-sizing:border-box;`;
-  txt.textContent = text || '';
+  txt.textContent = smartQuotes(text || '');
   return txt;
 }
 // 사각형 — 가로 긴 사각형 + 검은 외곽선 (배경색 선택)
