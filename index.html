@@ -1379,16 +1379,23 @@ function applyCardNewsJSON() {
   // interiors 한 항목을 슬롯들의 입력 필드로 매핑.
   //   슬롯마다 필드 구조가 달라(E2·E4 메인 블록 main1~3 / E5 헤드 main + 본문 sub textarea),
   //   변형들을 모두 담아둔다. populateDOMFromActiveSlide가 실제 존재하는 필드만 가져가므로 충돌 없음.
-  //   본문은 sub1/sub2/sub3 우선, 없으면 main2/main3을 본문으로.
+  //   본문은 sub1..sub9 우선, 없으면 main2/main3을 본문으로.
+  //   (실제 카드 본문이 4~5줄이라 sub는 3줄로 끊지 않고 sub9까지 이어 받는다)
+  const SUB_LINE_KEYS = ['sub1','sub2','sub3','sub4','sub5','sub6','sub7','sub8','sub9'];
   const interiorInputsFor = (it) => {
-    const subLines = [it.sub1, it.sub2, it.sub3].map(x => x || '');
+    const subLines = SUB_LINE_KEYS.map(k => it[k] || '');
     const hasSub = subLines.some(x => String(x).trim());
     const body = hasSub ? subLines : [it.main2 || '', it.main3 || '', ''];
-    // E5 박스 카피 본문: body(다줄 문자열·배열) 우선 → sub → sub1~3/main2~3 합침
+    // E5 박스 카피 본문: body(다줄 문자열·배열) 우선 → sub → sub1..sub9/main2~3 합침
+    //   sub1..sub9는 뒤쪽 빈 값만 잘라내고 중간 빈 줄("")은 살린다 — 유도 문구 앞 한 줄 띄우기용
     let e5Body;
     if (it.body != null) e5Body = Array.isArray(it.body) ? it.body.join('\n') : String(it.body);
     else if (it.sub != null) e5Body = String(it.sub);
-    else e5Body = body.filter(x => String(x).trim()).join('\n');
+    else {
+      const trimmed = body.slice();
+      while (trimmed.length && !String(trimmed[trimmed.length - 1]).trim()) trimmed.pop();
+      e5Body = trimmed.join('\n');
+    }
     return {
       // 메인 카피 블록 (E2·E4) — 3줄 고정
       main1: (it.main1 || ''), main2: (it.main2 || ''), main3: (it.main3 || ''),
