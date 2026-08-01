@@ -1397,6 +1397,23 @@ function applyCardNewsJSON() {
       sub: e5Body,
     };
   };
+  // 출처 표기 / 말풍선 — 슬라이드 공통 옵션 필드.
+  //   note: "출처: …" 문자열 (비어 있으면 표기 끔)
+  //   bubble: 말풍선 카피 (문자열 \n 또는 배열). 위치·스타일은 기본값 → 도구에서 조정.
+  const noteFrom = (it) => {
+    const t = (it && it.note != null) ? String(it.note).trim() : '';
+    return { enabled: !!t, text: t, color: 'auto' };
+  };
+  const bubbleFrom = (it, v) => {
+    const raw = it && it.bubble;
+    const t = Array.isArray(raw) ? raw.join('\n') : (raw != null ? String(raw) : '');
+    if (!t.trim() || !v) return {};
+    return { [v.id]: { ...freshSpeechBubble(v), enabled: true, text: t } };
+  };
+  const slotVersion = (slotKey) => {
+    const sp = SPECS[currentProduct].slots[slotKey];
+    return sp && sp.versions && sp.versions[0];
+  };
   // 체크리스트 세트 여부 — interiorSlot이 'E8'이거나, 항목 배열(items)을 가진 내지면 체크리스트로 본다.
   const first = (data.interiors && data.interiors[0]) || null;
   const isChecklistSet = data.interiorSlot === 'E8'
@@ -1428,21 +1445,29 @@ function applyCardNewsJSON() {
   };
   if (interiorCount > 0 && isChecklistSet) {
     // 체크리스트 내지(E8) — 입력 필드가 아니라 checklist 상태로 들어간다
+    const v8 = slotVersion('E8');
     let nextNo = 1;
     slideStates['E8'] = data.interiors.map(it => {
       const r = checklistFor(it, nextNo);
       nextNo = r.nextNo;
-      return { ...freshSlideState(), checklist: r.cl };
+      return {
+        ...freshSlideState(),
+        checklist: r.cl,
+        sourceNote: noteFrom(it),
+        speechBubbles: bubbleFrom(it, v8),
+      };
     });
     activeSlideIdx['E8'] = 0;
   } else if (interiorCount > 0) {
     INTERIOR_SLOTS.forEach(sl => {
+      const v = slotVersion(sl);
       slideStates[sl] = data.interiors.map(it => ({
         images: {}, imageSizes: {}, imageRaw: {},
         transforms: {}, fadeOverrides: {},
         inputs: interiorInputsFor(it),
         mainLines: interiorLines,
-        sourceNote: { enabled: false, text: '', color: 'auto' },
+        sourceNote: noteFrom(it),
+        speechBubbles: bubbleFrom(it, v),
       }));
       activeSlideIdx[sl] = 0;
     });
@@ -1460,6 +1485,15 @@ function applyCardNewsJSON() {
     fillIfExists('sub', data.cover.pill);
     fillIfExists('main1', data.cover.main1);
     fillIfExists('main2', data.cover.main2);
+    // 표지의 출처·말풍선 — onSlotChange가 상태를 초기화한 뒤이므로 여기서 덮어쓴다
+    const v1 = slotVersion('E1');
+    const cNote = noteFrom(data.cover);
+    const cBubble = bubbleFrom(data.cover, v1);
+    if (cNote.enabled || Object.keys(cBubble).length) {
+      currentSourceNote = cNote;
+      if (Object.keys(cBubble).length) currentSpeechBubbles = cBubble;
+      preserveInputsAcross(renderInputs);   // 출처/말풍선 토글 UI 갱신
+    }
     renderPreviews();
   } else if (interiorCount > 0) {
     slotSel.value = isChecklistSet ? 'E8' : INTERIOR_SLOTS[0];
