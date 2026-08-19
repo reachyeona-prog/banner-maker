@@ -5548,8 +5548,17 @@ function renderPreviews() {
     }
     section.appendChild(outer);
     // editable 이미지: 위치 정렬 · 초기화 버튼 (이미지가 업로드된 경우에만)
-    const isVerEditable = spec.imageEditable || (v.img && v.img.editable);
-    if (isVerEditable && currentImages[v.id]) {
+    // dualImage(앱 배너 등)도 이미지가 편집 가능 → 편집 버튼(꽉차게 포함) 노출
+    const isVerEditable = spec.imageEditable || (v.img && v.img.editable) || spec.dualImage;
+    // 편집 대상 이미지 id — dualImage는 활성(또는 업로드된) 이미지를 클릭 시점에 재계산
+    const getEditId = () => {
+      if (!spec.dualImage) return v.id;
+      const has1 = !!currentImages[v.id], has2 = !!currentImages[v.id + '_2'];
+      const active = currentDualActive[v.id] || '2';
+      return (active === '1' && has1) ? v.id : (active === '2' && has2) ? (v.id + '_2') : (has2 ? (v.id + '_2') : v.id);
+    };
+    const hasAnyImg = spec.dualImage ? (currentImages[v.id] || currentImages[v.id + '_2']) : currentImages[v.id];
+    if (isVerEditable && hasAnyImg) {
       const btnRow = document.createElement('div');
       btnRow.className = 'editable-btn-row';
       const makeBtn = (text, handler) => {
@@ -5560,29 +5569,23 @@ function renderPreviews() {
         b.onclick = handler;
         return b;
       };
+      const centerAxis = (axis) => {
+        const id = getEditId();
+        const t = currentImageTransforms[id] || { scale:1, x:0, y:0, rotation:0 };
+        t[axis] = 0;
+        currentImageTransforms[id] = t;
+        renderPreviews();
+      };
       // 확대/축소 버튼 (트랙패드 휠이 안 잡히는 환경 대비) — 한 번에 10%씩
-      btnRow.appendChild(makeBtn('－ 축소', () => zoomEditableImage(v.id, -0.1)));
-      btnRow.appendChild(makeBtn('＋ 확대', () => zoomEditableImage(v.id, 0.1)));
+      btnRow.appendChild(makeBtn('－ 축소', () => zoomEditableImage(getEditId(), -0.1)));
+      btnRow.appendChild(makeBtn('＋ 확대', () => zoomEditableImage(getEditId(), 0.1)));
       // 가로/세로 꽉 채우기 — 이미지 전체 너비/높이가 프레임에 딱 맞도록 scale 자동 설정
-      btnRow.appendChild(makeBtn('⇿ 가로 꽉차게', () => fitEditableImage(v.id, 'width')));
-      btnRow.appendChild(makeBtn('⇳ 세로 꽉차게', () => fitEditableImage(v.id, 'height')));
-      // 좌우 가운데 정렬 — state.x = 0 (scale 유지)
-      btnRow.appendChild(makeBtn('↔ 좌우 가운데', () => {
-        const t = currentImageTransforms[v.id] || { scale:1, x:0, y:0, rotation:0 };
-        t.x = 0;
-        currentImageTransforms[v.id] = t;
-        renderPreviews();
-      }));
-      // 상하 가운데 정렬 — state.y = 0 (scale 유지)
-      btnRow.appendChild(makeBtn('↕ 상하 가운데', () => {
-        const t = currentImageTransforms[v.id] || { scale:1, x:0, y:0, rotation:0 };
-        t.y = 0;
-        currentImageTransforms[v.id] = t;
-        renderPreviews();
-      }));
-      // 위치/크기 전체 초기화
+      btnRow.appendChild(makeBtn('⇿ 가로 꽉차게', () => fitEditableImage(getEditId(), 'width')));
+      btnRow.appendChild(makeBtn('⇳ 세로 꽉차게', () => fitEditableImage(getEditId(), 'height')));
+      btnRow.appendChild(makeBtn('↔ 좌우 가운데', () => centerAxis('x')));
+      btnRow.appendChild(makeBtn('↕ 상하 가운데', () => centerAxis('y')));
       btnRow.appendChild(makeBtn('↺ 위치 · 크기 초기화', () => {
-        currentImageTransforms[v.id] = { scale: 1, x: 0, y: 0, rotation: 0 };
+        currentImageTransforms[getEditId()] = { scale: 1, x: 0, y: 0, rotation: 0 };
         renderPreviews();
       }));
       section.appendChild(btnRow);
@@ -6096,8 +6099,10 @@ function fitEditableImage(versionId, mode) {
     toast('먼저 이미지를 업로드해 주세요.', { danger: true });
     return;
   }
-  const banner = document.getElementById('banner-' + versionId);
-  const img = banner && banner.querySelector('img');
+  // dualImage는 stateId가 'mo_2' 등 → banner는 base 버전 id로, img는 data-sid로 특정
+  const baseVid = versionId.replace(/_2$/, '');
+  const banner = document.getElementById('banner-' + baseVid);
+  const img = banner && (banner.querySelector(`img[data-sid="${versionId}"]`) || banner.querySelector('img'));
   const cont = img && img.parentElement;
   if (!img || !cont) { toast('미리보기를 찾지 못했어요.', { danger: true }); return; }
   const fitW = img.offsetWidth, fitH = img.offsetHeight;          // transform 미적용 base 크기
@@ -7914,6 +7919,7 @@ function buildBanner(v, spec) {
         const img = document.createElement('img');
         img.src = imgURL;
         img.draggable = false;
+        img.dataset.sid = stateId;   // fit/편집이 dualImage에서 정확한 이미지를 찾도록
         const offsetX = (fitW - imgW) / 2;
         const offsetY = (fitH - imgH) / 2;
         let imgCSS = `width:${fitW}px;height:${fitH}px;display:block;margin-left:${-offsetX}px;margin-top:${-offsetY}px;flex-shrink:0;max-width:none;`;
