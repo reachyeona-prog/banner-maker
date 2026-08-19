@@ -3216,6 +3216,23 @@ window.onload = () => {
     document.fonts.load('16px GulimLocal').catch(() => {});
     document.fonts.load('900 95px SeoulAlrimHeavy').catch(() => {});  // 달력 제목 폰트 사전 로드
   }
+  // 고정 헤더 높이에 맞춰 body 상단 여백 동기화.
+  //   헤더는 position:fixed라 화면을 덮는데, 좁은 창에서 flex-wrap으로 2줄이 되면 높이가 커진다.
+  //   그런데 body padding-top이 76px로 고정이라 헤더보다 낮으면 입력 패널 상단(탭/업로드)이
+  //   헤더에 가려지고, fixed라 스크롤로도 안 드러났다. 실제 헤더 높이(+16)로 맞춰 해결.
+  (function syncHeaderPad(){
+    const hdr = document.querySelector('.studio-header');
+    if (!hdr) return;
+    const apply = () => {
+      // 모바일(≤900px)에선 헤더가 static(흐름)이라 별도 상단 여백 불필요 → CSS 값 사용
+      if (window.matchMedia('(max-width: 900px)').matches) { document.body.style.paddingTop = ''; return; }
+      document.body.style.paddingTop = (hdr.offsetHeight + 16) + 'px';
+    };
+    apply();
+    if (window.ResizeObserver) new ResizeObserver(apply).observe(hdr);
+    window.addEventListener('resize', apply);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(apply);
+  })();
 };
 // ================================================
 //  multiSlide 슬라이드 헬퍼 (예: 내지 1·2·3을 탭으로 전환)
