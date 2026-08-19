@@ -27,7 +27,21 @@
  *   §17 반응형 (모바일)
  *   §18 prefers-reduced-motion
  * ================================================================ */
-@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
+/* ★ Pretendard 웹폰트 전용 로드 — local() 없이 정적 woff2만.
+   과거 @import(pretendard.min.css)는 src가 local('Pretendard SemiBold') 등이
+   먼저라, 사용자 PC에 설치된 (가변) Pretendard를 우선 사용했다. 그 경우 미리보기는
+   정상이지만 html2canvas 다운로드에서 한글 글리프가 깨졌다(다른 한글로 치환, Mac
+   Chrome + 로컬 Pretendard). @import를 제거하고 아래 url-only 규칙만 남겨 미리보기·
+   다운로드 모두 동일한 정적 웹폰트를 쓰게 한다. */
+@font-face{font-family:'Pretendard';font-weight:100;font-display:swap;src:url('https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/woff2/Pretendard-Thin.woff2') format('woff2')}
+@font-face{font-family:'Pretendard';font-weight:200;font-display:swap;src:url('https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/woff2/Pretendard-ExtraLight.woff2') format('woff2')}
+@font-face{font-family:'Pretendard';font-weight:300;font-display:swap;src:url('https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/woff2/Pretendard-Light.woff2') format('woff2')}
+@font-face{font-family:'Pretendard';font-weight:400;font-display:swap;src:url('https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/woff2/Pretendard-Regular.woff2') format('woff2')}
+@font-face{font-family:'Pretendard';font-weight:500;font-display:swap;src:url('https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/woff2/Pretendard-Medium.woff2') format('woff2')}
+@font-face{font-family:'Pretendard';font-weight:600;font-display:swap;src:url('https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/woff2/Pretendard-SemiBold.woff2') format('woff2')}
+@font-face{font-family:'Pretendard';font-weight:700;font-display:swap;src:url('https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/woff2/Pretendard-Bold.woff2') format('woff2')}
+@font-face{font-family:'Pretendard';font-weight:800;font-display:swap;src:url('https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/woff2/Pretendard-ExtraBold.woff2') format('woff2')}
+@font-face{font-family:'Pretendard';font-weight:900;font-display:swap;src:url('https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/woff2/Pretendard-Black.woff2') format('woff2')}
 
 /* 카드뉴스 표지 말풍선 — 옛 굴림 폰트 (googlefonts/gulim 저장소).
    파일은 같은 폴더의 ./폰트/Gulim.ttf 에 위치해야 합니다 (단일 HTML 휴대성을 깨지만 17MB라 base64 인라인 불가). */
@@ -8282,6 +8296,9 @@ async function downloadVersions(btn, versions) {
       const prevTransform = scaler ? scaler.style.transform : null;
       if (scaler) scaler.style.transform = 'none';
       const dlScale = getDownloadScale(spec);
+      // 폰트 로딩 레이스 방지 — 캡처 전 모든 폰트가 완전히 준비되도록 대기.
+      //   (간헐적으로 한글이 깨져 나오던 원인: 웹폰트가 완전히 로드되기 전 html2canvas가 캡처)
+      if (document.fonts && document.fonts.ready) { try { await document.fonts.ready; } catch (e) {} }
       let canvas;
       try {
         canvas = await html2canvas(el, {
