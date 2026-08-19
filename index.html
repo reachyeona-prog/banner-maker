@@ -260,10 +260,9 @@ button { font-family: inherit; }
 .input-col { flex: 0 0 420px; }
 .preview-col {
   flex: 1; min-width: 0;
-  position: sticky; top: 92px;  /* fixed 헤더 76px + 16px 여백 */
-  align-self: flex-start;
-  max-height: calc(100vh - 108px);
-  overflow-y: auto;
+  /* 페이지와 함께 자연 스크롤 — 예전엔 sticky + 내부 overflow였는데, 미리보기(버전 A/B +
+     편집 버튼 등)가 창보다 길면 미리보기를 직접 hover-스크롤해야 해서 페이지 스크롤로는
+     아래가 안 보였다. 흐름 배치로 바꿔 한 번의 스크롤로 전체 도달. */
 }
 .card {
   background: var(--card); border-radius: var(--radius-lg);
