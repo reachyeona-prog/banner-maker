@@ -3179,6 +3179,19 @@ function setShowMicroSub(val) {
   preserveInputsAcross(renderInputs);   // 입력값 보존하며 UI 재렌더
   renderPreviews();
 }
+// 이미지 영역 모드 — false: 가이드라인 박스 안 / true: 배너 전체에서 자유 확장(클리핑 해제)
+let currentImageFree = false;
+function setImageFree(on) {
+  currentImageFree = !!on;
+  // 모드 전환 시 좌표계(박스↔배너)가 달라져 위치가 튀므로 현재 슬롯 이미지 변형 초기화
+  const spec = SPECS[currentProduct].slots[currentSlot];
+  ((spec && spec.versions) || []).forEach(v => {
+    currentImageTransforms[v.id] = { scale:1, x:0, y:0, rotation:0 };
+    currentImageTransforms[v.id + '_2'] = { scale:1, x:0, y:0, rotation:0 };
+  });
+  renderImageUploads();
+  renderPreviews();
+}
 // hex → rgba 변환 (그라데이션 오버레이용)
 function hexToRgba(hex, alpha) {
   const m = (hex || '#FFFFFF').replace('#','').match(/.{2}/g);
@@ -3422,6 +3435,7 @@ function captureSlotState(product, slot) {
     textColorMode: currentTextColorMode,
     showButton: currentShowButton,
     showMicroSub: currentShowMicroSub,
+    imageFree: currentImageFree,
     mainLines: currentMainLines,
     sourceNote: { ...currentSourceNote },
     subPill: { ...currentSubPill },
@@ -3452,6 +3466,7 @@ function restoreSlotGlobals(product, slot) {
   currentTextColorMode = mem.textColorMode;
   currentShowButton = mem.showButton;
   currentShowMicroSub = mem.showMicroSub || false;
+  currentImageFree = mem.imageFree || false;
   currentMainLines = mem.mainLines;
   currentSourceNote = { ...mem.sourceNote };
   currentSubPill = { ...(mem.subPill || { fill: false, bg: '#FF4F1F', textColor: '#FFFFFF' }) };
@@ -3622,6 +3637,7 @@ function onSlotChange() {
   currentTextColorMode = 'auto';
   currentShowButton = true;
   currentShowMicroSub = false;
+  currentImageFree = false;
   currentMainLines = 3;
   currentSourceNote = { enabled: false, text: '', color: 'auto' };
   currentFreeImages = [];
@@ -4985,6 +5001,25 @@ function renderImageUploads() {
       </div>
       <div class="field-spec">흰색 가까운 픽셀(R/G/B 모두 230 초과)을 투명화. 일러스트의 옅은 면이 사라지면 OFF로 전환하세요.</div>`;
     wrap.appendChild(toggle);
+  }
+  // 이미지 영역 모드 — 가이드 박스보다 작은 편집 가능 이미지가 있는 슬롯(앱/셀러 배너 등)에서
+  //   '가이드 내' vs '자유 확장(배너 전체 자유 조절)' 선택. (bgFull·전체캔버스 editable은 이미 전체라 제외)
+  const hasGuidelineImg = spec.versions.some(v => v.img && !v.img.bgFull
+    && (v.img.editable || spec.dualImage) && (v.img.w < v.w || (v.img.h || 0) < v.h));
+  if (hasGuidelineImg) {
+    const modeField = document.createElement('div');
+    modeField.className = 'field';
+    modeField.style.cssText = 'margin-bottom:14px;';
+    modeField.innerHTML = `
+      <div class="field-label" style="display:flex;align-items:center;gap:10px;">
+        이미지 영역
+        <div class="text-color-segments" style="margin-left:auto;">
+          <div class="text-color-segment ${!currentImageFree ? 'active' : ''}" onclick="setImageFree(false)">가이드 내</div>
+          <div class="text-color-segment ${currentImageFree ? 'active' : ''}" onclick="setImageFree(true)">자유 확장</div>
+        </div>
+      </div>
+      <div class="field-spec">가이드 내: 지정 영역 안에서 조절. 자유 확장: 배너 전체에서 크기·위치 자유 조절(드래그·휠·꽉차게).</div>`;
+    wrap.appendChild(modeField);
   }
   // sharedImage 슬롯은 모든 버전이 같은 이미지를 사용하므로 업로드 영역 1개만 노출
   // A/B alt 버전(-alt)은 원본과 같은 이미지를 공유 → 업로드 영역에서 제외
@@ -7901,23 +7936,29 @@ function buildBanner(v, spec) {
   if (v.img && !v.img.bgFull) {
     // 컨테인드 이미지 박스 — stateId별로 별도 렌더(주: dualImage 슬롯은 v.id, v.id+'_2' 두 번 호출)
     const renderOne = (stateId) => {
+      // 자유 확장 모드: 박스를 배너 전체로 확장(contain 기준) → 배너 안에서 자유롭게 크기·위치.
+      //   (bgFull·전체캔버스 editable은 이미 전체라 제외)
+      const free = currentImageFree && v.img && !v.img.bgFull && (v.img.editable || spec.dualImage);
+      const useCover = free ? false : v.img.cover;
       const iw = document.createElement('div');
-      iw.className = 'b-img' + (v.img.cover ? ' cover' : '');
-      const imgW = v.img.w;
-      const imgH = _computedImgHeight !== null ? _computedImgHeight : v.img.h;
+      iw.className = 'b-img' + (useCover ? ' cover' : '');
+      const imgW = free ? v.w : v.img.w;
+      const imgH = free ? v.h : (_computedImgHeight !== null ? _computedImgHeight : v.img.h);
       const imgTopVal = _computedImgTop !== null ? _computedImgTop : v.img.top;
       const editable = v.img.editable || spec.dualImage;
       let css = `width:${imgW}px;height:${imgH}px;`;
-      if (v.img.vcenter) {
+      if (free) {
+        css += `top:0;left:0;`;
+      } else if (v.img.vcenter) {
         css += `top:${Math.round((v.h - imgH) / 2)}px;`;
       } else if (v.img.hcenter) {
         css += `left:${Math.round((v.w - imgW) / 2)}px;top:${imgTopVal !== undefined ? imgTopVal : 0}px;`;
       } else if (imgTopVal !== undefined) {
         css += `top:${imgTopVal}px;`;
       }
-      if (v.img.bottom !== undefined && _computedImgTop === null) css += `bottom:${v.img.bottom}px;`;
-      if (v.img.right !== undefined) css += `right:${v.img.right}px;`;
-      if (v.img.left !== undefined && !v.img.hcenter) css += `left:${v.img.left}px;`;
+      if (!free && v.img.bottom !== undefined && _computedImgTop === null) css += `bottom:${v.img.bottom}px;`;
+      if (!free && v.img.right !== undefined) css += `right:${v.img.right}px;`;
+      if (!free && v.img.left !== undefined && !v.img.hcenter) css += `left:${v.img.left}px;`;
       iw.style.cssText = css;
       const imgURL = currentImages[stateId];
       const imgSize = currentImageSizes[stateId];
@@ -7925,7 +7966,7 @@ function buildBanner(v, spec) {
         const srcRatio = imgSize.w / imgSize.h;
         const dstRatio = imgW / imgH;
         let fitW, fitH;
-        if (v.img.cover) {
+        if (useCover) {
           if (srcRatio > dstRatio) { fitH = imgH; fitW = imgH * srcRatio; }
           else                     { fitW = imgW; fitH = imgW / srcRatio; }
         } else {
