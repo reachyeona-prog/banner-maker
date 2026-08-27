@@ -1795,6 +1795,7 @@ const SPECS = {
         label: '카피 썸네일',
         bgFixed: null, pointColor: true, noSub: true, isLarge: true,
         downloadScale: 10/9,
+        selectableLines: true, defaultLines: 2,   // 메인 카피 2줄/3줄 선택 (기본 2줄)
         // 슬롯 전용 배경 프리셋 (custom picker는 자동 추가). 첫 항목이 기본값.
         bgPresets: ['#F6F8F9', '#E2FFF9', '#ECFCFF', '#EDFFE9', '#F0FCDD', '#F6EFFE', '#FDEFFE', '#FEF2EF', '#FFF8D7', '#FFFCEC'],
         versions: [{ id: 'web', label: 'WEB', w: 1080, h: 600,
@@ -3638,7 +3639,7 @@ function onSlotChange() {
   currentShowButton = true;
   currentShowMicroSub = false;
   currentImageFree = false;
-  currentMainLines = 3;
+  currentMainLines = (SPECS[currentProduct].slots[currentSlot].defaultLines) || 3;
   currentSourceNote = { enabled: false, text: '', color: 'auto' };
   currentFreeImages = [];
   currentShapes = [];
