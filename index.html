@@ -1795,11 +1795,11 @@ const SPECS = {
         label: '카피 썸네일',
         bgFixed: null, pointColor: true, noSub: true, isLarge: true,
         downloadScale: 10/9,
-        selectableLines: true, defaultLines: 2,   // 메인 카피 2줄/3줄 선택 (기본 2줄)
         // 슬롯 전용 배경 프리셋 (custom picker는 자동 추가). 첫 항목이 기본값.
         bgPresets: ['#F6F8F9', '#E2FFF9', '#ECFCFF', '#EDFFE9', '#F0FCDD', '#F6EFFE', '#FDEFFE', '#FEF2EF', '#FFF8D7', '#FFFCEC'],
         versions: [{ id: 'web', label: 'WEB', w: 1080, h: 600,
-          main: { left:70, right:550, fs:68, lines:2, lh:'140%', vcenter:true, color:'#111111' },
+          // 메인 카피 최대 3줄 — 입력칸 3개 기본 노출, 채운 만큼만 렌더(뒤 빈 줄 자동 트림)
+          main: { left:70, right:550, fs:68, lines:3, lh:'140%', vcenter:true, color:'#111111' },
           img:  { right:100, top:100, bottom:100, w:430, h:400, cover:true, editable:true } }]  // cover 기본 + 드래그 위치·휠 확대
       },
       // 아이콘 썸네일: 텍스트 없음, #F1F8FF 고정, 중앙 정렬 (top/bottom 100px, left/right 170px)
@@ -3639,7 +3639,7 @@ function onSlotChange() {
   currentShowButton = true;
   currentShowMicroSub = false;
   currentImageFree = false;
-  currentMainLines = (SPECS[currentProduct].slots[currentSlot].defaultLines) || 3;
+  currentMainLines = 3;
   currentSourceNote = { enabled: false, text: '', color: 'auto' };
   currentFreeImages = [];
   currentShapes = [];
