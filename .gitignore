@@ -6,3 +6,12 @@ node_modules/
 웹 블로그 썸네일/
 인스타그램 카드 뉴스/
 .claude/settings.local.json
+
+# 달력 — 로컬 전용 원본 (렌더에는 woff2만 쓴다)
+달력/윤고딕310-360/*.ttf
+달력/Helvetica.ttc
+달력/Pretendard/
+# 샘플/작업용 폴더
+banner/
+카드 뉴스 샘플/
+폰트/서울알림/TTF/
