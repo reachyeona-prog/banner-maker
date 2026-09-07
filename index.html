@@ -2820,7 +2820,8 @@ const CAL_JSON_SAMPLE = JSON.stringify({
     '3':  { text: '지방선거', emoji: '🗳️', holiday: true },
     '6':  { text: '현충일', emoji: '🇰🇷', holiday: true },
     '13': { text: '월드디제이\n페스티벌', emoji: '🎧', end: '6/14' },
-    '20': { text: '', mark: true }
+    '20': { text: '', mark: true },
+    '25': { text: '워크숍' }, '26': { text: '워크숍' }
   }
 }, null, 2);
 function applyCalendarJSON(raw, hintEl) {
@@ -4406,8 +4407,10 @@ function renderCalendarInputs(area) {
   const hint = document.createElement('div');
   hint.className = 'field-spec';
   hint.style.cssText = 'margin-bottom:8px;';
-  hint.innerHTML = '이벤트·이모지/이미지·공휴일(빨강)·강조(노랑 동그라미)를 채우세요. 빈 칸은 날짜만 표시돼요.<br>'
-    + '<b>종료</b>에 6/14처럼 넣으면 그날까지 노랑 밴드가 이어져요 (강조보다 우선).<br>'
+  hint.innerHTML = '<b>이벤트를 적으면 그 날짜에 노랑 동그라미가 자동으로 붙어요.</b> 빈 칸은 날짜만 표시돼요.<br>'
+    + '여러 날짜에 걸친 행사(추석 등)는 노랑이 <b>하나로 이어져요</b> — <b>종료</b>에 9/26처럼 넣거나, '
+    + '같은 이벤트명을 연달아 적으면 돼요 (이름은 첫날에만 표시).<br>'
+    + '<b>강조</b>는 이벤트 없이 날짜만 노랑으로 칠하고 싶을 때 쓰세요.<br>'
     + '줄바꿈 대신 <b>^^50^^</b>만 한 줄에 넣으면 폰트 50% 높이의 좁은 간격(숫자=%, 0~100).';
   area.appendChild(hint);
 
@@ -4418,6 +4421,7 @@ function renderCalendarInputs(area) {
     const dayCol = (cc.holiday || wkIdx === 6) ? '#F96C5A' : 'var(--text-primary)';   // 일요일 = 마지막 칸
     const row = document.createElement('div');
     row.style.cssText = 'border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:6px;background:var(--card);';
+    row.setAttribute('data-cal-day', d);
     row.innerHTML = `
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
         <span style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:${dayCol};min-width:44px;">${d} ${wk}</span>
@@ -4428,8 +4432,9 @@ function renderCalendarInputs(area) {
         <input data-k="end" type="text" value="${esc(cc.end)}" placeholder="종료 6/14" style="width:88px;height:30px;padding:0 8px;font-family:var(--font-mono);font-size:12px;border:1px solid var(--border);border-radius:5px;background:${fieldBg};color:var(--text-primary);outline:none;">
         <button type="button" data-act="img" style="height:30px;padding:0 10px;font-size:12px;border:1px solid var(--border);border-radius:5px;background:${cc.img ? 'var(--accent)' : fieldBg};color:${cc.img ? '#fff' : 'var(--text-primary)'};cursor:pointer;white-space:nowrap;">${cc.img ? '이미지 ✓' : '📷'}</button>
         ${cc.img ? `<button type="button" data-act="imgclear" style="height:30px;padding:0 8px;font-size:12px;border:1px solid var(--border);border-radius:5px;background:${fieldBg};color:var(--text-muted);cursor:pointer;">×</button>` : ''}
-        <label style="display:flex;align-items:center;gap:4px;margin-left:auto;font-size:11px;color:var(--text-muted);cursor:pointer;user-select:none;white-space:nowrap;">
-          <input data-k="mark" type="checkbox" ${cc.mark ? 'checked' : ''} style="cursor:pointer;"> 강조
+        <label title="${(cc.text || '').trim() ? '이벤트가 있어 이미 자동 강조돼요' : '이벤트 없이 날짜만 노랑으로'}"
+               style="display:flex;align-items:center;gap:4px;margin-left:auto;font-size:11px;color:var(--text-muted);cursor:${(cc.text || '').trim() ? 'default' : 'pointer'};user-select:none;white-space:nowrap;opacity:${(cc.text || '').trim() ? '.45' : '1'};">
+          <input data-k="mark" type="checkbox" ${((cc.text || '').trim() || cc.mark) ? 'checked' : ''} ${(cc.text || '').trim() ? 'disabled' : ''} style="cursor:inherit;"> 강조${(cc.text || '').trim() ? ' (자동)' : ''}
         </label>
         <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-muted);cursor:pointer;user-select:none;white-space:nowrap;">
           <input data-k="holiday" type="checkbox" ${cc.holiday ? 'checked' : ''} style="cursor:pointer;"> 공휴일
@@ -4437,7 +4442,11 @@ function renderCalendarInputs(area) {
         <input data-act="imgfile" type="file" accept="image/*" style="display:none;">
       </div>`;
     area.appendChild(row);
-    row.querySelector('[data-k="text"]').addEventListener('input', e => setCalCell(d, 'text', e.target.value));
+    row.querySelector('[data-k="text"]').addEventListener('input', e => {
+      const had = !!(calCell(d).text || '').trim(), now = !!e.target.value.trim();
+      setCalCell(d, 'text', e.target.value);
+      if (had !== now) { renderInputs(); const f = document.querySelector(`[data-cal-day="${d}"] [data-k="text"]`); if (f) { f.focus(); f.setSelectionRange(f.value.length, f.value.length); } }
+    });
     row.querySelector('[data-k="emoji"]').addEventListener('input', e => setCalCell(d, 'emoji', e.target.value));
     row.querySelector('[data-k="end"]').addEventListener('input', e => setCalCell(d, 'end', e.target.value));
     row.querySelector('[data-k="holiday"]').addEventListener('change', () => toggleCalHoliday(d));
@@ -7373,14 +7382,29 @@ function buildCalendarCard(v, spec) {
   const daysIn = calDaysInMonth(cal.year, cal.month);
   const first = calFirstWeekday(cal.year, cal.month);
   const rows = Math.ceil((first + daysIn) / 7);
-  // 기간(end) → 어떤 날이 밴드의 시작/중간/끝인지 미리 계산
-  const span = {};
-  for (let d = 1; d <= daysIn; d++) {
-    const cc = cal.cells[d];
-    if (!cc || !cc.end) continue;
-    const last = calParseEndDay(cc.end, cal.month, daysIn);
-    if (last == null || last <= d) continue;
-    for (let k = d; k <= last; k++) span[k] = (k === d) ? 'start' : (k === last ? 'end' : 'mid');
+  // ── 노랑 하이라이트 계산 ──────────────────────────────────
+  //   ① 이벤트가 있는 날은 자동으로 강조된다. 'mark' 체크는 이벤트 없이 강조하고 싶을 때만.
+  //   ② 여러 날에 걸친 행사(추석 등)는 하나로 이어 그린다. 이어지는 조건은 두 가지 —
+  //      · '종료(end)'로 마지막 날을 적은 경우
+  //      · 같은 이벤트명을 연달아 적은 경우 (24·25·26 모두 '추석') → 이름은 첫날에만 표시
+  const cellOf = (d) => cal.cells[d] || {};
+  const textOf = (d) => (cellOf(d).text || '').trim();
+  const isLit  = (d) => !!textOf(d) || !!cellOf(d).mark;   // 이 날 노랑이 켜지는가
+  const span = {};       // day → 'start' | 'mid' | 'end'  (2일 이상 이어지는 구간만)
+  const dupText = {};    // day → true  (앞날과 같은 이벤트명 → 텍스트 숨김)
+  for (let d = 1; d <= daysIn; ) {
+    const cc = cellOf(d);
+    let last = cc.end ? calParseEndDay(cc.end, cal.month, daysIn) : null;
+    const t = textOf(d);
+    if (t) {
+      let k = d;
+      while (k + 1 <= daysIn && textOf(k + 1) === t) { k++; dupText[k] = true; }
+      if (k > d) last = Math.max(last || 0, k);
+    }
+    if (last != null && last > d) {
+      for (let k = d; k <= last; k++) span[k] = (k === d) ? 'start' : (k === last ? 'end' : 'mid');
+      d = last + 1;
+    } else d++;
   }
   const grid = document.createElement('div');
   grid.style.cssText = `flex:1;min-height:0;display:grid;grid-template-columns:repeat(7,1fr);grid-template-rows:repeat(${rows},1fr);`;
@@ -7407,7 +7431,7 @@ function buildCalendarCard(v, spec) {
           + (openR ? 'right:0;' : `width:${DOT_L + DOT - L}px;`)
           + `border-radius:${openL ? 0 : r}px ${openR ? 0 : r}px ${openR ? 0 : r}px ${openL ? 0 : r}px;`;
         cell.appendChild(hl);
-      } else if (cc.mark) {
+      } else if (isLit(dayNum)) {
         const hl = document.createElement('div');
         hl.style.cssText = `position:absolute;left:${DOT_L}px;top:${DOT_T}px;width:${DOT}px;height:${DOT}px;border-radius:50%;background:${CAL_MARK};z-index:0;`;
         cell.appendChild(hl);
@@ -7436,7 +7460,7 @@ function buildCalendarCard(v, spec) {
         cell.appendChild(media);
       }
       // ④ 이벤트 텍스트 — 날짜 아래, 좌측 정렬. 공휴일이어도 글자는 잉크색(시안의 '추석')
-      if (cc.text) {
+      if (cc.text && !dupText[dayNum]) {
         const FS = 25, LH = 1.35;
         const tw = document.createElement('div');
         tw.style.cssText = `position:absolute;left:${DOT_L}px;right:12px;top:63px;bottom:8px;overflow:hidden;text-align:left;z-index:2;`;
