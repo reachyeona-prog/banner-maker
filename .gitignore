@@ -7,8 +7,9 @@ node_modules/
 인스타그램 카드 뉴스/
 .claude/settings.local.json
 
-# 달력 — 로컬 전용 원본 (렌더에는 woff2만 쓴다)
-달력/윤고딕310-360/*.ttf
+# 달력 — 로컬 전용 원본 (렌더에는 웨이브파도체/*.woff2 만 쓴다)
+달력/웨이브 파도체/
+달력/웨이브 문구세트/
 달력/Helvetica.ttc
 달력/Pretendard/
 # 샘플/작업용 폴더
