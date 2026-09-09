@@ -4397,15 +4397,18 @@ function renderCalendarInputs(area) {
   const hint = document.createElement('div');
   hint.className = 'field-spec';
   hint.style.cssText = 'margin-bottom:8px;';
-  hint.innerHTML = '<b>이벤트를 적으면 그 날짜에 노랑 동그라미가 자동으로 붙어요.</b> 빈 칸은 날짜만 표시돼요.<br>'
-    + '여러 날짜에 걸친 행사(추석 등)는 노랑이 <b>하나로 이어져요</b> — <b>종료</b>에 9/26처럼 넣거나, '
-    + '같은 이벤트명을 연달아 적으면 돼요 (이름은 첫날에만 표시).<br>'
-    + '<b>강조</b>는 이벤트 없이 날짜만 노랑으로 칠하고 싶을 때 쓰세요.<br>'
+  hint.innerHTML = '<b>이벤트를 적거나 공휴일을 체크하면</b> 그 날짜에 노랑 동그라미가 자동으로 붙어요.<br>'
+    + '여러 날에 걸친 행사는 노랑이 <b>하나로 이어져요</b> — 이어지는 조건 3가지:<br>'
+    + '&nbsp;· <b>공휴일을 연달아</b> 체크 (추석·설 연휴 — 이름은 첫날에만 적으면 돼요)<br>'
+    + '&nbsp;· <b>종료</b>에 9/26처럼 마지막 날 입력<br>'
+    + '&nbsp;· <b>같은 이벤트명</b>을 연달아 입력 (이름은 첫날에만 표시)<br>'
+    + '<b>강조</b>는 이벤트·공휴일 없이 날짜만 노랑으로 칠할 때 쓰세요 (연달아 찍어도 이어지지 않아요).<br>'
     + '줄바꿈 대신 <b>^^50^^</b>만 한 줄에 넣으면 폰트 50% 높이의 좁은 간격(숫자=%, 0~100).';
   area.appendChild(hint);
 
   for (let d = 1; d <= daysIn; d++) {
     const cc = calCell(d);
+    const autoLit = !!(cc.text || '').trim() || !!cc.holiday;   // 이벤트·공휴일은 노랑이 자동으로 켜짐
     const wkIdx = (first + d - 1) % 7;
     const wk = WD[wkIdx];
     const dayCol = (cc.holiday || wkIdx === 6) ? '#F96C5A' : 'var(--text-primary)';   // 일요일 = 마지막 칸
@@ -4422,9 +4425,9 @@ function renderCalendarInputs(area) {
         <input data-k="end" type="text" value="${esc(cc.end)}" placeholder="종료 6/14" style="width:88px;height:30px;padding:0 8px;font-family:var(--font-mono);font-size:12px;border:1px solid var(--border);border-radius:5px;background:${fieldBg};color:var(--text-primary);outline:none;">
         <button type="button" data-act="img" style="height:30px;padding:0 10px;font-size:12px;border:1px solid var(--border);border-radius:5px;background:${cc.img ? 'var(--accent)' : fieldBg};color:${cc.img ? '#fff' : 'var(--text-primary)'};cursor:pointer;white-space:nowrap;">${cc.img ? '이미지 ✓' : '📷'}</button>
         ${cc.img ? `<button type="button" data-act="imgclear" style="height:30px;padding:0 8px;font-size:12px;border:1px solid var(--border);border-radius:5px;background:${fieldBg};color:var(--text-muted);cursor:pointer;">×</button>` : ''}
-        <label title="${(cc.text || '').trim() ? '이벤트가 있어 이미 자동 강조돼요' : '이벤트 없이 날짜만 노랑으로'}"
-               style="display:flex;align-items:center;gap:4px;margin-left:auto;font-size:11px;color:var(--text-muted);cursor:${(cc.text || '').trim() ? 'default' : 'pointer'};user-select:none;white-space:nowrap;opacity:${(cc.text || '').trim() ? '.45' : '1'};">
-          <input data-k="mark" type="checkbox" ${((cc.text || '').trim() || cc.mark) ? 'checked' : ''} ${(cc.text || '').trim() ? 'disabled' : ''} style="cursor:inherit;"> 강조${(cc.text || '').trim() ? ' (자동)' : ''}
+        <label title="${autoLit ? (cc.holiday ? '공휴일이라 이미 자동 강조돼요' : '이벤트가 있어 이미 자동 강조돼요') : '이벤트 없이 날짜만 노랑으로'}"
+               style="display:flex;align-items:center;gap:4px;margin-left:auto;font-size:11px;color:var(--text-muted);cursor:${autoLit ? 'default' : 'pointer'};user-select:none;white-space:nowrap;opacity:${autoLit ? '.45' : '1'};">
+          <input data-k="mark" type="checkbox" ${(autoLit || cc.mark) ? 'checked' : ''} ${autoLit ? 'disabled' : ''} style="cursor:inherit;"> 강조${autoLit ? ' (자동)' : ''}
         </label>
         <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-muted);cursor:pointer;user-select:none;white-space:nowrap;">
           <input data-k="holiday" type="checkbox" ${cc.holiday ? 'checked' : ''} style="cursor:pointer;"> 공휴일
@@ -7373,26 +7376,28 @@ function buildCalendarCard(v, spec) {
   const first = calFirstWeekday(cal.year, cal.month);
   const rows = Math.ceil((first + daysIn) / 7);
   // ── 노랑 하이라이트 계산 ──────────────────────────────────
-  //   ① 이벤트가 있는 날은 자동으로 강조된다. 'mark' 체크는 이벤트 없이 강조하고 싶을 때만.
-  //   ② 여러 날에 걸친 행사(추석 등)는 하나로 이어 그린다. 이어지는 조건은 두 가지 —
+  //   ① 노랑이 켜지는 날 — 이벤트가 있거나(text), 공휴일이거나(holiday), 수동 강조(mark).
+  //   ② 여러 날에 걸친 행사는 하나로 이어 그린다. 이어지는 조건 세 가지 —
   //      · '종료(end)'로 마지막 날을 적은 경우
   //      · 같은 이벤트명을 연달아 적은 경우 (24·25·26 모두 '추석') → 이름은 첫날에만 표시
+  //      · 공휴일이 연달아 있는 경우 (추석·설 연휴 — 이름은 보통 첫날에만 적는다)
+  //   'mark'만 연달아 찍은 건 이어붙이지 않는다 — 시안의 9·10·11·12처럼 날짜별 강조가 목적이라서.
   const cellOf = (d) => cal.cells[d] || {};
   const textOf = (d) => (cellOf(d).text || '').trim();
-  const isLit  = (d) => !!textOf(d) || !!cellOf(d).mark;   // 이 날 노랑이 켜지는가
+  const isHol  = (d) => !!cellOf(d).holiday;
+  const isLit  = (d) => !!textOf(d) || isHol(d) || !!cellOf(d).mark;
+  // d와 d+1이 한 덩어리로 이어지는가
+  const linked = (d) => (!!textOf(d) && textOf(d + 1) === textOf(d)) || (isHol(d) && isHol(d + 1));
   const span = {};       // day → 'start' | 'mid' | 'end'  (2일 이상 이어지는 구간만)
   const dupText = {};    // day → true  (앞날과 같은 이벤트명 → 텍스트 숨김)
+  for (let d = 2; d <= daysIn; d++) if (textOf(d) && textOf(d) === textOf(d - 1)) dupText[d] = true;
   for (let d = 1; d <= daysIn; ) {
-    const cc = cellOf(d);
-    let last = cc.end ? calParseEndDay(cc.end, cal.month, daysIn) : null;
-    const t = textOf(d);
-    if (t) {
-      let k = d;
-      while (k + 1 <= daysIn && textOf(k + 1) === t) { k++; dupText[k] = true; }
-      if (k > d) last = Math.max(last || 0, k);
-    }
+    let last = cellOf(d).end ? calParseEndDay(cellOf(d).end, cal.month, daysIn) : null;
+    let k = d;
+    while (k < daysIn && linked(k)) k++;      // 이어지는 만큼 확장
+    if (k > d) last = Math.max(last || 0, k);
     if (last != null && last > d) {
-      for (let k = d; k <= last; k++) span[k] = (k === d) ? 'start' : (k === last ? 'end' : 'mid');
+      for (let j = d; j <= last; j++) span[j] = (j === d) ? 'start' : (j === last ? 'end' : 'mid');
       d = last + 1;
     } else d++;
   }
